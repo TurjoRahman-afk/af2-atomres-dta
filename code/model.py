@@ -3,40 +3,30 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from hyperparameter import HyperParameter
-from collections import OrderedDict
-import math
-from kan import KAN
-from torch_geometric.nn import GINConv, GCNConv, GATConv, SAGEConv, global_add_pool
-from torch.nn import Sequential, Linear, ReLU
+from torch_geometric.nn import GCNConv, GATConv, global_add_pool
+from torch.nn import Linear
 
 hp = HyperParameter()
 os.environ["CUDA_VISIBLE_DEVICES"] = hp.cuda
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-class GatedFusionLayer(nn.Module):
-    def __init__(self, v_dim, q_dim, output_dim=128, dropout_rate=0.2):
-        super(GatedFusionLayer, self).__init__()
-        #v_dim : input dimension of first vector
-        self.v_transform = nn.Linear(v_dim, output_dim)
-        #q_dim : input dimension of second vector    
-        self.q_transform = nn.Linear(q_dim, output_dim)
-        self.gate_transform = nn.Linear(output_dim*2, output_dim)
-        self.activation = nn.Tanh()
-        self.output_dim = output_dim
+class BilinearFusion(nn.Module):
+    def __init__(self, drug_dim=256, prot_dim=256, output_dim=128, rank=64):
+        super().__init__()
+        # Low-rank factorization: avoids full drug_dim x prot_dim x output_dim tensor
+        self.drug_proj = nn.Linear(drug_dim, rank)
+        self.prot_proj = nn.Linear(prot_dim, rank)
+        self.output_proj = nn.Linear(rank, output_dim)
+        self.dropout = nn.Dropout(0.2)
+        self.bn = nn.BatchNorm1d(output_dim)
 
-    def get_output_shape(self):
-        return self.output_dim
-
-    def forward(self, v, q):
-        v_proj = self.activation(self.v_transform(v)) # drug graph features
-        q_proj = self.activation(self.q_transform(q)) # protein graph features
-
-        concat_proj = torch.cat([v_proj, q_proj], dim=1)
-        gate = torch.sigmoid(self.gate_transform(concat_proj))
-
-        gated_output = gate * v_proj + (1 - gate) * q_proj
-        return gated_output
+    def forward(self, drug, prot):
+        d = torch.tanh(self.drug_proj(drug))    # [B, rank]
+        p = torch.tanh(self.prot_proj(prot))    # [B, rank]
+        interaction = d * p                      # element-wise [B, rank]
+        out = self.output_proj(interaction)      # [B, output_dim]
+        return self.bn(self.dropout(out))
 
 
 class DrugGraphNet(torch.nn.Module):
@@ -49,41 +39,25 @@ class DrugGraphNet(torch.nn.Module):
         self.relu = nn.ReLU()
         self.n_output = n_output
 
-        self.conv0 = GCNConv(num_features_xd, dim) #88 -> 128
+        self.conv0 = GCNConv(num_features_xd, dim)
         self.bn0 = torch.nn.BatchNorm1d(dim)
-        #Graph Attention Network (GAT) layer
         self.conv1 = GATConv(dim, dim)
         self.bn1 = torch.nn.BatchNorm1d(dim)
-
         self.conv2 = GATConv(dim, dim)
         self.bn2 = torch.nn.BatchNorm1d(dim)
-
         self.conv3 = GATConv(dim, dim)
         self.bn3 = torch.nn.BatchNorm1d(dim)
-
         self.conv4 = GATConv(dim, dim)
         self.bn4 = torch.nn.BatchNorm1d(dim)
-
         self.conv5 = GATConv(dim, dim)
         self.bn5 = torch.nn.BatchNorm1d(dim)
-        #fully connected layers
         self.fc1_xd = Linear(dim, output_dim)
-
-        self.fc1 = nn.Linear(128, 1024)
-        self.fc2 = nn.Linear(1024, 256)
-        self.out = nn.Linear(256, self.n_output)
 
     def forward(self, data):
         x, edge_index, edge_weight, batch = data.x.to(device), data.edge_index.to(device), data.edge_weight.to(device), data.batch.to(device)
-        """
-        x: number of atoms in batch
-        edge_index: edge connectivity
-        edge_weightL edge features
-        batch: batch assignment for each node"""
-        #GCN Conv Operation
+
         x = self.relu(self.conv0(x, edge_index, edge_weight.mean(dim=1)))
         x = self.bn0(x)
-        #five GAT Conv Layers
         x = F.relu(self.conv1(x, edge_index))
         x = self.bn1(x)
         x = F.relu(self.conv2(x, edge_index))
@@ -97,18 +71,7 @@ class DrugGraphNet(torch.nn.Module):
         x = global_add_pool(x, batch)
         x = F.relu(self.fc1_xd(x))
         x = F.dropout(x, p=0.2, training=self.training)
-
-        #unused layers
-        # never used any of them
-        xc = x
-        xc = self.fc1(xc)
-        xc = self.relu(xc)
-        xc = self.dropout(xc)
-        xc = self.fc2(xc)
-        xc = self.relu(xc)
-        xc = self.dropout(xc)
-        out = self.out(xc)
-        return out
+        return x
 
 
 class ProteinGraphNet(torch.nn.Module):
@@ -121,31 +84,19 @@ class ProteinGraphNet(torch.nn.Module):
         self.relu = nn.ReLU()
         self.n_output = n_output
 
-        self.conv0 = GCNConv(num_features_xd, dim) # 1152 -> 256 
+        self.conv0 = GCNConv(num_features_xd, dim)
         self.bn0 = torch.nn.BatchNorm1d(dim)
-
         self.conv1 = GATConv(dim, dim)
         self.bn1 = torch.nn.BatchNorm1d(dim)
-
         self.conv2 = GATConv(dim, dim)
         self.bn2 = torch.nn.BatchNorm1d(dim)
-
         self.conv3 = GATConv(dim, dim)
         self.bn3 = torch.nn.BatchNorm1d(dim)
-
         self.conv4 = GATConv(dim, dim)
         self.bn4 = torch.nn.BatchNorm1d(dim)
-
         self.conv5 = GATConv(dim, dim)
         self.bn5 = torch.nn.BatchNorm1d(dim)
-
-        # compress graph output: 256 -> 128
         self.fc1_xd = Linear(dim, output_dim)
-
-        # unused while called from the model 
-        self.fc1 = nn.Linear(128, 1024)
-        self.fc2 = nn.Linear(1024, 256)
-        self.out = nn.Linear(256, self.n_output)
 
     def forward(self, data):
         x, edge_index, edge_weight, batch = data.x.to(device), data.edge_index.to(device), data.edge_weight.to(device), data.batch.to(device)
@@ -165,17 +116,8 @@ class ProteinGraphNet(torch.nn.Module):
         x = global_add_pool(x, batch)
         x = F.relu(self.fc1_xd(x))
         x = F.dropout(x, p=0.2, training=self.training)
+        return x
 
-        # when the model calls fasta_graph (MODEL) it receives out 
-        xc = x
-        xc = self.fc1(xc)
-        xc = self.relu(xc)
-        xc = self.dropout(xc)
-        xc = self.fc2(xc)
-        xc = self.relu(xc)
-        xc = self.dropout(xc)
-        out = self.out(xc)
-        return out
 
 class LinearAttention(nn.Module):
     def __init__(self, input_dim=128, hidden_dim=32, heads=10):
@@ -183,11 +125,9 @@ class LinearAttention(nn.Module):
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.heads = heads
-
         self.linear_first = torch.nn.Linear(self.input_dim, self.hidden_dim)
         self.linear_second = torch.nn.Linear(self.hidden_dim, self.heads)
         self.softmax = nn.Softmax(dim=-1)
-
 
     def forward(self, x, masks):
         sentence_att = F.tanh(self.linear_first(x))
@@ -198,8 +138,8 @@ class LinearAttention(nn.Module):
         att = self.softmax(e)
         sentence_embed = att @ x
         avg_sentence_embed = torch.sum(sentence_embed, 1) / self.heads
-
         return avg_sentence_embed
+
 
 class MODEL(nn.Module):
 
@@ -211,39 +151,43 @@ class MODEL(nn.Module):
         self.encoder_layers = 3
         self.encoder_heads = 8
         self.feedforward_dim = 1024
-
         self.dropout = 0.2
 
-        # takes molecular / protein graph as input and outputs 128-dim vector
         self.drug_graph_model = DrugGraphNet(n_output=128)
         self.protein_graph_model = ProteinGraphNet(n_output=128)
 
-        """
-        two transformer encoder one for drugs and the other is for the protein
-        each has 3 layers of self attention
-
-        """
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=128, dim_feedforward=self.feedforward_dim, nhead=self.encoder_heads)
         self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=self.encoder_layers)
 
         self.encoder_layer2 = nn.TransformerEncoderLayer(d_model=128, dim_feedforward=self.feedforward_dim, nhead=self.encoder_heads)
         self.transformer_encoder2 = nn.TransformerEncoder(self.encoder_layer2, num_layers=self.encoder_layers)
 
-        # three attention pooling layers for drug, target and their interactions
-        self.drug_attn = LinearAttention(128, 64, 8) # drug sequence - vector
-        self.target_attn = LinearAttention(128, 64, 8) # protein sequence - vector
-        self.inter_attn_one = LinearAttention(128, 64, 8) # drug + protein - vector
+        # Cross-attention: drug tokens attend to protein, protein tokens attend to drug
+        self.cross_attn_drug = nn.MultiheadAttention(embed_dim=128, num_heads=8, dropout=0.2, batch_first=True)
+        self.cross_attn_prot = nn.MultiheadAttention(embed_dim=128, num_heads=8, dropout=0.2, batch_first=True)
 
-        # layer normalization for drug and target sequences
+        # Interaction branch (concatenated drug+protein sequence) — kept for additional context
+        self.inter_attn_one = LinearAttention(128, 64, 8)
+
         self.drug_ln = nn.LayerNorm(128)
         self.target_ln = nn.LayerNorm(128)
-        
-        self.attnention = GatedFusionLayer(v_dim=128, q_dim=128, output_dim=128, dropout_rate=0.2)        
 
         self.fc2 = nn.Linear(self.protvec_dim, 128)
         self.fc3 = nn.Linear(self.mol2vec_dim, 128)
 
-        self.kan_lin =  KAN([512, 1024, 512, 1])
+        # Bilinear fusion: drug-side (seq+graph) x protein-side (seq+graph)
+        self.bilinear = BilinearFusion(drug_dim=256, prot_dim=256, output_dim=128, rank=64)
+
+        # Final MLP: bilinear_out(128) + cat_attn(128) = 256
+        self.mlp = nn.Sequential(
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(64, 1)
+        )
 
     def generate_masks(self, adj, adj_sizes, n_heads):
         out = torch.ones(adj.shape[0], adj.shape[1])
@@ -258,27 +202,40 @@ class MODEL(nn.Module):
 
     def forward(self, drug, drug_mat, drug_mask, protein, prot_mat, prot_mask, drug_graph, protein_graph):
 
-        smiles_graph = self.drug_graph_model(drug_graph)        
-        fasta_graph = self.protein_graph_model(protein_graph)
+        smiles_graph = self.drug_graph_model(drug_graph)        # [B, 128]
+        fasta_graph = self.protein_graph_model(protein_graph)   # [B, 128]
 
-        # drug sequence branch
-        smiles_emb = self.transformer_encoder(self.fc3(drug_mat))
-        xd = self.drug_ln(smiles_emb)
+        # Drug sequence branch
+        smiles_emb = self.transformer_encoder(self.fc3(drug_mat))   # [B, 220, 128]
+        xd = self.drug_ln(smiles_emb)                               # [B, 220, 128]
+
+        # Protein sequence branch
+        fasta_emb = self.transformer_encoder2(self.fc2(prot_mat))   # [B, 1200, 128]
+        xp = self.target_ln(fasta_emb)                              # [B, 1200, 128]
+
+        # Cross-attention: drug attends to protein, protein attends to drug
+        drug_pad_mask = ~drug_mask.bool()   # [B, 220]  True = padding position
+        prot_pad_mask = ~prot_mask.bool()   # [B, 1200] True = padding position
+
+        xd_cross, _ = self.cross_attn_drug(query=xd, key=xp, value=xp, key_padding_mask=prot_pad_mask)
+        xp_cross, _ = self.cross_attn_prot(query=xp, key=xd, value=xd, key_padding_mask=drug_pad_mask)
+
+        xd_attn = xd_cross.mean(dim=1)     # [B, 128]
+        xp_attn = xp_cross.mean(dim=1)     # [B, 128]
+
+        # Interaction branch: combined drug+protein sequence → attention pooling
+        cat_f = torch.cat([xp, xd], dim=1)                         # [B, 1420, 128]
         smiles_mask = self.generate_masks(xd, 128, 8)
-        xd_attn = self.drug_attn(xd, smiles_mask)
-
-        fasta_emb = self.transformer_encoder2(self.fc2(prot_mat))
-        xp = self.target_ln(fasta_emb)
         fasta_mask = self.generate_masks(xp, 128, 8)
-        xp_attn = self.target_attn(xp, fasta_mask)
+        cat_mask = torch.cat([fasta_mask, smiles_mask], dim=-1)     # [B, 8, 1420]
+        cat_attn = self.inter_attn_one(cat_f, cat_mask)             # [B, 128]
 
-        #interaction sequence branch
-        # this combines the whole protein sequence and whole drug sequence
-        cat_f = torch.cat([xp, xd], dim=1)
-        cat_mask = torch.cat([fasta_mask, smiles_mask], dim=-1)
-        cat_attn = self.inter_attn_one(cat_f, cat_mask)
+        # Bilinear fusion: pair drug-side and protein-side features
+        drug_side = torch.cat([xd_attn, smiles_graph], dim=-1)      # [B, 256]
+        prot_side = torch.cat([xp_attn, fasta_graph], dim=-1)       # [B, 256]
+        bilinear_out = self.bilinear(drug_side, prot_side)           # [B, 128]
 
-        graph_att = self.attnention(smiles_graph, fasta_graph)
-
-        out = self.kan_lin(torch.cat([xd_attn, cat_attn, xp_attn, graph_att], dim=-1))
+        # Final prediction
+        final = torch.cat([bilinear_out, cat_attn], dim=-1)         # [B, 256]
+        out = self.mlp(final)                                        # [B, 1]
         return out

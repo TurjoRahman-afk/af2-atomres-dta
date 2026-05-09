@@ -9,9 +9,9 @@ class HyperParameter:
         
         self.mol2vec_dir = './KANPM-DTA/pretrained/{self.dataset}/{self.dataset}_chem_pretrained.pkl'
         self.protvec_dir = './KANPM-DTA/pretrained/{self.dataset}/{self.dataset}_esmc_pretrain.pkl'
-        self.contact_map = './KANPM-DTA/pretrained/{self.dataset}/{self.dataset}_esm2_contact_map.pkl'        
-        self.drugs_dir = f'{self.data_root}/{self.dataset}/{self.dataset}_drugs.csv'   
-        self.prots_dir = f'{self.data_root}/{self.dataset}/{self.dataset}_prots.csv'   
+        self.contact_map = f'./KANPM-DTA/pretrained/{self.dataset}/{self.dataset}_af2_contact_map.pkl'
+        self.drugs_dir = f'{self.data_root}/{self.dataset}/{self.dataset}_drugs.csv'
+        self.prots_dir = f'{self.data_root}/{self.dataset}/{self.dataset}_prots.csv'
 
         self.Learning_rate = 1e-4
         self.Epoch = 200
@@ -30,6 +30,6 @@ class HyperParameter:
         self.dataset = data_name
         self.mol2vec_dir = './KANPM-DTA/pretrained/{self.dataset}/{self.dataset}_chem_pretrained.pkl'
         self.protvec_dir = './KANPM-DTA/pretrained/{self.dataset}/{self.dataset}_esmc_pretrain.pkl'
-        self.contact_map = './KANPM-DTA/pretrained/{self.dataset}/{self.dataset}_esm2_contact_map.pkl'           
-        self.drugs_dir = f'{self.data_root}/{self.dataset}/{self.dataset}_drugs.csv'   
+        self.contact_map = f'./KANPM-DTA/pretrained/{self.dataset}/{self.dataset}_af2_contact_map.pkl'
+        self.drugs_dir = f'{self.data_root}/{self.dataset}/{self.dataset}_drugs.csv'
         self.prots_dir = f'{self.data_root}/{self.dataset}/{self.dataset}_prots.csv'
