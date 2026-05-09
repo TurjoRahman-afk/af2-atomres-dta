@@ -26,6 +26,7 @@ import requests
 import numpy as np
 import pandas as pd
 from pathlib import Path
+from typing import Optional
 
 try:
     from Bio.PDB import PDBParser
@@ -41,7 +42,7 @@ UNIPROT_SEARCH_URL = "https://rest.uniprot.org/uniprotkb/search"
 CONTACT_THRESHOLD_ANGSTROM = 8.0
 
 
-def gene_name_to_uniprot(gene_name: str, organism: str = "Homo sapiens") -> str | None:
+def gene_name_to_uniprot(gene_name: str, organism: str = "Homo sapiens") -> Optional[str]:
     """Query UniProt REST API to get accession ID from gene name."""
     params = {
         "query": f"gene_exact:{gene_name} AND organism_name:{organism} AND reviewed:true",
@@ -60,7 +61,7 @@ def gene_name_to_uniprot(gene_name: str, organism: str = "Homo sapiens") -> str 
     return None
 
 
-def download_alphafold_pdb(uniprot_id: str) -> str | None:
+def download_alphafold_pdb(uniprot_id: str) -> Optional[str]:
     """Download AlphaFold2 PDB file content as string."""
     url = ALPHAFOLD_URL.format(uniprot_id=uniprot_id)
     try:
@@ -74,7 +75,7 @@ def download_alphafold_pdb(uniprot_id: str) -> str | None:
     return None
 
 
-def extract_ca_coords(pdb_string: str) -> np.ndarray | None:
+def extract_ca_coords(pdb_string: str) -> Optional[np.ndarray]:
     """Parse PDB string and extract Cα atom coordinates."""
     parser = PDBParser(QUIET=True)
     structure = parser.get_structure("protein", io.StringIO(pdb_string))
@@ -109,6 +110,7 @@ def process_dataset(dataset: str, data_root: str = "./datasets", output_root: st
 
     prot_df = pd.read_csv(prot_csv)
     prot_ids = prot_df["target_key"].tolist()
+    seq_len_map = dict(zip(prot_df["target_key"].astype(str), prot_df["target_sequence"].str.len()))
     print(f"Processing {len(prot_ids)} proteins for dataset: {dataset}")
 
     contact_map_dict = {}
@@ -143,6 +145,14 @@ def process_dataset(dataset: str, data_root: str = "./datasets", output_root: st
 
         # Step 4: Compute contact map
         contact_map = coords_to_contact_map(ca_coords)
+
+        # Align length to sequence from CSV — prevents index errors in target2graph()
+        expected_len = seq_len_map.get(str(prot_id))
+        if expected_len and contact_map.shape[0] != expected_len:
+            min_len = min(contact_map.shape[0], expected_len)
+            contact_map = contact_map[:min_len, :min_len]
+            print(f"  Length aligned: AF2={len(ca_coords)}, seq={expected_len} → cropped to {min_len}")
+
         contact_map_dict[str(prot_id)] = contact_map
 
         time.sleep(0.3)  # polite delay for API

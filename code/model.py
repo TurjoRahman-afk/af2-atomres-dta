@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from hyperparameter import HyperParameter
 from torch_geometric.nn import GCNConv, GATConv, global_add_pool
 from torch.nn import Linear
+from kan import KAN
 
 hp = HyperParameter()
 os.environ["CUDA_VISIBLE_DEVICES"] = hp.cuda
@@ -178,16 +179,8 @@ class MODEL(nn.Module):
         # Bilinear fusion: drug-side (seq+graph) x protein-side (seq+graph)
         self.bilinear = BilinearFusion(drug_dim=256, prot_dim=256, output_dim=128, rank=64)
 
-        # Final MLP: bilinear_out(128) + cat_attn(128) = 256
-        self.mlp = nn.Sequential(
-            nn.Linear(256, 128),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(64, 1)
-        )
+        # KAN predictor: bilinear_out(128) + cat_attn(128) = 256
+        self.kan_predictor = KAN([256, 128, 64, 1])
 
     def generate_masks(self, adj, adj_sizes, n_heads):
         out = torch.ones(adj.shape[0], adj.shape[1])
@@ -237,5 +230,5 @@ class MODEL(nn.Module):
 
         # Final prediction
         final = torch.cat([bilinear_out, cat_attn], dim=-1)         # [B, 256]
-        out = self.mlp(final)                                        # [B, 1]
+        out = self.kan_predictor(final)                              # [B, 1]
         return out
