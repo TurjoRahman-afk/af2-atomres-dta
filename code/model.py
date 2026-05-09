@@ -177,10 +177,13 @@ class MODEL(nn.Module):
         self.fc3 = nn.Linear(self.mol2vec_dim, 128)
 
         # Bilinear fusion: drug-side (seq+graph) x protein-side (seq+graph)
-        self.bilinear = BilinearFusion(drug_dim=256, prot_dim=256, output_dim=128, rank=64)
+        self.bilinear = BilinearFusion(drug_dim=256, prot_dim=256, output_dim=256, rank=64)
 
-        # KAN predictor: bilinear_out(128) + cat_attn(128) = 256
-        self.kan_predictor = KAN([256, 128, 64, 1])
+        # Project cat_attn from 128 → 256 to match bilinear_out dimension
+        self.cat_attn_proj = nn.Linear(128, 256)
+
+        # KAN predictor: bilinear_out(256) + cat_attn_proj(256) = 512
+        self.kan_predictor = KAN([512, 1024, 512, 1])
 
     def generate_masks(self, adj, adj_sizes, n_heads):
         out = torch.ones(adj.shape[0], adj.shape[1])
@@ -221,14 +224,14 @@ class MODEL(nn.Module):
         smiles_mask = self.generate_masks(xd, 128, 8)
         fasta_mask = self.generate_masks(xp, 128, 8)
         cat_mask = torch.cat([fasta_mask, smiles_mask], dim=-1)     # [B, 8, 1420]
-        cat_attn = self.inter_attn_one(cat_f, cat_mask)             # [B, 128]
+        cat_attn = self.cat_attn_proj(self.inter_attn_one(cat_f, cat_mask))  # [B, 256]
 
         # Bilinear fusion: pair drug-side and protein-side features
         drug_side = torch.cat([xd_attn, smiles_graph], dim=-1)      # [B, 256]
         prot_side = torch.cat([xp_attn, fasta_graph], dim=-1)       # [B, 256]
-        bilinear_out = self.bilinear(drug_side, prot_side)           # [B, 128]
+        bilinear_out = self.bilinear(drug_side, prot_side)           # [B, 256]
 
         # Final prediction
-        final = torch.cat([bilinear_out, cat_attn], dim=-1)         # [B, 256]
+        final = torch.cat([bilinear_out, cat_attn], dim=-1)         # [B, 512]
         out = self.kan_predictor(final)                              # [B, 1]
         return out
