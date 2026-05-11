@@ -37,7 +37,7 @@ except ImportError:
     raise ImportError("Run: pip install biopython")
 
 
-ALPHAFOLD_URL = "https://alphafold.ebi.ac.uk/files/AF-{uniprot_id}-F1-model_v4.pdb"
+ALPHAFOLD_API_URL = "https://alphafold.ebi.ac.uk/api/prediction/{uniprot_id}"
 UNIPROT_SEARCH_URL = "https://rest.uniprot.org/uniprotkb/search"
 CONTACT_THRESHOLD_ANGSTROM = 8.0
 
@@ -62,14 +62,22 @@ def gene_name_to_uniprot(gene_name: str, organism: str = "Homo sapiens") -> Opti
 
 
 def download_alphafold_pdb(uniprot_id: str) -> Optional[str]:
-    """Download AlphaFold2 PDB file content as string."""
-    url = ALPHAFOLD_URL.format(uniprot_id=uniprot_id)
+    """Query AlphaFold API to get the correct PDB URL, then download it."""
+    api_url = ALPHAFOLD_API_URL.format(uniprot_id=uniprot_id)
     try:
-        resp = requests.get(url, timeout=30)
+        api_resp = requests.get(api_url, timeout=15)
+        if api_resp.status_code != 200 or not api_resp.json():
+            print(f"  No AlphaFold2 entry for {uniprot_id}")
+            return None
+        pdb_url = api_resp.json()[0].get("pdbUrl")
+        if not pdb_url:
+            print(f"  No pdbUrl in AlphaFold2 response for {uniprot_id}")
+            return None
+        resp = requests.get(pdb_url, timeout=30)
         if resp.status_code == 200:
             return resp.text
         else:
-            print(f"  AlphaFold2 PDB not found for {uniprot_id} (HTTP {resp.status_code})")
+            print(f"  PDB download failed for {uniprot_id} (HTTP {resp.status_code})")
     except Exception as e:
         print(f"  Download failed for {uniprot_id}: {e}")
     return None

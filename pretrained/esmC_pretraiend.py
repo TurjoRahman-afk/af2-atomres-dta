@@ -10,12 +10,12 @@ model = ESMC.from_pretrained("esmc_600m").to("cuda").eval()
 
 MAX_SEQ_LENGTH = 1200
 
-def get_esmc_pretrain(model, df_dir, db_name):
+def get_esmc_pretrain(model, df_dir, db_name, id_col='target_key', seq_col='target_sequence'):
     df = pd.read_csv(df_dir)
 
     emb_dict, emb_mat_dict, length_target = {}, {}, {}
 
-    for prot_id, seq in tqdm(zip(df['target_key'], df['target_sequence']), total=len(df)):
+    for prot_id, seq in tqdm(zip(df[id_col], df[seq_col]), total=len(df)):
         prot_id = str(prot_id)
         seq = str(seq)[:MAX_SEQ_LENGTH]
         protein = ESMProtein(sequence=seq)
@@ -43,6 +43,12 @@ def get_esmc_pretrain(model, df_dir, db_name):
     print(f"Saved {db_name} ESM-C features.")
 
 
+DATASET_COLS = {
+    'davis': ('target_key', 'target_sequence'),
+    'kiba':  ('target_key', 'target_sequence'),
+    'metz':  ('prot_id',   'prot_seq'),
+}
+
 db_names = ['davis', 'kiba', 'metz']
 df_dirs = [
     './datasets/davis/davis_prots.csv',
@@ -52,7 +58,8 @@ df_dirs = [
 
 for db_name, df_dir in zip(db_names, df_dirs):
     try:
+        id_col, seq_col = DATASET_COLS[db_name]
         print(f'Computing {db_name} protein embeddings with ESM-C.')
-        get_esmc_pretrain(model, df_dir, db_name)
+        get_esmc_pretrain(model, df_dir, db_name, id_col=id_col, seq_col=seq_col)
     except FileNotFoundError:
         print(f'Skipping {db_name} — CSV not found at {df_dir}')

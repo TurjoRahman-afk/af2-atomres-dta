@@ -4,7 +4,7 @@ import torch
 import pandas as pd
 from transformers import AutoTokenizer, RobertaModel
 
-def get_chem_pretrain(df_dir, db_name, max_smiles_length=220):
+def get_chem_pretrain(df_dir, db_name, max_smiles_length=220, id_col='drug_key', seq_col='compound_iso_smiles'):
     df = pd.read_csv(df_dir)
 
     model_name = "DeepChem/ChemBERTa-77M-MTR"
@@ -19,7 +19,7 @@ def get_chem_pretrain(df_dir, db_name, max_smiles_length=220):
         "length_dict": {}
     }
 
-    for drug_id, smile in tqdm(zip(df['drug_key'], df['compound_iso_smiles']),
+    for drug_id, smile in tqdm(zip(df[id_col], df[seq_col]),
                                total=len(df), desc="Processing SMILES"):
         drug_id = str(drug_id)
         smile = str(smile)[:max_smiles_length]
@@ -39,6 +39,12 @@ def get_chem_pretrain(df_dir, db_name, max_smiles_length=220):
     print(f"Saved embeddings for {len(embeddings['vec_dict'])} compounds to {output_path}")
 
 
+DATASET_COLS = {
+    'davis': ('drug_key', 'compound_iso_smiles'),
+    'kiba':  ('drug_key', 'compound_iso_smiles'),
+    'metz':  ('drug_id',  'drug_seq'),
+}
+
 db_names = ['davis', 'kiba', 'metz']
 df_dirs = [
     './datasets/davis/davis_drugs.csv',
@@ -48,7 +54,8 @@ df_dirs = [
 
 for db_name, df_dir in zip(db_names, df_dirs):
     try:
+        id_col, seq_col = DATASET_COLS[db_name]
         print(f'Computing {db_name} drug embeddings with ChemBERTa.')
-        get_chem_pretrain(df_dir, db_name)
+        get_chem_pretrain(df_dir, db_name, id_col=id_col, seq_col=seq_col)
     except FileNotFoundError:
         print(f'Skipping {db_name} — CSV not found at {df_dir}')
