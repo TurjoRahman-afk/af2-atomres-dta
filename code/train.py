@@ -92,7 +92,7 @@ if __name__ == "__main__":
     train_log = []     
     best_valid_mse = 10  
     patience = 0    
-    model_fromTrain = f'./KANPM-DTA/savemodel/{hp.dataset}-{hp.running_set}.pth'
+    model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}.pth'
                  
     for epoch in range(1, hp.Epoch + 1):
         # trainning
@@ -143,7 +143,7 @@ if __name__ == "__main__":
                 print(f'Traing stop at epoch-{epoch}, model save at-{model_fromTrain}')
                 break 
                
-    log_dir = f"./KANPM-DTA/log/{hp.dataset}-{hp.running_set}.csv"
+    log_dir = f"./log/{hp.dataset}-{hp.running_set}.csv"
     with open(log_dir, "w+")as f:
         writer = csv.writer(f)
         writer.writerow(["mse",  "ci", "rm2"])
@@ -163,5 +163,5 @@ if __name__ == "__main__":
         
     # save training log
     test_metrics = pd.DataFrame(save_metrics)    
-    test_metrics.to_csv(f'./KANPM-DTA/log/Test-{hp.dataset}-{hp.running_set}.csv', index=False)     
+    test_metrics.to_csv(f'./log/Test-{hp.dataset}-{hp.running_set}.csv', index=False)     
     print(f"Dataset-{hp.dataset}-{hp.running_set}")

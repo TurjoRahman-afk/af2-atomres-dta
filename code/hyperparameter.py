@@ -3,19 +3,19 @@ from datetime import datetime
 
 class HyperParameter:
     def __init__(self):
-        self.data_root = './KANPM-DTA/datasets'
+        self.data_root = './datasets'
         self.dataset = 'davis' #davis, kiba, metz, bindingDB
         self.running_set = 'warm' #warm, novel-drug, novel-prot, novel-pair
-        
-        self.mol2vec_dir = f'./KANPM-DTA/pretrained/{self.dataset}/{self.dataset}_chem_pretrained.pkl'
-        self.protvec_dir = f'./KANPM-DTA/pretrained/{self.dataset}/{self.dataset}_esmc_pretrain.pkl'
-        self.contact_map = f'./KANPM-DTA/pretrained/{self.dataset}/{self.dataset}_af2_contact_map.pkl'
+
+        self.mol2vec_dir = f'./pretrained/{self.dataset}/{self.dataset}_chem_pretrained.pkl'
+        self.protvec_dir = f'./pretrained/{self.dataset}/{self.dataset}_esmc_pretrain.pkl'
+        self.contact_map = f'./pretrained/{self.dataset}/{self.dataset}_af2_contact_map.pkl'
         self.drugs_dir = f'{self.data_root}/{self.dataset}/{self.dataset}_drugs.csv'
         self.prots_dir = f'{self.data_root}/{self.dataset}/{self.dataset}_prots.csv'
 
         self.Learning_rate = 1e-4
         self.Epoch = 200
-        self.Batch_size = 16
+        self.Batch_size = 8
         self.max_patience = 20
 
         self.drug_max_len = 220
@@ -23,13 +23,13 @@ class HyperParameter:
         self.mol2vec_dim = 384
         self.protvec_dim = 1152
 
-        self.cuda = '2'
+        self.cuda = '0'
         self.dropout = 0.2
 
     def set_dataset(self, data_name):
         self.dataset = data_name
-        self.mol2vec_dir = f'./KANPM-DTA/pretrained/{self.dataset}/{self.dataset}_chem_pretrained.pkl'
-        self.protvec_dir = f'./KANPM-DTA/pretrained/{self.dataset}/{self.dataset}_esmc_pretrain.pkl'
-        self.contact_map = f'./KANPM-DTA/pretrained/{self.dataset}/{self.dataset}_af2_contact_map.pkl'
+        self.mol2vec_dir = f'./pretrained/{self.dataset}/{self.dataset}_chem_pretrained.pkl'
+        self.protvec_dir = f'./pretrained/{self.dataset}/{self.dataset}_esmc_pretrain.pkl'
+        self.contact_map = f'./pretrained/{self.dataset}/{self.dataset}_af2_contact_map.pkl'
         self.drugs_dir = f'{self.data_root}/{self.dataset}/{self.dataset}_drugs.csv'
         self.prots_dir = f'{self.data_root}/{self.dataset}/{self.dataset}_prots.csv'
