@@ -15,6 +15,9 @@ env/
 *.safetensors
 checkpoints/
 
+# Large pretrained embeddings & contact maps (too large for git)
+*.pkl
+
 # Logs
 *.log
 

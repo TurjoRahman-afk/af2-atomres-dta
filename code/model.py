@@ -72,7 +72,7 @@ class DrugGraphNet(torch.nn.Module):
         x = global_add_pool(x, batch)
         x = F.relu(self.fc1_xd(x))
         x = F.dropout(x, p=0.2, training=self.training)
-        return x
+        return x          #smiles_graph[B, 128]
 
 
 class ProteinGraphNet(torch.nn.Module):
@@ -117,7 +117,7 @@ class ProteinGraphNet(torch.nn.Module):
         x = global_add_pool(x, batch)
         x = F.relu(self.fc1_xd(x))
         x = F.dropout(x, p=0.2, training=self.training)
-        return x
+        return x           #fasta_graph[B, 128]
 
 
 class LinearAttention(nn.Module):
@@ -157,6 +157,7 @@ class MODEL(nn.Module):
         self.drug_graph_model = DrugGraphNet(n_output=128)
         self.protein_graph_model = ProteinGraphNet(n_output=128)
 
+        # Drug and Protein sequence encoders: separate transformer encoders for each modality
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=128, dim_feedforward=self.feedforward_dim, nhead=self.encoder_heads)
         self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=self.encoder_layers)
 
