@@ -23,16 +23,20 @@ Drug-Target Affinity (DTA) prediction means figuring out how strongly a drug mol
 - They fail to combine different types of biological information effectively
 
 **What KANPM-DTA does differently:**
-- Uses ESM protein language models to build richer protein representations
-- Uses a Gated Fusion mechanism to combine drug and protein graph features
-- Uses Linear Attention to capture relationships across different data types
+- Uses ChemBERTa for rich drug sequence representations and GNN for drug graph structure
+- Uses ESM-C protein language model to build richer protein representations
+- Uses AlphaFold2 3D structures to build accurate protein contact graphs (replacing predicted 2D maps)
+- Uses Cross-Attention so drug and protein sequences interact directly during encoding
+- Uses Bilinear Fusion to model multiplicative drug-protein interactions between graph branches
 - Uses a KAN (Kolmogorov-Arnold Network) as the final prediction head instead of a standard MLP
 
 ---
 
-## Performance Results (Warm Setting)
+## Performance Results
 
-Compared to previous best models, KANPM-DTA achieved:
+### Original KANPM-DTA (Baseline to Beat)
+
+Compared to previous best models, the original KANPM-DTA achieved:
 
 | Dataset   | MSE Reduction | CI Increase | r2m Gain |
 |-----------|--------------|-------------|----------|
@@ -43,26 +47,47 @@ Compared to previous best models, KANPM-DTA achieved:
 
 Lower MSE = better. Higher CI and r2m = better.
 
-### BindingDB Full Comparison Table
+#### BindingDB Full Comparison Table (Original)
 
-| Model                  | MSE       | CI        | r2m       |
-|------------------------|-----------|-----------|-----------|
-| DeepDTA (2018)         | 0.633     | 0.844     | 0.633     |
-| AttentionDTA (2022)    | 0.745     | 0.542     | -         |
-| GraphDTA-GIN (2021)    | 0.535     | 0.858     | -         |
-| CoVAE (2021)           | 0.512     | 0.847     | 0.412     |
-| DeepCDA (2020)         | 0.848     | 0.722     | 0.531     |
-| ELECTRA-DTA (2022)     | 0.650     | 0.837     | 0.670     |
-| DoubleSG-DTA (2023)    | 0.533     | 0.862     | 0.726     |
-| GDilatedDTA (2024)     | 0.483     | 0.868     | 0.730     |
-| MF-DTA (2025)          | 0.569     | 0.865     | 0.737     |
-| DeepDTAGen (2025)      | 0.458     | 0.876     | 0.760     |
-| **KANPM-DTA (Ours)**   | **0.433** | **0.883** | **0.768** |
+| Model                        | MSE       | CI        | r2m       |
+|------------------------------|-----------|-----------|-----------|
+| DeepDTA (2018)               | 0.633     | 0.844     | 0.633     |
+| AttentionDTA (2022)          | 0.745     | 0.542     | -         |
+| GraphDTA-GIN (2021)          | 0.535     | 0.858     | -         |
+| CoVAE (2021)                 | 0.512     | 0.847     | 0.412     |
+| DeepCDA (2020)               | 0.848     | 0.722     | 0.531     |
+| ELECTRA-DTA (2022)           | 0.650     | 0.837     | 0.670     |
+| DoubleSG-DTA (2023)          | 0.533     | 0.862     | 0.726     |
+| GDilatedDTA (2024)           | 0.483     | 0.868     | 0.730     |
+| MF-DTA (2025)                | 0.569     | 0.865     | 0.737     |
+| DeepDTAGen (2025)            | 0.458     | 0.876     | 0.760     |
+| **KANPM-DTA Original (Ours)**| **0.433** | **0.883** | **0.768** |
+
+---
+
+### New Architecture Results (To Be Updated After Training)
+
+New architecture changes: CrossAttention + BilinearFusion + AlphaFold2 3D contact maps.
+
+#### Davis (Warm Setting)
+
+| Model                    | MSE | CI | r2m |
+|--------------------------|-----|----|-----|
+| KANPM-DTA Original       | -   | -  | -   |
+| **KANPM-DTA New (Ours)** | -   | -  | -   |
+
+#### KIBA (Warm Setting)
+
+| Model                    | MSE | CI | r2m |
+|--------------------------|-----|----|-----|
+| KANPM-DTA Original       | -   | -  | -   |
+| **KANPM-DTA New (Ours)** | -   | -  | -   |
 
 ---
 
 ## Model Architecture Overview
 
+### Original Architecture
 ```
 Drug SMILES  ──► ChemBERTa-2 ──► Drug Sequence Embedding
 Drug SMILES  ──► Graph Builder ──► Drug Graph (GNN)
@@ -81,35 +106,104 @@ Protein Sequence ──► ESM-2 ──► Contact Map ──► Protein Graph (
                               Predicted Affinity Score (y_hat)
 ```
 
+### New Architecture
+```
+Drug SMILES  ──► ChemBERTa ──► Drug Tokens [B, 220, 128]  ──────────────────────┐
+Drug SMILES  ──► Graph Builder ──► Drug Graph (GNN) ──► drug_graph [B, 128]      │
+                                                                                  │
+Protein Seq  ──► ESM-C ──► Protein Tokens [B, 1200, 128] ─────────────────────┐  │
+Protein Seq  ──► AlphaFold2 3D ──► Contact Map ──► Protein Graph (GNN) [B,128]│  │
+                                                                               │  │
+                              ┌────────────────────────────────────────────────┘  │
+                              ▼                                                    ▼
+                    CrossAttention (Drug → Protein)              CrossAttention (Protein → Drug)
+                              │                                                    │
+                    xd_attn [B, 128]  ◄──────────────────────────────►  xp_attn [B, 128]
+                              │                                                    │
+                    drug_side = cat(xd_attn, drug_graph)    prot_side = cat(xp_attn, prot_graph)
+                         [B, 256]                                    [B, 256]
+                              │                                                    │
+                              └──────────────► BilinearFusion ◄───────────────────┘
+                                                    │
+                                          bilinear_out [B, 256]
+                                                    │
+                              cat_attn [B, 256] ────┘  (interaction attention on combined tokens)
+                                                    │
+                                       final = cat(bilinear_out, cat_attn)
+                                                 [B, 512]
+                                                    │
+                                          KAN Prediction Head
+                                       [512 → 1024 → 512 → 1]
+                                                    │
+                                       Predicted Affinity Score
+```
+
+---
+
+## What Changed and Why
+
+### 1. Linear Attention → Cross-Attention
+
+**Old:** Drug and protein sequences were encoded independently. No interaction between them at the sequence level.
+
+**New:** Drug tokens attend to protein tokens and protein tokens attend to drug tokens using `nn.MultiheadAttention`. The model learns which parts of the drug are relevant to which parts of the protein directly from the sequence.
+
+```python
+xd_cross, _ = self.cross_attn_drug(query=xd, key=xp, value=xp)   # drug queries protein
+xp_cross, _ = self.cross_attn_prot(query=xp, key=xd, value=xd)   # protein queries drug
+```
+
+### 2. Gated Fusion → Bilinear Fusion
+
+**Old:** A soft gate (`sigmoid`) weight between drug graph and protein graph features. Weak interaction — additive, not multiplicative.
+
+**New:** Low-rank bilinear product between drug-side and protein-side features. Explicitly models how drug and protein features interact with each other.
+
+```
+drug_side = [drug_sequence + drug_graph]     → 256-dim
+prot_side = [protein_sequence + prot_graph]  → 256-dim
+interaction = tanh(drug_proj) * tanh(prot_proj)   ← element-wise product
+output = linear(interaction)                  → 256-dim
+```
+
+The element-wise product forces the model to model joint drug-protein feature combinations rather than treating them separately.
+
+### 3. ESM-2 Predicted Contact Maps → AlphaFold2 3D Structures
+
+**Old:** Used ESM-2's contact prediction head to estimate which residues are spatially close. This is a sequence-based *prediction* — it can be wrong.
+
+**New:** Downloads real 3D atomic coordinates from AlphaFold2's public database. Computes actual Cα pairwise distances in Angstroms and thresholds at 8Å. For 439 DAVIS proteins:
+- 364 → real AlphaFold2 3D structures (direct download)
+- 72 → wildtype AlphaFold2 for mutant variants (e.g. EGFR(L858R) uses EGFR structure)
+- 3 → non-human organism proteins removed from dataset entirely
+
 ---
 
 ## Pretrained Models Used
 
-Three external pretrained models are used to extract biological knowledge before the main model trains:
-
-### 1. ChemBERTa-2 (for Drugs)
+### 1. ChemBERTa (for Drugs)
 - Model ID: `DeepChem/ChemBERTa-77M-MTR`
-- Based on RoBERTa architecture, trained on chemical data
-- Input: SMILES string (a text representation of a drug molecule)
-- Output: A vector embedding capturing the drug's chemical properties
+- Based on RoBERTa architecture, trained on 77M chemical SMILES strings
+- Input: SMILES string (text representation of a drug molecule)
+- Output: 384-dimensional embedding per token capturing chemical properties
 
-### 2. ESM-2 (for Protein Contact Maps)
-- Model ID: `esm2_t36_3B_UR50D`
-- A large protein language model with 3 billion parameters
-- Used specifically for its built-in contact prediction head
-- Output: A probability map showing which amino acid residues are spatially close to each other in the folded protein
-
-### 3. ESM-C (for Protein Sequences)
+### 2. ESM-C (for Protein Sequences)
 - Model ID: `esmc_600m`
 - A 600 million parameter protein language model (ESM Cambrian)
 - Input: Raw protein amino acid sequence
-- Output: Per-residue embeddings that capture evolutionary and structural information
+- Output: Per-residue embeddings (1152-dim) capturing evolutionary and structural information
+
+### 3. AlphaFold2 (for Protein 3D Contact Maps)
+- Source: EBI AlphaFold2 public database (`alphafold.ebi.ac.uk`)
+- Input: UniProt accession ID (resolved from gene name via UniProt REST API)
+- Output: PDB file with full 3D atomic coordinates
+- Processed to: Cα pairwise distance matrix → binary contact map (1 if < 8Å)
 
 ---
 
 ## KAN Block — Architecture and Details
 
-The KAN block is the final prediction head. It takes the 512-dimensional fused feature vector Z and maps it to a single affinity score.
+The KAN block is the final prediction head. It takes the 512-dimensional fused feature vector and maps it to a single affinity score.
 
 ### Layer Dimensions
 
@@ -307,7 +401,7 @@ For each test sample, the maximum similarity to any training sample is found. Th
 
 ## Ablation Study — What Happens If You Remove Each Component?
 
-Tested on Davis dataset. Removing each component increases MSE (worse performance):
+### Original Architecture (Davis dataset)
 
 | Component Removed       | Effect                                                  |
 |-------------------------|---------------------------------------------------------|
@@ -317,6 +411,16 @@ Tested on Davis dataset. Removing each component increases MSE (worse performanc
 | W/O Gated Fusion        | Drop — fusion mechanism is important                    |
 | W/O ESM-C Node Features | Drop — ESM-guided protein features contribute           |
 | W/O KAN                 | Replacing KAN with MLP hurts performance                |
+
+### New Architecture (To Be Updated After Training)
+
+| Component Removed          | MSE | CI | r2m |
+|----------------------------|-----|----|-----|
+| W/O Cross-Attention        | -   | -  | -   |
+| W/O Bilinear Fusion        | -   | -  | -   |
+| W/O AlphaFold2 (use ESM-2) | -   | -  | -   |
+| W/O KAN (use MLP)          | -   | -  | -   |
+| Full New Model             | -   | -  | -   |
 
 ---
 
@@ -338,7 +442,8 @@ The paper compares KAN and MLP on training and validation across all 3 metrics:
 - torch==2.6.0
 - transformers==4.49.0
 - rdkit==2024.3.2
-- fair-esm==2.0.0
+- biopython
+- requests
 
 ---
 
@@ -347,37 +452,36 @@ The paper compares KAN and MLP on training and validation across all 3 metrics:
 ### Clone Repository
 
 ```
-git clone https://github.com/khanonuvov/KANPM-DTA.git
-cd KANPM-DTA
+git clone https://github.com/TurjoRahman-afk/Drug.git
+cd KANPM-DTA-main
 ```
 
-### Generate Pretrained Models
+### Generate Pretrained Embeddings
 
-For each dataset (davis, kiba, metz, bindingdb, Lung Cancer Test) run these three commands,
-or download the pretrained models from [here](https://www.kaggle.com/datasets/khanonuvov/gsik-dta-pretrained-models).
-
-```
+```bash
 python pretrained/chemberta_pretraiend.py
 python pretrained/esmC_pretraiend.py
-python pretrained/esm2_map.py
 ```
 
-### Generate Cold-start Datasets
+### Generate AlphaFold2 3D Contact Maps
 
+```bash
+python pretrained/alphafold2_preprocess.py --dataset davis
+python pretrained/alphafold2_preprocess.py --dataset kiba
+python pretrained/alphafold2_preprocess.py --dataset metz
 ```
-python code/cold_split.py
+
+### Generate Dataset Splits
+
+```bash
+python code/cold_split.py --dataset davis
 ```
 
 ### Train the Model
 
-```
-python code/main.py
-```
-
-### Prediction
-
-```
-python code/pred.py
+```bash
+cd KANPM-DTA-main
+python code/train.py
 ```
 
 ---
@@ -388,9 +492,10 @@ python code/pred.py
 2. ESM-2: Lin et al. (2023) — Science 379(6637), doi:10.1126/science.ade2574
 3. ESM-C: ESM Team (2024) — Evolutionary Scale Blog
 4. KAN: Liu et al. (2024) — arXiv:2404.19756
-5. Drug graph features: Xu et al. (2025) — MMSG-DTA, J. Chem. Inf. Model. 65(2), 981-996
-6. DeepDTAGen: Shah et al. (2025) — Nature Communications 16(1):5021
-7. MF-DTA: Kang et al. (2025) — J. Biomedical Informatics
+5. AlphaFold2: Jumper et al. (2021) — Nature 596, 583–589
+6. Drug graph features: Xu et al. (2025) — MMSG-DTA, J. Chem. Inf. Model. 65(2), 981-996
+7. DeepDTAGen: Shah et al. (2025) — Nature Communications 16(1):5021
+8. MF-DTA: Kang et al. (2025) — J. Biomedical Informatics
 
 ---
 
