@@ -25,6 +25,32 @@ warnings.filterwarnings("ignore")
 def load_pickle(dir):
     with open(dir, 'rb+') as f:
         return pickle.load(f)
+
+
+def build_graph_cache(drug_df, prot_df, mol2vec_dict, protvec_dict, contact_map):
+    from MyDataset import smile2graph, target2graph
+    from torch_geometric.data import Data
+
+    print("Pre-building drug graph cache...")
+    drug_graph_cache = {}
+    for _, row in tqdm(drug_df.iterrows(), total=len(drug_df), desc="Drug graphs"):
+        drug_id = str(row['drug_key'])
+        _, node_attr, edge_index, edge_attr = smile2graph(row['compound_iso_smiles'])
+        drug_graph_cache[drug_id] = Data(x=node_attr, edge_index=edge_index, edge_weight=edge_attr)
+
+    print("Pre-building protein graph cache...")
+    protein_graph_cache = {}
+    for _, row in tqdm(prot_df.iterrows(), total=len(prot_df), desc="Protein graphs"):
+        prot_id = str(row['target_key'])
+        if prot_id not in contact_map['contact_map']:
+            continue
+        prot_mat = protvec_dict["mat_dict"][prot_id]
+        prot_contact_map = contact_map['contact_map'][prot_id].copy()
+        _, target_features, target_edge_index, target_edge_distance = target2graph(prot_contact_map, prot_mat)
+        protein_graph_cache[prot_id] = Data(x=target_features, edge_index=target_edge_index, edge_weight=target_edge_distance)
+
+    print(f"Cache ready: {len(drug_graph_cache)} drug graphs, {len(protein_graph_cache)} protein graphs")
+    return drug_graph_cache, protein_graph_cache
     
 def test(model, dataloader):
     model.eval()
@@ -81,11 +107,15 @@ if __name__ == "__main__":
     train_set = CustomDataSet(pd.read_csv(train_dir), hp)
     valid_set = CustomDataSet(pd.read_csv(valid_dir), hp)
     test_set = CustomDataSet(pd.read_csv(test_dir), hp)
-    collate = lambda x: my_collate_fn(x, device, hp, drug_df, prot_df, mol2vec_dict, protvec_dict, contact_map)
+    print("load dataset finished")
+
+    drug_graph_cache, protein_graph_cache = build_graph_cache(drug_df, prot_df, mol2vec_dict, protvec_dict, contact_map)
+
+    collate = lambda x: my_collate_fn(x, device, hp, drug_df, prot_df, mol2vec_dict, protvec_dict, contact_map,
+                                      drug_graph_cache=drug_graph_cache, protein_graph_cache=protein_graph_cache)
     train_dataset_load = DataLoader(train_set, batch_size=hp.Batch_size, shuffle=True, drop_last=True, num_workers=0, collate_fn=collate)
     valid_dataset_load = DataLoader(valid_set, batch_size=hp.Batch_size, shuffle=False, drop_last=True, num_workers=0, collate_fn=collate)
     test_dataset_load = DataLoader(test_set, batch_size=hp.Batch_size, shuffle=False, drop_last=True, num_workers=0, collate_fn=collate)
-    print("load dataset finished")
     
     os.makedirs('./savemodel', exist_ok=True)
     os.makedirs('./log', exist_ok=True)

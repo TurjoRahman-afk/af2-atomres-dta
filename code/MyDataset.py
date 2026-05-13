@@ -51,7 +51,7 @@ def target2graph(distance_map, protein_features_esm):
     map_size = distance_map.shape[0]
     target_size = min(target_size, map_size)
     protein_features_esm = protein_features_esm[:target_size, :]
-    distance_map = distance_map[:target_size, :target_size]
+    distance_map = distance_map[:target_size, :target_size].copy()  # copy so we don't modify the cached pkl
 
     for i in range(target_size):
         distance_map[i, i] = 1
@@ -173,7 +173,7 @@ def smile2graph(smile):
 """
 This function is a custom batch collation function used by pytorch DataLoader.
 It takes individual drug protein samples and combines them into batched tensors ready for the neural network."""
-def my_collate_fn(batch_data, device, hp, drug_df, prot_df, mol2vec_dict, protvec_dict, contact_map, isEsm=False):
+def my_collate_fn(batch_data, device, hp, drug_df, prot_df, mol2vec_dict, protvec_dict, contact_map, isEsm=False, drug_graph_cache=None, protein_graph_cache=None):
     # get batch configuration
     batch_size = len(batch_data)
     drug_max = hp.drug_max_len
@@ -210,13 +210,20 @@ def my_collate_fn(batch_data, device, hp, drug_df, prot_df, mol2vec_dict, protve
         drug_mat_pad, drug_mask = matrix_pad_drug(drug_mat, drug_max)        
         prot_mat_pad, prot_mask = matrix_pad_prot(prot_mat, protein_max) 
 
-        # Drug graph for PyTorch Geometric
-        mol_size, node_attr, edge_index, edge_attr = smile2graph(drug_smiles)
-        drug_graph = Data(x=node_attr, edge_index=edge_index, edge_weight=edge_attr)
+        # Drug graph — use cache if available, otherwise build
+        if drug_graph_cache is not None and drug_id in drug_graph_cache:
+            drug_graph = drug_graph_cache[drug_id]
+        else:
+            mol_size, node_attr, edge_index, edge_attr = smile2graph(drug_smiles)
+            drug_graph = Data(x=node_attr, edge_index=edge_index, edge_weight=edge_attr)
         b_drug_graph.append(drug_graph)
-        # protein graph from contact map
-        target_size, target_features, target_edge_index, target_edge_distance = target2graph(prot_contact_map, prot_mat)
-        protein_graph = Data(x=target_features, edge_index=target_edge_index, edge_weight=target_edge_distance)
+
+        # Protein graph — use cache if available, otherwise build
+        if protein_graph_cache is not None and prot_id in protein_graph_cache:
+            protein_graph = protein_graph_cache[prot_id]
+        else:
+            target_size, target_features, target_edge_index, target_edge_distance = target2graph(prot_contact_map, prot_mat)
+            protein_graph = Data(x=target_features, edge_index=target_edge_index, edge_weight=target_edge_distance)
         b_protein_graph.append(protein_graph)
         
         
