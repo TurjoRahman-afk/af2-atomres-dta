@@ -1,42 +1,129 @@
-# KANPM-DTA: Improving Drug-Target Affinity Prediction with Kolmogorov-Arnold Networks and Pre-trained Models
-
-<p align="center">
-  <img src="images/architecture.png" alt="Model Architecture" width="900">
-</p>
-<p align="center"><em>Figure 1. KANPM-DTA model architecture.</em></p>
-
-**Authors:** MD Youshuf Khan Rakib, Muhammad Habibulla Alamin, Jiamu Li, Sheikh Sohan Mamun, Kaleb Amsalu Gobena, Shengbing Ren
-
-**Affiliation:** School of Computer Science and Engineering, Central South University, Changsha 410083, Hunan, China
-
-**Corresponding Author:** rsb@csu.edu.cn
+# AF2-CrossKAN-DTA: Drug-Target Affinity Prediction with AlphaFold2 Structures, Cross-Attention, and Kolmogorov-Arnold Networks
 
 ---
 
-## What is This Paper About?
+## Overview
 
-Drug-Target Affinity (DTA) prediction means figuring out how strongly a drug molecule binds to a specific protein target. This is a critical step in drug discovery — the stronger the binding, the more likely the drug will work.
+AF2-CrossKAN-DTA is a drug-target affinity (DTA) prediction model that predicts how strongly a drug molecule binds to a protein target. Strong binding means the drug is more likely to work — making DTA prediction a critical step in computational drug discovery.
 
-**Problems with existing models:**
-- They struggle to generalize to unseen (new) drug-target pairs
-- They lack interpretability — you cannot understand why they make a prediction
-- They fail to combine different types of biological information effectively
+This project builds on top of KANPM-DTA and introduces three architectural improvements:
 
-**What KANPM-DTA does differently:**
-- Uses ChemBERTa for rich drug sequence representations and GNN for drug graph structure
-- Uses ESM-C protein language model to build richer protein representations
-- Uses AlphaFold2 3D structures to build accurate protein contact graphs (replacing predicted 2D maps)
-- Uses Cross-Attention so drug and protein sequences interact directly during encoding
-- Uses Bilinear Fusion to model multiplicative drug-protein interactions between graph branches
-- Uses a KAN (Kolmogorov-Arnold Network) as the final prediction head instead of a standard MLP
+1. **AlphaFold2 3D Contact Maps** — replaces sequence-predicted 2D contact maps with real 3D Cα distance matrices downloaded directly from the AlphaFold2 public database
+2. **Cross-Attention** — drug and protein sequence tokens attend to each other instead of being encoded independently
+3. **Bilinear Fusion** — replaces the soft-gated fusion with a low-rank bilinear product that explicitly models drug-protein feature interactions
+
+---
+
+## What's New Compared to KANPM-DTA
+
+| Component | KANPM-DTA (Original) | AF2-CrossKAN-DTA (Ours) |
+|-----------|---------------------|--------------------------|
+| Protein contact map | ESM-2 predicted (2D, sequence-based) | AlphaFold2 real 3D Cα distance matrix |
+| Sequence encoding | Linear Attention (independent) | Cross-Attention (drug ↔ protein) |
+| Graph fusion | Gated Fusion (soft-gate, additive) | Bilinear Fusion (multiplicative, low-rank) |
+| Predictor | KAN [512, 1024, 512, 1] | KAN [512, 1024, 512, 1] (same) |
+
+---
+
+## Model Architecture
+
+```
+Drug SMILES  ──► ChemBERTa ──► Drug Tokens [B, 220, 128]
+Drug SMILES  ──► Graph Builder ──► Drug Graph (GNN) ──► [B, 128]
+                                                              │
+Protein Seq  ──► ESM-C ──► Protein Tokens [B, 1200, 128]    │
+Protein Seq  ──► AlphaFold2 3D ──► Cα Contact Map            │
+                        ──► Protein Graph (GNN) ──► [B, 128] │
+                                                              │
+          Cross-Attention (Drug queries Protein)              │
+          Cross-Attention (Protein queries Drug)              │
+                    │                                         │
+          xd_attn [B, 128]              xp_attn [B, 128]     │
+                    │                                         │
+          drug_side = cat(xd_attn, drug_graph)  [B, 256]     │
+          prot_side = cat(xp_attn, prot_graph)  [B, 256]     │
+                    │                                         │
+                    └─────────► BilinearFusion ◄──────────────┘
+                                      │
+                            bilinear_out [B, 256]
+                                      │
+                   cat_attn [B, 256] ─┘  (interaction attention)
+                                      │
+                         final = cat(bilinear_out, cat_attn)
+                                   [B, 512]
+                                      │
+                            KAN [512 → 1024 → 512 → 1]
+                                      │
+                           Predicted Affinity Score
+```
+
+---
+
+## The Three Changes Explained
+
+### 1. AlphaFold2 3D Contact Maps
+
+**Old approach (ESM-2):** Used ESM-2's contact prediction head to estimate which residues are spatially close. This is a learned prediction from sequence alone — it can be wrong.
+
+**New approach (AlphaFold2):** For each protein in the dataset, we:
+1. Query UniProt REST API to get the official accession ID from the gene name
+2. Query AlphaFold2 EBI API to get the PDB file URL
+3. Download the PDB file with full 3D atomic coordinates
+4. Extract Cα (alpha-carbon) atom positions — one per residue
+5. Compute all pairwise Euclidean distances in Angstroms
+6. Threshold at 8Å → binary contact map (1 = in contact, 0 = not)
+
+This gives a real, physics-grounded picture of which parts of the protein are physically close — exactly what the GNN needs to learn structural patterns.
+
+**DAVIS dataset results:**
+- 364 proteins → real AlphaFold2 3D structures
+- 72 proteins → wildtype AlphaFold2 for mutant variants (e.g. EGFR(L858R) uses EGFR structure — valid because single point mutations don't change the overall fold)
+- 3 proteins → removed (non-human organisms: Plasmodium falciparum, M. tuberculosis — no AF2 entry exists)
+
+---
+
+### 2. Cross-Attention (Drug ↔ Protein)
+
+**Old approach (Linear Attention):** Drug and protein sequence tokens were each pooled into a single vector independently. No interaction between them at the sequence level.
+
+**New approach (Cross-Attention):** Two `nn.MultiheadAttention` layers:
+- Drug tokens **attend to** protein tokens → the drug learns which parts of the protein are relevant to it
+- Protein tokens **attend to** drug tokens → the protein learns which residues are relevant to the drug
+
+```python
+xd_cross, _ = self.cross_attn_drug(query=xd, key=xp, value=xp, key_padding_mask=prot_pad_mask)
+xp_cross, _ = self.cross_attn_prot(query=xp, key=xd, value=xd, key_padding_mask=drug_pad_mask)
+xd_attn = xd_cross.mean(dim=1)   # [B, 128]
+xp_attn = xp_cross.mean(dim=1)   # [B, 128]
+```
+
+This creates drug-aware protein representations and protein-aware drug representations before the graph fusion step.
+
+---
+
+### 3. Bilinear Fusion (Drug × Protein)
+
+**Old approach (Gated Fusion):** A sigmoid gate controlled a weighted sum of drug graph and protein graph features. Additive — doesn't explicitly model how drug and protein features interact.
+
+**New approach (Bilinear Fusion):** Low-rank bilinear product between drug-side and protein-side features:
+
+```python
+drug_side = cat(xd_attn, drug_graph)   # [B, 256]
+prot_side = cat(xp_attn, prot_graph)   # [B, 256]
+
+d = tanh(drug_proj(drug_side))         # [B, 64]
+p = tanh(prot_proj(prot_side))         # [B, 64]
+interaction = d * p                    # element-wise [B, 64]
+out = output_proj(interaction)         # [B, 256]
+```
+
+The element-wise product in the shared rank-64 space forces the model to represent drug-protein feature interactions multiplicatively — not just add them together.
 
 ---
 
 ## Performance Results
 
-### Original KANPM-DTA (Baseline to Beat)
-
-Compared to previous best models, the original KANPM-DTA achieved:
+### Original KANPM-DTA Results (Baseline)
 
 | Dataset   | MSE Reduction | CI Increase | r2m Gain |
 |-----------|--------------|-------------|----------|
@@ -45,9 +132,7 @@ Compared to previous best models, the original KANPM-DTA achieved:
 | Metz      | 4.44%        | 0.48%       | 0.84%    |
 | BindingDB | 5.46%        | 0.80%       | 1.05%    |
 
-Lower MSE = better. Higher CI and r2m = better.
-
-#### BindingDB Full Comparison Table (Original)
+#### BindingDB Full Comparison (Original KANPM-DTA)
 
 | Model                        | MSE       | CI        | r2m       |
 |------------------------------|-----------|-----------|-----------|
@@ -61,409 +146,132 @@ Lower MSE = better. Higher CI and r2m = better.
 | GDilatedDTA (2024)           | 0.483     | 0.868     | 0.730     |
 | MF-DTA (2025)                | 0.569     | 0.865     | 0.737     |
 | DeepDTAGen (2025)            | 0.458     | 0.876     | 0.760     |
-| **KANPM-DTA Original (Ours)**| **0.433** | **0.883** | **0.768** |
+| **KANPM-DTA Original**       | **0.433** | **0.883** | **0.768** |
 
 ---
 
-### New Architecture Results (To Be Updated After Training)
-
-New architecture changes: CrossAttention + BilinearFusion + AlphaFold2 3D contact maps.
+### AF2-CrossKAN-DTA Results (To Be Filled After Training)
 
 #### Davis (Warm Setting)
 
-| Model                    | MSE | CI | r2m |
-|--------------------------|-----|----|-----|
-| KANPM-DTA Original       | -   | -  | -   |
-| **KANPM-DTA New (Ours)** | -   | -  | -   |
+| Model                         | MSE | CI | r2m |
+|-------------------------------|-----|----|-----|
+| KANPM-DTA (Original)          | -   | -  | -   |
+| **AF2-CrossKAN-DTA (Ours)**   | -   | -  | -   |
 
 #### KIBA (Warm Setting)
 
-| Model                    | MSE | CI | r2m |
-|--------------------------|-----|----|-----|
-| KANPM-DTA Original       | -   | -  | -   |
-| **KANPM-DTA New (Ours)** | -   | -  | -   |
+| Model                         | MSE | CI | r2m |
+|-------------------------------|-----|----|-----|
+| KANPM-DTA (Original)          | -   | -  | -   |
+| **AF2-CrossKAN-DTA (Ours)**   | -   | -  | -   |
 
 ---
 
-## Model Architecture Overview
+## Ablation Study (To Be Filled After Training)
 
-### Original Architecture
-```
-Drug SMILES  ──► ChemBERTa-2 ──► Drug Sequence Embedding
-Drug SMILES  ──► Graph Builder ──► Drug Graph (GNN)
-                                         │
-Protein Sequence ──► ESM-C ──────────► ESM-C Node Features
-Protein Sequence ──► ESM-2 ──► Contact Map ──► Protein Graph (GNN)
-                                         │
-                              Gated Fusion Mechanism
-                                         │
-                              Linear Attention Layer
-                                         │
-                              512-dim Feature Vector Z
-                                         │
-                              KAN Prediction Head
-                                         │
-                              Predicted Affinity Score (y_hat)
-```
-
-### New Architecture
-```
-Drug SMILES  ──► ChemBERTa ──► Drug Tokens [B, 220, 128]  ──────────────────────┐
-Drug SMILES  ──► Graph Builder ──► Drug Graph (GNN) ──► drug_graph [B, 128]      │
-                                                                                  │
-Protein Seq  ──► ESM-C ──► Protein Tokens [B, 1200, 128] ─────────────────────┐  │
-Protein Seq  ──► AlphaFold2 3D ──► Contact Map ──► Protein Graph (GNN) [B,128]│  │
-                                                                               │  │
-                              ┌────────────────────────────────────────────────┘  │
-                              ▼                                                    ▼
-                    CrossAttention (Drug → Protein)              CrossAttention (Protein → Drug)
-                              │                                                    │
-                    xd_attn [B, 128]  ◄──────────────────────────────►  xp_attn [B, 128]
-                              │                                                    │
-                    drug_side = cat(xd_attn, drug_graph)    prot_side = cat(xp_attn, prot_graph)
-                         [B, 256]                                    [B, 256]
-                              │                                                    │
-                              └──────────────► BilinearFusion ◄───────────────────┘
-                                                    │
-                                          bilinear_out [B, 256]
-                                                    │
-                              cat_attn [B, 256] ────┘  (interaction attention on combined tokens)
-                                                    │
-                                       final = cat(bilinear_out, cat_attn)
-                                                 [B, 512]
-                                                    │
-                                          KAN Prediction Head
-                                       [512 → 1024 → 512 → 1]
-                                                    │
-                                       Predicted Affinity Score
-```
+| Configuration | MSE | CI | r2m |
+|---------------|-----|----|-----|
+| Full AF2-CrossKAN-DTA | - | - | - |
+| W/O Cross-Attention (use Linear Attention) | - | - | - |
+| W/O Bilinear Fusion (use Gated Fusion) | - | - | - |
+| W/O AlphaFold2 (use ESM-2 contact map) | - | - | - |
+| W/O KAN (use MLP) | - | - | - |
 
 ---
 
-## What Changed and Why
+## KAN Predictor
 
-### 1. Linear Attention → Cross-Attention
-
-**Old:** Drug and protein sequences were encoded independently. No interaction between them at the sequence level.
-
-**New:** Drug tokens attend to protein tokens and protein tokens attend to drug tokens using `nn.MultiheadAttention`. The model learns which parts of the drug are relevant to which parts of the protein directly from the sequence.
-
-```python
-xd_cross, _ = self.cross_attn_drug(query=xd, key=xp, value=xp)   # drug queries protein
-xp_cross, _ = self.cross_attn_prot(query=xp, key=xd, value=xd)   # protein queries drug
-```
-
-### 2. Gated Fusion → Bilinear Fusion
-
-**Old:** A soft gate (`sigmoid`) weight between drug graph and protein graph features. Weak interaction — additive, not multiplicative.
-
-**New:** Low-rank bilinear product between drug-side and protein-side features. Explicitly models how drug and protein features interact with each other.
-
-```
-drug_side = [drug_sequence + drug_graph]     → 256-dim
-prot_side = [protein_sequence + prot_graph]  → 256-dim
-interaction = tanh(drug_proj) * tanh(prot_proj)   ← element-wise product
-output = linear(interaction)                  → 256-dim
-```
-
-The element-wise product forces the model to model joint drug-protein feature combinations rather than treating them separately.
-
-### 3. ESM-2 Predicted Contact Maps → AlphaFold2 3D Structures
-
-**Old:** Used ESM-2's contact prediction head to estimate which residues are spatially close. This is a sequence-based *prediction* — it can be wrong.
-
-**New:** Downloads real 3D atomic coordinates from AlphaFold2's public database. Computes actual Cα pairwise distances in Angstroms and thresholds at 8Å. For 439 DAVIS proteins:
-- 364 → real AlphaFold2 3D structures (direct download)
-- 72 → wildtype AlphaFold2 for mutant variants (e.g. EGFR(L858R) uses EGFR structure)
-- 3 → non-human organism proteins removed from dataset entirely
-
----
-
-## Pretrained Models Used
-
-### 1. ChemBERTa (for Drugs)
-- Model ID: `DeepChem/ChemBERTa-77M-MTR`
-- Based on RoBERTa architecture, trained on 77M chemical SMILES strings
-- Input: SMILES string (text representation of a drug molecule)
-- Output: 384-dimensional embedding per token capturing chemical properties
-
-### 2. ESM-C (for Protein Sequences)
-- Model ID: `esmc_600m`
-- A 600 million parameter protein language model (ESM Cambrian)
-- Input: Raw protein amino acid sequence
-- Output: Per-residue embeddings (1152-dim) capturing evolutionary and structural information
-
-### 3. AlphaFold2 (for Protein 3D Contact Maps)
-- Source: EBI AlphaFold2 public database (`alphafold.ebi.ac.uk`)
-- Input: UniProt accession ID (resolved from gene name via UniProt REST API)
-- Output: PDB file with full 3D atomic coordinates
-- Processed to: Cα pairwise distance matrix → binary contact map (1 if < 8Å)
-
----
-
-## KAN Block — Architecture and Details
-
-The KAN block is the final prediction head. It takes the 512-dimensional fused feature vector and maps it to a single affinity score.
-
-### Layer Dimensions
+The final prediction head is a Kolmogorov-Arnold Network — each connection learns a B-spline function instead of a fixed weight.
 
 ```
 Input:    [Batch, 512]
 Layer 1:  512  → 1024
 Layer 2:  1024 → 512
 Layer 3:  512  → 1
-Output:   [Batch, 1]  (the predicted affinity score)
+Output:   [Batch, 1]
 ```
 
-### How Each KAN Connection Works
-
-In a standard MLP, each connection is just: `output = weight * input`
-
-In KAN, each connection computes a learned function:
-
+Each connection computes:
 ```
-f(x) = w_base * SiLU(x)  +  sum of (c_k * B_k(x))
-         └── residual path      └── B-spline curve path
+f(x) = w_base * SiLU(x)  +  Σ c_k * B_k(x)
 ```
+where `B_k(x)` are B-spline basis functions and `c_k` are learned coefficients. This gives the model interpretable, learnable activation functions per connection rather than a fixed nonlinearity.
 
-- `SiLU(x)` = x * sigmoid(x) — the base activation
-- `B_k(x)` = B-spline basis functions (smooth piecewise curves)
-- `c_k` = learned coefficients for each basis function
-- `w_base` = learned scalar weight for the residual path
-
-The output of the whole layer is the sum of f(x) across all inputs for each output neuron. Each connection has its own completely separate learned function.
-
-### Full Hyperparameter Settings
-
-| Hyperparameter                     | Value               |
-|------------------------------------|---------------------|
-| Layer Dimensions                   | [512, 1024, 512, 1] |
-| Spline Order                       | 3 (cubic)           |
-| Grid Size                          | 5                   |
-| Base Activation                    | SiLU                |
-| Initialization Scale (Base)        | 1.0                 |
-| Initialization Scale (Spline)      | 1.0                 |
-| Initialization Scale (Noise)       | 0.1                 |
-| Grid Initial Range                 | [-1, 1]             |
-| Adaptive Grid Weight               | 0.02                |
-| L1 Regularization Weight           | 1.0                 |
-| Entropy Regularization Weight      | 1.0                 |
-
-### KAN Initialization
-
-- **Base weights** and **spline scalers**: Kaiming Uniform distribution (same as standard PyTorch linear layers)
-- **Spline coefficients**: initialized by fitting B-spline basis functions to a small random noise curve — ensures each edge starts with a slightly different function (breaks symmetry) and keeps training stable
-
-### KAN Regularization Loss
-
-A two-part penalty is added to the training loss to keep the network sparse and interpretable:
-
-```
-L_reg = λ1 * (sum of absolute values of all spline weights)     ← L1 term
-      + λ2 * (- sum of p * log(p) for each connection)          ← Entropy term
-
-where p_ij = |w_spline_ij| / sum of all |w_spline|
-```
-
-- **L1 term**: pushes unused connections toward zero — fewer active edges = simpler model
-- **Entropy term**: encourages all connections to contribute roughly equally — prevents the model from relying on just one or two edges
+| Hyperparameter         | Value               |
+|------------------------|---------------------|
+| Layer Dimensions       | [512, 1024, 512, 1] |
+| Spline Order           | 3 (cubic)           |
+| Grid Size              | 5                   |
+| Base Activation        | SiLU                |
+| L1 Reg Weight          | 1.0                 |
+| Entropy Reg Weight     | 1.0                 |
 
 ---
 
 ## Drug Graph Node Features
 
-Each atom in the drug molecule becomes a node in the graph with 88 total features:
+Each atom becomes a graph node with 88 features:
 
-| Feature                                         | Dimension |
-|-------------------------------------------------|-----------|
-| Atom Symbol (one-hot)                           | 44        |
-| Formal Charge                                   | 1         |
-| Explicit Valence                                | 1         |
-| Number of Atomic Rings                          | 1         |
-| Hybridization Type                              | 3         |
-| Whether the atom is a Donor                     | 1         |
-| Degree of the atom (one-hot)                    | 11        |
-| Number of Radical Electrons                     | 1         |
-| Whether the atom is an Acceptor                 | 1         |
-| Whether the atom is Aromatic                    | 1         |
-| Number of Explicit Hydrogens                    | 1         |
-| Total H atoms bound to the heavy atom           | 11        |
-| Number of implicit H atoms on the heavy atom    | 11        |
-| **Total**                                       | **88**    |
+| Feature                              | Dimension |
+|--------------------------------------|-----------|
+| Atom Symbol (one-hot)                | 44        |
+| Formal Charge                        | 1         |
+| Explicit Valence                     | 1         |
+| Number of Atomic Rings               | 1         |
+| Hybridization Type                   | 3         |
+| Donor / Acceptor                     | 2         |
+| Degree (one-hot)                     | 11        |
+| Radical Electrons                    | 1         |
+| Aromatic                             | 1         |
+| Explicit / Implicit Hydrogens        | 12        |
+| Total H atoms on heavy atom          | 11        |
+| **Total**                            | **88**    |
 
 ---
 
-## Molecular Docking Study (Case Study — EGFR)
+## Pretrained Models Used
 
-After KANPM-DTA predicts new drug-target pairs, the top candidates are validated using molecular docking (simulating how the drug physically fits into the protein).
-
-### Target Protein
-- **EGFR** (Epidermal Growth Factor Receptor) — a protein involved in cancer
-- PDB ID: **3POZ** (downloaded from RCSB PDB database)
-- Docking tool: **AutoDock Vina**
-- Binding site predicted using: **P2Rank**
-
-### Docking Grid Configuration
-
-| Parameter      | Value      |
-|----------------|------------|
-| Center X       | 16.660     |
-| Center Y       | 32.301     |
-| Center Z       | 9.294      |
-| Size X         | 68         |
-| Size Y         | 54         |
-| Size Z         | 52         |
-| Exhaustiveness | 10         |
-| Receptor       | EGFR.pdbqt |
-| PDB ID         | 3POZ       |
-
-### Docking Protocol Steps
-1. Download drug 3D structures (SDF format) from PubChem using SMILES strings
-2. Convert to .pdb using PyMol, then to .pdbqt using AutoDockTools
-3. Download EGFR protein structure from PDB
-4. Clean protein: remove water, add hydrogens, assign Kollman charges, save as .pdbqt
-5. Predict active binding site using P2Rank
-6. Generate docking grid centered on binding site
-7. Run AutoDock Vina with rotatable bonds allowed
-
-### Docking Score Validation Results
-
-Docking scores are in kcal/mol — more negative = stronger binding = more likely to work as a drug.
-
-**Known Active Drugs (reference):**
-
-| Compound     | Score (kcal/mol) |
-|--------------|-----------------|
-| Dacomitinib  | -9.8            |
-| Lapatinib    | -10.8           |
-| Gefitinib    | -8.6            |
-| Afatinib     | -9.1            |
-
-**Novel Candidates Predicted by KANPM-DTA:**
-
-| Compound              | Score (kcal/mol) |
-|-----------------------|-----------------|
-| Staurosporine         | -9.8            |
-| Idarubicin            | -10.2           |
-| Astemizole            | -9.6            |
-| Emodin                | -8.8            |
-| Apigenin              | -8.5            |
-| Genistein             | -8.4            |
-| Tenofovir alafenamide | -8.6            |
-| Kaempferol            | -8.3            |
-
-**Known Inactive Drugs (negative controls):**
-
-| Compound         | Score (kcal/mol) |
-|------------------|-----------------|
-| Cyclophosphamide | -4.4            |
-| Ciclopirox       | -6.3            |
-| Gemfibrozil      | -6.4            |
-
-The novel candidates score similarly to known active drugs and much higher than inactive drugs — a strong validation signal.
+| Model | Purpose | Output Dim |
+|-------|---------|-----------|
+| ChemBERTa (`DeepChem/ChemBERTa-77M-MTR`) | Drug SMILES → token embeddings | 384 |
+| ESM-C (`esmc_600m`) | Protein sequence → residue embeddings | 1152 |
+| AlphaFold2 (EBI database) | Protein → real 3D Cα contact map | L × L |
 
 ---
 
-## Cold-Start Experiment Setup
+## Dataset Splits
 
-The model is tested under 4 settings to check generalization:
+Three split strategies to test generalization:
 
-| Setting        | Description                                             |
-|----------------|---------------------------------------------------------|
-| Warm           | Both drug and protein seen during training              |
-| Unseen Drug    | The drug is new — never seen in training                |
-| Unseen Protein | The protein is new — never seen in training             |
-| All Unseen     | Both drug and protein are completely new                |
+| Split | Training | Validation | Test |
+|-------|----------|------------|------|
+| Warm (drug+protein seen) | 23,882 | 2,985 | 2,985 |
+| Unseen Protein | 23,868 | 2,992 | 2,992 |
+| Unseen Drug | 23,706 | 3,073 | 3,073 |
+| Unseen Pair | 18,954 | 308 | 308 |
 
-### How Similarity is Calculated
-
-**For drugs:** Tanimoto Similarity on molecular fingerprints (0 = completely different, 1 = identical structure)
-
-**For proteins:** Global sequence identity using Biopython PairwiseAligner — fraction of matching amino acids across the full alignment
-
-For each test sample, the maximum similarity to any training sample is found. Then the average of those maximums gives an overall measure of how "unseen" the test set is.
-
-### Drug Similarity — Unseen Drug Setting (mean per fold)
-
-| Dataset | Fold 1 | Fold 2 | Fold 3 | Fold 4 | Fold 5 |
-|---------|--------|--------|--------|--------|--------|
-| Davis   | 0.406  | 0.293  | 0.340  | 0.426  | 0.299  |
-| KIBA    | 0.621  | 0.644  | 0.660  | 0.626  | 0.638  |
-
-### Protein Similarity — Unseen Protein Setting (mean per fold)
-
-| Dataset | Fold 1 | Fold 2 | Fold 3 | Fold 4 | Fold 5 |
-|---------|--------|--------|--------|--------|--------|
-| Davis   | 0.460  | 0.503  | 0.554  | 0.494  | 0.544  |
-| KIBA    | 0.578  | 0.541  | 0.476  | 0.560  | 0.480  |
+3 non-human proteins (Plasmodium falciparum × 2, M. tuberculosis × 1) removed from all splits — no AlphaFold2 structure exists for these organisms.
 
 ---
 
-## Ablation Study — What Happens If You Remove Each Component?
+## Setup
 
-### Original Architecture (Davis dataset)
+### Install Dependencies
 
-| Component Removed       | Effect                                                  |
-|-------------------------|---------------------------------------------------------|
-| W/O Sequence            | Biggest MSE increase — sequence embeddings matter most  |
-| W/O Graph               | Second largest drop — graph structure is critical       |
-| W/O Linear Attention    | Noticeable drop — cross-modal attention helps           |
-| W/O Gated Fusion        | Drop — fusion mechanism is important                    |
-| W/O ESM-C Node Features | Drop — ESM-guided protein features contribute           |
-| W/O KAN                 | Replacing KAN with MLP hurts performance                |
-
-### New Architecture (To Be Updated After Training)
-
-| Component Removed          | MSE | CI | r2m |
-|----------------------------|-----|----|-----|
-| W/O Cross-Attention        | -   | -  | -   |
-| W/O Bilinear Fusion        | -   | -  | -   |
-| W/O AlphaFold2 (use ESM-2) | -   | -  | -   |
-| W/O KAN (use MLP)          | -   | -  | -   |
-| Full New Model             | -   | -  | -   |
-
----
-
-## KAN vs MLP Training Curves (KIBA Dataset)
-
-The paper compares KAN and MLP on training and validation across all 3 metrics:
-
-- KAN consistently achieves lower MSE (better)
-- KAN achieves higher CI and r2m (better)
-- KAN validation curves are more stable — less overfitting
-
----
-
-## Requirements
-
-- Python 3.9.21
-- numpy==2.0.2
-- pandas==2.2.3
-- torch==2.6.0
-- transformers==4.49.0
-- rdkit==2024.3.2
-- biopython
-- requests
-
----
-
-## Setup and Usage
-
-### Clone Repository
-
-```
-git clone https://github.com/TurjoRahman-afk/Drug.git
-cd KANPM-DTA-main
+```bash
+pip install torch transformers rdkit biopython requests pandas numpy
+pip install esm  # ESM-C
 ```
 
-### Generate Pretrained Embeddings
+### Generate Embeddings
 
 ```bash
 python pretrained/chemberta_pretraiend.py
 python pretrained/esmC_pretraiend.py
 ```
 
-### Generate AlphaFold2 3D Contact Maps
+### Generate AlphaFold2 Contact Maps
 
 ```bash
 python pretrained/alphafold2_preprocess.py --dataset davis
@@ -477,10 +285,9 @@ python pretrained/alphafold2_preprocess.py --dataset metz
 python code/cold_split.py --dataset davis
 ```
 
-### Train the Model
+### Train
 
 ```bash
-cd KANPM-DTA-main
 python code/train.py
 ```
 
@@ -488,17 +295,9 @@ python code/train.py
 
 ## References
 
-1. ChemBERTa-2: Ahmad et al. (2022) — arXiv:2209.01712
-2. ESM-2: Lin et al. (2023) — Science 379(6637), doi:10.1126/science.ade2574
-3. ESM-C: ESM Team (2024) — Evolutionary Scale Blog
-4. KAN: Liu et al. (2024) — arXiv:2404.19756
-5. AlphaFold2: Jumper et al. (2021) — Nature 596, 583–589
-6. Drug graph features: Xu et al. (2025) — MMSG-DTA, J. Chem. Inf. Model. 65(2), 981-996
-7. DeepDTAGen: Shah et al. (2025) — Nature Communications 16(1):5021
-8. MF-DTA: Kang et al. (2025) — J. Biomedical Informatics
-
----
-
-## Contact
-
-For inquiries, please contact **MD Youshuf Khan Rakib** (Email: khanushuf4619@csu.edu.cn).
+1. Liu et al. (2024) KAN: Kolmogorov-Arnold Networks — arXiv:2404.19756
+2. Jumper et al. (2021) AlphaFold2 — Nature 596, 583–589
+3. Ahmad et al. (2022) ChemBERTa-2 — arXiv:2209.01712
+4. ESM Team (2024) ESM-C — Evolutionary Scale
+5. Lin et al. (2023) ESM-2 — Science 379(6637)
+6. Original KANPM-DTA — MD Youshuf Khan Rakib et al., Central South University
