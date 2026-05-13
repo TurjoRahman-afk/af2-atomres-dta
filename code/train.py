@@ -85,17 +85,36 @@ if __name__ == "__main__":
     test_dataset_load = DataLoader(test_set, batch_size=hp.Batch_size, shuffle=False, drop_last=True, num_workers=0, collate_fn=collate)
     print("load dataset finished")
     
+    os.makedirs('./savemodel', exist_ok=True)
+    os.makedirs('./log', exist_ok=True)
+
     model = nn.DataParallel(Model(hp, device))
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=hp.Learning_rate, betas=(0.9, 0.999))
     criterion = F.mse_loss
-    
-    train_log = []     
-    best_valid_mse = 10  
-    patience = 0    
+
     model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}.pth'
-                 
-    for epoch in range(1, hp.Epoch + 1):
+    checkpoint_path = f'./savemodel/{hp.dataset}-{hp.running_set}_checkpoint.pth'
+
+    train_log = []
+    best_valid_mse = 10
+    patience = 0
+    start_epoch = 1
+
+    if os.path.exists(checkpoint_path):
+        print(f"Checkpoint found — resuming training from {checkpoint_path}")
+        ckpt = torch.load(checkpoint_path, map_location=device)
+        model.load_state_dict(ckpt['model_state'])
+        optimizer.load_state_dict(ckpt['optimizer_state'])
+        start_epoch = ckpt['epoch'] + 1
+        best_valid_mse = ckpt['best_valid_mse']
+        patience = ckpt['patience']
+        train_log = ckpt['train_log']
+        print(f"Resumed from epoch {ckpt['epoch']} — best MSE so far: {best_valid_mse:.4f}, patience: {patience}")
+    else:
+        print("No checkpoint found — starting fresh training")
+
+    for epoch in range(start_epoch, hp.Epoch + 1):
         # trainning
         model.train()
         pred = []
@@ -141,9 +160,19 @@ if __name__ == "__main__":
         else:
             patience += 1
             if patience > hp.max_patience:
-                print(f'Traing stop at epoch-{epoch}, model save at-{model_fromTrain}')
-                break 
-               
+                print(f'Training stopped at epoch {epoch}, best model saved at {model_fromTrain}')
+                break
+
+        # Save checkpoint after every epoch so training can be resumed if interrupted
+        torch.save({
+            'epoch': epoch,
+            'model_state': model.state_dict(),
+            'optimizer_state': optimizer.state_dict(),
+            'best_valid_mse': best_valid_mse,
+            'patience': patience,
+            'train_log': train_log,
+        }, checkpoint_path)
+
     log_dir = f"./log/{hp.dataset}-{hp.running_set}.csv"
     with open(log_dir, "w+")as f:
         writer = csv.writer(f)
