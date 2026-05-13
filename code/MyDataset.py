@@ -45,7 +45,13 @@ def target2graph(distance_map, protein_features_esm):
     target_edge_index = []
     target_edge_distance = []
     protein_features_esm = protein_features_esm[1:-1, :]
-    target_size = protein_features_esm.shape[0]    
+    target_size = protein_features_esm.shape[0]
+
+    # AF2 contact map may cover fewer residues than ESM embedding — align to smaller
+    map_size = distance_map.shape[0]
+    target_size = min(target_size, map_size)
+    protein_features_esm = protein_features_esm[:target_size, :]
+    distance_map = distance_map[:target_size, :target_size]
 
     for i in range(target_size):
         distance_map[i, i] = 1
