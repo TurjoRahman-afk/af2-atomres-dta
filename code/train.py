@@ -13,6 +13,8 @@ from hyperparameter import HyperParameter
 from MyDataset import CustomDataSet, my_collate_fn
 
 import csv
+import time
+from tqdm import tqdm
 from metrics import calculate_metrics
 
 import warnings
@@ -114,13 +116,21 @@ if __name__ == "__main__":
     else:
         print("No checkpoint found — starting fresh training")
 
+    epoch_times = []
+
     for epoch in range(start_epoch, hp.Epoch + 1):
-        # trainning
+        epoch_start = time.time()
+
+        # training
         model.train()
         pred = []
-        label = []             
-        for batch_data in train_dataset_load:
-            mol_vec, prot_vec, mol_mat, mol_mat_mask,  prot_mat, prot_mat_mask, drugh_graph, protein_graph, affinity = batch_data
+        label = []
+        total_batches = len(train_dataset_load)
+        pbar = tqdm(train_dataset_load, total=total_batches,
+                    desc=f"Epoch {epoch}/{hp.Epoch}", unit="batch", leave=False)
+
+        for batch_data in pbar:
+            mol_vec, prot_vec, mol_mat, mol_mat_mask, prot_mat, prot_mat_mask, drugh_graph, protein_graph, affinity = batch_data
 
             mol_vec = mol_vec.to(device)
             prot_vec = prot_vec.to(device)
@@ -130,21 +140,31 @@ if __name__ == "__main__":
             prot_mat_mask = prot_mat_mask.to(device)
             drugh_graph = drugh_graph.to(device)
             protein_graph = protein_graph.to(device)
-            affinity = affinity.to(device)  
-                  
+            affinity = affinity.to(device)
+
             predictions = model(mol_vec, mol_mat, mol_mat_mask, prot_vec, prot_mat, prot_mat_mask, drugh_graph, protein_graph)
             pred = pred + predictions.cpu().detach().numpy().reshape(-1).tolist()
-            label = label + affinity.cpu().detach().numpy().reshape(-1).tolist()            
-                
+            label = label + affinity.cpu().detach().numpy().reshape(-1).tolist()
+
             loss = criterion(predictions.squeeze(), affinity)
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
+            pbar.set_postfix(loss=f"{loss.item():.4f}")
+
+        pbar.close()
         pred = np.array(pred)
-        label= np.array(label)
+        label = np.array(label)
         mse_value, ci_value, rm2_value = calculate_metrics(label, pred)
         train_log.append([mse_value, ci_value, rm2_value])
-        print(f'Training Log at epoch: {epoch}: mse: {mse_value}')
+
+        epoch_time = time.time() - epoch_start
+        epoch_times.append(epoch_time)
+        avg_epoch_time = sum(epoch_times) / len(epoch_times)
+        epochs_left = hp.Epoch - epoch
+        eta_seconds = avg_epoch_time * epochs_left
+        eta_str = time.strftime("%H:%M:%S", time.gmtime(eta_seconds))
+        print(f"Epoch {epoch}/{hp.Epoch} | Train MSE: {mse_value:.4f} | Time: {epoch_time:.0f}s | ETA: {eta_str}")
             
         # valid
         mse, ci, rm2 = test(model, valid_dataset_load)   
