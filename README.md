@@ -158,6 +158,30 @@ f(x) = w_base * SiLU(x)  +  Σ c_k * B_k(x)
 
 ---
 
+## Training Progress Log — DAVIS Warm
+
+Training on RTX 5060 8GB. Best validation MSE updated each time model improves.
+Metrics below are **training set** values. Best **validation MSE: 0.3969** (epoch 10).
+
+| Epoch | Train MSE | CI | r2m |
+|-------|-----------|----|-----|
+| 1 | 0.8823 | 0.6701 | 0.0480 |
+| 2 | 0.6365 | 0.7150 | 0.2131 |
+| 3 | 0.6071 | 0.7266 | 0.2491 |
+| 4 | 0.5855 | 0.7455 | 0.2764 |
+| 5 | 0.5608 | 0.7544 | 0.3072 |
+| 6 | 0.5462 | 0.7636 | 0.3257 |
+| 7 | 0.5210 | 0.7639 | 0.3564 |
+| 8 | 0.5034 | 0.7655 | 0.3783 |
+| 9 | 0.4822 | 0.7777 | 0.4044 |
+| 10 | 0.4740 | 0.7892 | 0.4142 |
+| 20 | - | - | - |
+| 30 | - | - | - |
+| 40 | - | - | - |
+| 50 | - | - | - |
+
+---
+
 ## Ablation Study (To Be Updated After Training)
 
 | Configuration | MSE | CI | r2m |
