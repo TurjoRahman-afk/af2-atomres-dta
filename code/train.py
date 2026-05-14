@@ -123,6 +123,7 @@ if __name__ == "__main__":
     model = nn.DataParallel(Model(hp, device))
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=hp.Learning_rate, betas=(0.9, 0.999))
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, min_lr=1e-6)
     criterion = F.mse_loss
 
     model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}.pth'
@@ -138,6 +139,8 @@ if __name__ == "__main__":
         ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
         model.load_state_dict(ckpt['model_state'])
         optimizer.load_state_dict(ckpt['optimizer_state'])
+        if 'scheduler_state' in ckpt:
+            scheduler.load_state_dict(ckpt['scheduler_state'])
         start_epoch = ckpt['epoch'] + 1
         best_valid_mse = ckpt['best_valid_mse']
         patience = ckpt['patience']
@@ -197,10 +200,12 @@ if __name__ == "__main__":
         print(f"Epoch {epoch}/{hp.Epoch} | Train MSE: {mse_value:.4f} | Time: {epoch_time:.0f}s | ETA: {eta_str}")
             
         # valid
-        mse, ci, rm2 = test(model, valid_dataset_load)   
-        print(f'Valid at: mse: {mse}, ci: {ci}, rm2: {rm2}')
-             
-        # Early stop        
+        mse, ci, rm2 = test(model, valid_dataset_load)
+        scheduler.step(mse)
+        current_lr = optimizer.param_groups[0]['lr']
+        print(f'Valid at: mse: {mse}, ci: {ci}, rm2: {rm2} | LR: {current_lr:.2e}')
+
+        # Early stop
         if mse < best_valid_mse :
             patience = 0
             best_valid_mse = mse
@@ -218,6 +223,7 @@ if __name__ == "__main__":
             'epoch': epoch,
             'model_state': model.state_dict(),
             'optimizer_state': optimizer.state_dict(),
+            'scheduler_state': scheduler.state_dict(),
             'best_valid_mse': best_valid_mse,
             'patience': patience,
             'train_log': train_log,
