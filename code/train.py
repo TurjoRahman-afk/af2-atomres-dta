@@ -135,7 +135,7 @@ if __name__ == "__main__":
 
     if os.path.exists(checkpoint_path):
         print(f"Checkpoint found — resuming training from {checkpoint_path}")
-        ckpt = torch.load(checkpoint_path, map_location=device)
+        ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
         model.load_state_dict(ckpt['model_state'])
         optimizer.load_state_dict(ckpt['optimizer_state'])
         start_epoch = ckpt['epoch'] + 1
