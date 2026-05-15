@@ -161,14 +161,13 @@ f(x) = w_base * SiLU(x)  +  Σ c_k * B_k(x)
 ## Training Progress Log — DAVIS Warm
 
 Training on RTX 5060 8GB. Best validation MSE updated each time model improves.
-Train MSE is the training set value. Valid MSE/CI/r2m are validation set values. Best **validation MSE: 0.3191** (epoch 31).
+Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
-| 1 | 0.8823 | - | - | - |
-| 10 | 0.4740 | 0.3969 | - | - |
-| 20 | 0.3759 | 0.3559 | 0.8339 | 0.4909 |
-| 30 | 0.3383 | 0.3575 | 0.8359 | 0.4765 |
+| 10 | - | - | - | - |
+| 20 | - | - | - | - |
+| 30 | - | - | - | - |
 | 40 | - | - | - | - |
 | 50 | - | - | - | - |
 
