@@ -129,6 +129,7 @@ if __name__ == "__main__":
     checkpoint_path = f'./savemodel/{hp.dataset}-{hp.running_set}_checkpoint.pth'
 
     train_log = []
+    valid_log = []
     best_valid_mse = 10
     patience = 0
     start_epoch = 1
@@ -142,6 +143,7 @@ if __name__ == "__main__":
         best_valid_mse = ckpt['best_valid_mse']
         patience = ckpt['patience']
         train_log = ckpt['train_log']
+        valid_log = ckpt.get('valid_log', [])
         print(f"Resumed from epoch {ckpt['epoch']} — best MSE so far: {best_valid_mse:.4f}, patience: {patience}")
     else:
         print("No checkpoint found — starting fresh training")
@@ -198,6 +200,7 @@ if __name__ == "__main__":
             
         # valid
         mse, ci, rm2 = test(model, valid_dataset_load)
+        valid_log.append([mse, ci, rm2])
         print(f'Valid at: mse: {mse}, ci: {ci}, rm2: {rm2}')
 
         # Early stop
@@ -221,6 +224,7 @@ if __name__ == "__main__":
             'best_valid_mse': best_valid_mse,
             'patience': patience,
             'train_log': train_log,
+            'valid_log': valid_log,
         }, checkpoint_path)
 
     log_dir = f"./log/{hp.dataset}-{hp.running_set}.csv"
