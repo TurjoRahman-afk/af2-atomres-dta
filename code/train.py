@@ -227,6 +227,17 @@ if __name__ == "__main__":
             'valid_log': valid_log,
         }, checkpoint_path)
 
+        # Write log CSV after every epoch so results are never lost on interruption
+        log_dir = f"./log/{hp.dataset}-{hp.running_set}.csv"
+        with open(log_dir, "w+", newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(["epoch", "train_mse", "train_ci", "train_r2m", "valid_mse", "valid_ci", "valid_r2m"])
+            valid_offset = len(train_log) - len(valid_log)
+            for i, row in enumerate(train_log, 1):
+                valid_idx = i - 1 - valid_offset
+                v = valid_log[valid_idx] if 0 <= valid_idx < len(valid_log) else ['', '', '']
+                writer.writerow([i] + row + list(v))
+
     log_dir = f"./log/{hp.dataset}-{hp.running_set}.csv"
     with open(log_dir, "w+")as f:
         writer = csv.writer(f)
