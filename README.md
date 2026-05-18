@@ -142,13 +142,18 @@ f(x) = w_base * SiLU(x)  +  Σ c_k * B_k(x)
 | MF-DTA (2025)          | 0.569     | 0.865     | 0.737     |
 | DeepDTAGen (2025)      | 0.458     | 0.876     | 0.760     |
 
-### AF2-CrossKAN-DTA Results (To Be Updated After Training)
+### AF2-CrossKAN-DTA Results
+
+To get stable and reproducible results we run 3 independent trainings on the DAVIS warm setting, each with a different data split seed (41, 42, 43 — the same protocol used in KANPM-DTA). The final reported MSE/CI/r2m are the mean and standard deviation across the 3 runs.
 
 #### Davis (Warm Setting)
 
-| Model                       | MSE | CI | r2m |
-|-----------------------------|-----|----|-----|
-| **AF2-CrossKAN-DTA (Ours)** | -   | -  | -   |
+| Model | Split Seed | Test MSE | Test CI | Test r2m |
+|-------|------------|----------|---------|----------|
+| AF2-CrossKAN-DTA — Run 1 | 41 | 0.1954 | - | - |
+| AF2-CrossKAN-DTA — Run 2 | 42 | - | - | - |
+| AF2-CrossKAN-DTA — Run 3 | 43 | - | - | - |
+| **AF2-CrossKAN-DTA (Mean ± Std)** | — | - | - | - |
 
 #### KIBA (Warm Setting)
 
