@@ -69,7 +69,6 @@ def test(model, dataloader):
         protein_graph = protein_graph.to(device)
         affinity = affinity.to(device)
 
-
         with torch.no_grad():
             pred = model(mol_vec, mol_mat, mol_mat_mask, prot_vec, prot_mat, prot_mat_mask, drugh_graph, protein_graph)
             preds += pred.cpu().detach().numpy().reshape(-1).tolist()
@@ -250,14 +249,14 @@ if __name__ == "__main__":
     # Test
     predModel = nn.DataParallel(Model(hp, device))
     predModel.load_state_dict(torch.load(model_fromTrain))
-    predModel = predModel.to(device)    
+    predModel = predModel.to(device)
     mse, ci, rm2 = test(predModel, test_dataset_load)
     print(f'Test at, mse: {mse}, ci: {ci}, rm2: {rm2}\n')
     save_metrics['mse'].append(mse)
     save_metrics['ci'].append(ci)
-    save_metrics['rm2'].append(rm2)                          
-        
-    # save training log
-    test_metrics = pd.DataFrame(save_metrics)    
-    test_metrics.to_csv(f'./log/Test-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}.csv', index=False)     
-    print(f"Dataset-{hp.dataset}-{hp.running_set}")
+    save_metrics['rm2'].append(rm2)
+
+    # Save summary metrics
+    test_metrics = pd.DataFrame(save_metrics)
+    test_metrics.to_csv(f'./log/Test-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}.csv', index=False)
+    print(f"Dataset-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}")
