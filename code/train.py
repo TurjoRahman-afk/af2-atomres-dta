@@ -81,7 +81,7 @@ def test(model, dataloader):
     return mse, ci, rm2
 
 if __name__ == "__main__":
-    SEED = 1
+    SEED = 0
     random.seed(SEED)
     torch.manual_seed(SEED)
     torch.cuda.manual_seed_all(SEED)
