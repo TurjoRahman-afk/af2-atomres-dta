@@ -81,7 +81,8 @@ def test(model, dataloader):
     return mse, ci, rm2
 
 if __name__ == "__main__":
-    SEED = 0
+    SEED = 0          # weight init + batch shuffle seed (keep fixed across runs)
+    SPLIT_SEED = 42   # data split seed — must match cold_split.py SEED
     random.seed(SEED)
     torch.manual_seed(SEED)
     torch.cuda.manual_seed_all(SEED)
@@ -125,8 +126,8 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(model.parameters(), lr=hp.Learning_rate, betas=(0.9, 0.999))
     criterion = F.mse_loss
 
-    model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}-seed{SEED}.pth'
-    checkpoint_path = f'./savemodel/{hp.dataset}-{hp.running_set}-seed{SEED}_checkpoint.pth'
+    model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}.pth'
+    checkpoint_path = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_checkpoint.pth'
 
     train_log = []
     valid_log = []
@@ -228,7 +229,7 @@ if __name__ == "__main__":
         }, checkpoint_path)
 
         # Write log CSV after every epoch so results are never lost on interruption
-        log_dir = f"./log/{hp.dataset}-{hp.running_set}-seed{SEED}.csv"
+        log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}.csv"
         with open(log_dir, "w+", newline='') as f:
             writer = csv.writer(f)
             writer.writerow(["epoch", "train_mse", "train_ci", "train_r2m", "valid_mse", "valid_ci", "valid_r2m"])
@@ -238,7 +239,7 @@ if __name__ == "__main__":
                 v = valid_log[valid_idx] if 0 <= valid_idx < len(valid_log) else ['', '', '']
                 writer.writerow([i] + row + list(v))
 
-    log_dir = f"./log/{hp.dataset}-{hp.running_set}-seed{SEED}.csv"
+    log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}.csv"
     with open(log_dir, "w+")as f:
         writer = csv.writer(f)
         writer.writerow(["mse",  "ci", "rm2"])
@@ -258,5 +259,5 @@ if __name__ == "__main__":
         
     # save training log
     test_metrics = pd.DataFrame(save_metrics)    
-    test_metrics.to_csv(f'./log/Test-{hp.dataset}-{hp.running_set}.csv', index=False)     
+    test_metrics.to_csv(f'./log/Test-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}.csv', index=False)     
     print(f"Dataset-{hp.dataset}-{hp.running_set}")
