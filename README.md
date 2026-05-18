@@ -163,13 +163,13 @@ f(x) = w_base * SiLU(x)  +  Σ c_k * B_k(x)
 Training on RTX 5060 8GB. Best validation MSE updated each time model improves.
 Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 
-> **Best Checkpoint — Epoch 91**
+> **Best Checkpoint — Epoch 100**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.0887 |
-> | Valid MSE | **0.2044** |
-> | Valid CI | **0.8754** |
-> | Valid r2m | **0.6506** |
+> | Train MSE | 0.0795 |
+> | Valid MSE | **0.1934** |
+> | Valid CI | **0.8724** |
+> | Valid r2m | **0.6914** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
@@ -183,7 +183,8 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 | 80 | 0.1096 | 0.2295 | 0.8630 | 0.6339 |
 | 87 | 0.0927 | 0.2108 | 0.8789 | 0.6599 |
 | 90 | 0.0907 | 0.2177 | 0.8771 | 0.6093 |
-| **91** | **0.0887** | **0.2044** | **0.8754** | **0.6506** |
+| 91 | 0.0887 | 0.2044 | 0.8754 | 0.6506 |
+| 100 | **0.0795** | **0.1934** | **0.8724** | **0.6914** |
 
 ---
 
