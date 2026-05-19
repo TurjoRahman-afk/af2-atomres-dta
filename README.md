@@ -168,6 +168,8 @@ To get stable and reproducible results we run 3 independent trainings on the DAV
 Training on RTX 5060 8GB. Best validation MSE updated each time model improves.
 Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 
+### Run 1 — Split Seed 41
+
 > **Best Checkpoint — Epoch 100**
 > | Metric | Value |
 > |--------|-------|
@@ -192,6 +194,26 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 | 100 | **0.0795** | **0.1934** | **0.8724** | **0.6914** |
 | 110 | 0.0700 | 0.1992 | 0.8753 | 0.6587 |
 | 120 | 0.0636 | 0.1997 | 0.8846 | 0.6626 |
+
+### Run 2 — Split Seed 42
+
+| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
+|-------|-----------|-----------|----------|-----------|
+| 10 | 0.4251 | 0.4338 | 0.8176 | 0.4515 |
+| 20 | 0.3450 | 0.3467 | 0.8317 | 0.5823 |
+| 30 | - | - | - | - |
+| 40 | - | - | - | - |
+| 50 | - | - | - | - |
+
+### Run 3 — Split Seed 43
+
+| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
+|-------|-----------|-----------|----------|-----------|
+| 10 | - | - | - | - |
+| 20 | - | - | - | - |
+| 30 | - | - | - | - |
+| 40 | - | - | - | - |
+| 50 | - | - | - | - |
 
 ---
 
