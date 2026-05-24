@@ -227,11 +227,8 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
-| 10 | - | - | - | - |
-| 20 | - | - | - | - |
-| 30 | - | - | - | - |
-| 40 | - | - | - | - |
-| 50 | - | - | - | - |
+| 10 | 0.4253 | 0.3949 | 0.8272 | 0.5168 |
+| 20 | 0.3329 | 0.3341 | 0.8451 | 0.5844 |
 
 ---
 
