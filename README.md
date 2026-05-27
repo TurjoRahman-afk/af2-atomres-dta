@@ -316,8 +316,8 @@ To get stable and reproducible results we run 3 independent trainings on the DAV
 |-------|------------|----------|---------|----------|
 | AF2-CrossKAN-DTA — Run 1 | 41 | 0.1954 | 0.8764 | 0.7190 |
 | AF2-CrossKAN-DTA — Run 2 | 42 | 0.2223 | 0.8963 | 0.6653 |
-| AF2-CrossKAN-DTA — Run 3 | 43 | - | - | - |
-| **AF2-CrossKAN-DTA (Mean ± Std)** | — | - | - | - |
+| AF2-CrossKAN-DTA — Run 3 | 43 | 0.2155 | 0.8855 | 0.6564 |
+| **AF2-CrossKAN-DTA (Mean ± Std)** | — | **0.2111 ± 0.0140** | **0.8861 ± 0.0100** | **0.6802 ± 0.0339** |
 
 #### KIBA (Warm Setting)
 
