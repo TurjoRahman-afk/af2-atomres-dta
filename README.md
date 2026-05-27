@@ -389,13 +389,13 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 
 ### Run 3 — Split Seed 43
 
-> **Best Checkpoint — Epoch 103**
+> **Best Checkpoint — Epoch 109**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.0871 |
-> | Valid MSE | **0.1906** |
-> | Valid CI | **0.8981** |
-> | Valid r2m | **0.7383** |
+> | Train MSE | 0.0759 |
+> | Valid MSE | **0.1863** |
+> | Valid CI | **0.8974** |
+> | Valid r2m | **0.7548** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
@@ -407,10 +407,11 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 | 60 | 0.1653 | 0.2283 | 0.8820 | 0.6985 |
 | 70 | 0.1407 | 0.2114 | 0.8893 | 0.7081 |
 | 80 | 0.1117 | 0.2128 | 0.8791 | 0.7350 |
-| 83 | 0.1067 | 0.1921 | 0.8871 | 0.7403 |
 | 90 | 0.0987 | 0.2092 | 0.8902 | 0.7175 |
 | 100 | 0.0926 | 0.1979 | 0.8971 | 0.7235 |
-| **103** | **0.0871** | **0.1906** | **0.8981** | **0.7383** |
+| 103 | 0.0871 | 0.1906 | 0.8981 | 0.7383 |
+| 110 | 0.0747 | 0.1984 | 0.8919 | 0.7375 |
+| **109** | **0.0759** | **0.1863** | **0.8974** | **0.7548** |
 
 ---
 
