@@ -127,6 +127,170 @@ f(x) = w_base * SiLU(x)  +  Σ c_k * B_k(x)
 
 ---
 
+## Data Flow Through the Model
+
+A step-by-step walkthrough of how a drug-protein pair moves through every layer from raw input to predicted affinity score.
+
+---
+
+### Step 1 — Input Embeddings
+
+**Drug side:**
+- The SMILES string is tokenized by ChemBERTa and projected to a sequence of token embeddings: `[B, 220, 384]`
+- The same SMILES is parsed by RDKit into a molecular graph — each atom becomes a node with 88 features (atom type, charge, hybridization, etc.)
+
+**Protein side:**
+- The amino acid sequence is encoded by ESM-C 600M into residue-level embeddings: `[B, 1200, 1152]`
+- The AlphaFold2 PDB file is used to compute Cα pairwise distances — pairs within 8Å become edges in the protein graph, with ESM-C residue embeddings as node features
+
+---
+
+### Step 2 — Dimension Projection
+
+Both embedding dimensions are projected down to 128 via a single linear layer:
+
+```
+Drug:    fc3: [B, 220, 384]  →  [B, 220, 128]
+Protein: fc2: [B, 1200, 1152] → [B, 1200, 128]
+```
+
+This gives both modalities a common representation size before further processing.
+
+---
+
+### Step 3 — Transformer Self-Attention (within each modality)
+
+Each modality has its own independent 3-layer Transformer Encoder (8 attention heads, feedforward dim=1024):
+
+```
+Drug tokens:    TransformerEncoder  → xd [B, 220, 128]
+Protein tokens: TransformerEncoder2 → xp [B, 1200, 128]
+```
+
+At this stage drug tokens only attend to other drug tokens, and protein tokens only attend to other protein tokens. This builds up intra-modal context — "which parts of the drug are chemically important?" and "which residues in the protein are structurally relevant?"
+
+---
+
+### Step 4 — Graph Branch (parallel to sequence branch)
+
+While the sequence branch runs, the graph branch processes structural information independently:
+
+**Drug graph:** 1 GCNConv layer followed by 5 GATConv layers, each with BatchNorm + ReLU. Global add pooling collapses all atom nodes into one vector:
+```
+Drug atoms [N_atoms, 88]  →  GCN → 5×GAT → global_add_pool  →  smiles_graph [B, 128]
+```
+
+**Protein graph:** Same architecture but starts from 1152-dim ESM-C node features:
+```
+Protein residues [N_res, 1152]  →  GCN → 5×GAT → global_add_pool  →  fasta_graph [B, 128]
+```
+
+The graph branch captures **topological structure** (atom connectivity for drugs, 3D spatial contacts for proteins) that the sequence branch cannot see.
+
+---
+
+### Step 5 — Cross-Attention (drug ↔ protein interaction)
+
+This is where drug and protein first interact. Two `nn.MultiheadAttention` layers (8 heads) run in parallel:
+
+```python
+# Drug tokens query the protein — each drug token asks "which protein residues are relevant to me?"
+xd_cross, _ = cross_attn_drug(query=xd, key=xp, value=xp, key_padding_mask=prot_pad_mask)
+
+# Protein tokens query the drug — each residue asks "which drug atoms are relevant to me?"
+xp_cross, _ = cross_attn_prot(query=xp, key=xd, value=xd, key_padding_mask=drug_pad_mask)
+```
+
+Padding positions are masked out so attention never falls on zero-padded slots.
+
+Both outputs are mean-pooled across the sequence dimension to get fixed-size vectors:
+```
+xd_attn = xd_cross.mean(dim=1)   [B, 128]  — protein-conditioned drug representation
+xp_attn = xp_cross.mean(dim=1)   [B, 128]  — drug-conditioned protein representation
+```
+
+After this step, `xd_attn` is no longer a generic drug embedding — it is a drug representation that has been shaped by the specific protein it is paired with, and vice versa.
+
+---
+
+### Step 6 — Interaction Attention Branch
+
+A third, separate attention stream concatenates both sequence outputs and applies a learned attention pooling:
+
+```
+cat([xp, xd], dim=1)  →  [B, 1420, 128]
+LinearAttention (8 heads, tanh scoring)  →  [B, 128]
+cat_attn_proj (128 → 256)               →  cat_attn [B, 256]
+```
+
+This branch looks at the full combined drug+protein sequence jointly and produces a global interaction summary vector. It provides a complementary view to the cross-attention branch.
+
+---
+
+### Step 7 — Side Assembly
+
+The sequence and graph representations for each modality are merged:
+
+```
+drug_side = cat(xd_attn, smiles_graph)   [B, 128] + [B, 128]  =  [B, 256]
+prot_side = cat(xp_attn, fasta_graph)    [B, 128] + [B, 128]  =  [B, 256]
+```
+
+Each side now carries both sequence-level context (cross-attention) and structural context (graph) for its modality.
+
+---
+
+### Step 8 — Bilinear Fusion
+
+Instead of simply concatenating drug_side and prot_side, bilinear fusion models their **multiplicative interaction** in a shared low-rank space:
+
+```python
+d = tanh(drug_proj(drug_side))   # [B, 64]  — rank-64 projection of drug side
+p = tanh(prot_proj(prot_side))   # [B, 64]  — rank-64 projection of protein side
+interaction = d * p               # [B, 64]  — element-wise product (explicit interaction)
+bilinear_out = output_proj(interaction)  →  BN  →  Dropout  →  [B, 256]
+```
+
+The element-wise product forces each dimension of the drug and protein representations to interact directly. Features that are both drug-relevant and protein-relevant produce a large value; features relevant to only one side cancel out.
+
+---
+
+### Step 9 — Final Concatenation
+
+The bilinear interaction output and the interaction attention output are concatenated:
+
+```
+final = cat(bilinear_out, cat_attn)   [B, 256] + [B, 256]  =  [B, 512]
+```
+
+This gives the KAN predictor a 512-dimensional vector that encodes:
+- Multiplicative drug-protein feature interactions (bilinear_out)
+- Global joint drug-protein sequence context (cat_attn)
+
+---
+
+### Step 10 — KAN Predictor
+
+The final 512-dim vector passes through a Kolmogorov-Arnold Network. Unlike an MLP where each connection is a fixed scalar weight, each KAN connection learns a B-spline function:
+
+```
+f(x) = w_base × SiLU(x)  +  Σ c_k × B_k(x)
+```
+
+where `B_k(x)` are cubic B-spline basis functions and `c_k` are learned coefficients.
+
+```
+[B, 512]  →  KAN layer 1  →  [B, 1024]
+           →  KAN layer 2  →  [B, 512]
+           →  KAN layer 3  →  [B, 1]
+                               │
+                    Predicted Affinity Score (pKd)
+```
+
+The KAN's learnable activation functions allow it to fit more complex non-linear drug-protein relationships than a fixed-activation MLP of the same depth.
+
+---
+
 ## Performance Results
 
 ### Prior Work (Comparison Baseline)
