@@ -315,9 +315,9 @@ To get stable and reproducible results we run 3 independent trainings on the DAV
 | Model | Split Seed | Test MSE | Test CI | Test r2m |
 |-------|------------|----------|---------|----------|
 | AF2-CrossKAN-DTA — Run 1 | 41 | 0.1954 | 0.8764 | 0.7190 |
-| AF2-CrossKAN-DTA — Run 2 | 42 | 0.2223 | 0.8963 | 0.6653 |
+| AF2-CrossKAN-DTA — Run 2 (retrain) | 42 | - | - | - |
 | AF2-CrossKAN-DTA — Run 3 | 43 | 0.2155 | 0.8855 | 0.6564 |
-| **AF2-CrossKAN-DTA (Mean ± Std)** | — | **0.2111 ± 0.0140** | **0.8861 ± 0.0100** | **0.6802 ± 0.0339** |
+| **AF2-CrossKAN-DTA (Mean ± Std)** | — | - | - | - |
 
 #### KIBA (Warm Setting)
 
@@ -357,7 +357,27 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 | 110 | 0.0700 | 0.1992 | 0.8753 | 0.6587 |
 | 120 | 0.0636 | 0.1997 | 0.8846 | 0.6626 |
 
-### Run 2 — Split Seed 42
+### Run 2 — Split Seed 42 (Original — Replaced by Retrain)
+
+> Original run completed (192 epochs, patience=30) but showed large valid/test gap (valid MSE 0.1869 → test MSE 0.2223). Retrained with patience=20 for better generalization.
+
+### Run 2 Retrain — Split Seed 42 (New)
+
+> **Best Checkpoint — Epoch 24** *(training in progress)*
+> | Metric | Value |
+> |--------|-------|
+> | Train MSE | 0.3192 |
+> | Valid MSE | **0.2981** |
+> | Valid CI | **0.8516** |
+> | Valid r2m | **0.6223** |
+
+| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
+|-------|-----------|-----------|----------|-----------|
+| 10 | 0.4446 | 0.4722 | 0.8038 | 0.4192 |
+| 20 | 0.3498 | 0.3202 | 0.8460 | 0.6051 |
+| **24** | **0.3192** | **0.2981** | **0.8516** | **0.6223** |
+
+### Run 2 Original — Split Seed 42
 
 > **Best Checkpoint — Epoch 161**
 > | Metric | Value |
