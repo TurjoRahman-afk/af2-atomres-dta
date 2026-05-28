@@ -363,20 +363,21 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 
 ### Run 2 Retrain — Split Seed 42 (New)
 
-> **Best Checkpoint — Epoch 33** *(training in progress)*
+> **Best Checkpoint — Epoch 41** *(training in progress)*
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.2731 |
-> | Valid MSE | **0.2818** |
-> | Valid CI | **0.8615** |
-> | Valid r2m | **0.6322** |
+> | Train MSE | 0.2384 |
+> | Valid MSE | **0.2492** |
+> | Valid CI | **0.8754** |
+> | Valid r2m | **0.7017** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
 | 10 | 0.4446 | 0.4722 | 0.8038 | 0.4192 |
 | 20 | 0.3498 | 0.3202 | 0.8460 | 0.6051 |
 | 30 | 0.2906 | 0.2862 | 0.8569 | 0.6511 |
-| **33** | **0.2731** | **0.2818** | **0.8615** | **0.6322** |
+| 40 | 0.2397 | 0.2585 | 0.8703 | 0.6906 |
+| **41** | **0.2384** | **0.2492** | **0.8754** | **0.7017** |
 
 ### Run 2 Original — Split Seed 42
 
