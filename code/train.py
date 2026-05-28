@@ -207,10 +207,8 @@ if __name__ == "__main__":
         if mse < best_valid_mse :
             patience = 0
             best_valid_mse = mse
-            # save best model (overwrite) + per-epoch snapshot
+            # save best model (overwrite only)
             torch.save(model.state_dict(), model_fromTrain)
-            epoch_snapshot = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_epoch{epoch}.pth'
-            torch.save(model.state_dict(), epoch_snapshot)
             print(f'Update best_mse, Valid at epoch: {epoch}: mse: {mse}, ci: {ci}, rm2: {rm2}')
         else:
             patience += 1
