@@ -398,6 +398,7 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 | 60 | 0.1710 | 0.2211 | 0.8875 | 0.7326 |
 | **67** | **0.1507** | **0.2060** | **0.8874** | **0.7248** |
 | 70 | 0.1446 | 0.2076 | 0.8859 | 0.7268 |
+| 80 | 0.1178 | 0.2179 | 0.8869 | 0.6813 |
 
 ### Run 2 Original — Split Seed 42
 
