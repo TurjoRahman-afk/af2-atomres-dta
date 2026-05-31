@@ -374,11 +374,7 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 | 110 | 0.0700 | 0.1992 | 0.8753 | 0.6587 |
 | 120 | 0.0636 | 0.1997 | 0.8846 | 0.6626 |
 
-### Run 2 — Split Seed 42 (Original — Replaced by Retrain)
-
-> Original run completed (192 epochs, patience=30) but showed large valid/test gap (valid MSE 0.1869 → test MSE 0.2223). Retrained with patience=20 for better generalization.
-
-### Run 2 Retrain — Split Seed 42 (New)
+### Run 2 — Split Seed 42
 
 > **Best Checkpoint — Epoch 131**
 > | Metric | Value |
@@ -404,36 +400,6 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 | 120 | 0.0663 | 0.1953 | 0.8849 | 0.7494 |
 | 130 | 0.0665 | 0.1961 | 0.8869 | 0.7458 |
 | **131** | **0.0634** | **0.1856** | **0.8916** | **0.7480** |
-
-### Run 2 Original — Split Seed 42
-
-> **Best Checkpoint — Epoch 161**
-> | Metric | Value |
-> |--------|-------|
-> | Train MSE | 0.0556 |
-> | Valid MSE | **0.1869** |
-> | Valid CI | **0.8970** |
-> | Valid r2m | **0.7205** |
-
-| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
-|-------|-----------|-----------|----------|-----------|
-| 10 | 0.4251 | 0.4338 | 0.8176 | 0.4515 |
-| 20 | 0.3450 | 0.3467 | 0.8317 | 0.5823 |
-| 30 | 0.3014 | 0.2957 | 0.8541 | 0.6171 |
-| 40 | 0.2463 | 0.2727 | 0.8612 | 0.6120 |
-| 50 | 0.1993 | 0.2437 | 0.8691 | 0.6973 |
-| 60 | 0.1613 | 0.2340 | 0.8817 | 0.6706 |
-| 70 | 0.1350 | 0.2198 | 0.8893 | 0.6902 |
-| 80 | 0.1132 | 0.2140 | 0.8849 | 0.7137 |
-| 90 | 0.0924 | 0.2194 | 0.8868 | 0.6769 |
-| 100 | 0.0794 | 0.2136 | 0.8849 | 0.7149 |
-| 110 | 0.0687 | 0.2080 | 0.8847 | 0.6945 |
-| 120 | 0.0639 | 0.2027 | 0.8973 | 0.6992 |
-| 130 | 0.0672 | 0.1879 | 0.8935 | 0.7455 |
-| 140 | 0.0633 | 0.1895 | 0.8918 | 0.7508 |
-| 150 | 0.0552 | 0.1925 | 0.8941 | 0.7166 |
-| 160 | 0.0476 | 0.1888 | 0.8920 | 0.7279 |
-| **161** | **0.0556** | **0.1869** | **0.8970** | **0.7205** |
 
 ### Run 3 — Split Seed 43
 
