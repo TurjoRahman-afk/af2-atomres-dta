@@ -428,6 +428,20 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 | 120 | 0.0645 | 0.1920 | 0.8988 | 0.7313 |
 | **121** | **0.0657** | **0.1840** | **0.9025** | **0.7424** |
 
+### Run 4 — Split Seed 32 (In Progress)
+
+> **Best Checkpoint — Epoch 12 (Training Ongoing)**
+> | Metric | Value |
+> |--------|-------|
+> | Train MSE | 0.4034 |
+> | Valid MSE | **0.3750** |
+> | Valid CI | **0.8278** |
+> | Valid r2m | **0.5364** |
+
+| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
+|-------|-----------|-----------|----------|-----------|
+| 10 | 0.4297 | 0.4022 | 0.8212 | 0.5197 |
+
 ---
 
 ## Ablation Study (To Be Updated After Training)

@@ -15,8 +15,8 @@ from metrics import calculate_metrics
 import warnings
 warnings.filterwarnings("ignore")
 
-SPLIT_SEED = 43  # change this to test a different run
-EPOCH = None     # set to an epoch number (e.g. 83) to test a specific snapshot, or None for current best
+SPLIT_SEED = 42  # change this to test a different run
+EPOCH = None   # set to an epoch number (e.g. 83) to test a specific snapshot, or None for current best
 
 def load_pickle(dir):
     with open(dir, 'rb+') as f:

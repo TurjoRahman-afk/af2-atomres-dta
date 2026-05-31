@@ -101,7 +101,7 @@ def create_fold_setting_cold(df, fold_seed, frac, entities):
 
 dataset = 'davis' # kiba, metz, bindingDB
 
-SEED = 42 # 41, 42, 43, 32 33
+SEED = 32 # 41, 42, 43, 32 33
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
