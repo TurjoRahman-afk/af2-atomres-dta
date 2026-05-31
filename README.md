@@ -332,7 +332,7 @@ To get stable and reproducible results we run 3 independent trainings on the DAV
 | Model | Split Seed | Test MSE | Test CI | Test r2m |
 |-------|------------|----------|---------|----------|
 | AF2-CrossKAN-DTA — Run 1 | 41 | 0.1954 | 0.8764 | 0.7190 |
-| AF2-CrossKAN-DTA — Run 2 (retrain) | 42 | 0.2087 | 0.8872 | 0.6788 |
+| AF2-CrossKAN-DTA — Run 2 | 42 | 0.2087 | 0.8872 | 0.6788 |
 | AF2-CrossKAN-DTA — Run 3 | 43 | 0.2155 | 0.8855 | 0.6564 |
 | **AF2-CrossKAN-DTA (Mean ± Std)** | — | **0.2065 ± 0.0102** | **0.8830 ± 0.0058** | **0.6847 ± 0.0317** |
 
