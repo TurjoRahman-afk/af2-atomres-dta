@@ -46,8 +46,8 @@ def build_graph_cache(drug_df, prot_df, mol2vec_dict, protvec_dict, contact_map)
             continue
         prot_mat = protvec_dict["mat_dict"][prot_id]
         prot_contact_map = contact_map['contact_map'][prot_id].copy()
-        _, target_features, target_edge_index, target_edge_distance = target2graph(prot_contact_map, prot_mat)
-        protein_graph_cache[prot_id] = Data(x=target_features, edge_index=target_edge_index, edge_weight=target_edge_distance)
+        _, target_features, target_edge_index, edge_weight, edge_attr = target2graph(prot_contact_map, prot_mat)
+        protein_graph_cache[prot_id] = Data(x=target_features, edge_index=target_edge_index, edge_weight=edge_weight, edge_attr=edge_attr)
 
     print(f"Cache ready: {len(drug_graph_cache)} drug graphs, {len(protein_graph_cache)} protein graphs")
     return drug_graph_cache, protein_graph_cache
@@ -81,7 +81,7 @@ def test(model, dataloader):
 
 if __name__ == "__main__":
     SEED = 0          # weight init + batch shuffle seed (keep fixed across runs)
-    SPLIT_SEED = 32   # data split seed — must match cold_split.py SEED
+    SPLIT_SEED = 42   # data split seed — must match cold_split.py SEED
     random.seed(SEED)
     torch.manual_seed(SEED)
     torch.cuda.manual_seed_all(SEED)
@@ -125,8 +125,8 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(model.parameters(), lr=hp.Learning_rate, betas=(0.9, 0.999))
     criterion = F.mse_loss
 
-    model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}.pth'
-    checkpoint_path = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_checkpoint.pth'
+    model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf.pth'
+    checkpoint_path = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_checkpoint.pth'
 
     train_log = []
     valid_log = []
@@ -228,7 +228,7 @@ if __name__ == "__main__":
         }, checkpoint_path)
 
         # Write log CSV after every epoch so results are never lost on interruption
-        log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}.csv"
+        log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf.csv"
         with open(log_dir, "w+", newline='') as f:
             writer = csv.writer(f)
             writer.writerow(["epoch", "train_mse", "train_ci", "train_r2m", "valid_mse", "valid_ci", "valid_r2m"])
@@ -238,10 +238,10 @@ if __name__ == "__main__":
                 v = valid_log[valid_idx] if 0 <= valid_idx < len(valid_log) else ['', '', '']
                 writer.writerow([i] + row + list(v))
 
-    log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}.csv"
-    with open(log_dir, "w+")as f:
+    log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf.csv"
+    with open(log_dir, "w+") as f:
         writer = csv.writer(f)
-        writer.writerow(["mse",  "ci", "rm2"])
+        writer.writerow(["mse", "ci", "rm2"])
         for r in train_log:
             writer.writerow(r)
     print(f'Save log over at {log_dir}')
@@ -258,5 +258,5 @@ if __name__ == "__main__":
 
     # Save summary metrics
     test_metrics = pd.DataFrame(save_metrics)
-    test_metrics.to_csv(f'./log/Test-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}.csv', index=False)
-    print(f"Dataset-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}")
+    test_metrics.to_csv(f'./log/Test-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf.csv', index=False)
+    print(f"Dataset-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf")
