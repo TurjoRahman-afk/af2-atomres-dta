@@ -72,29 +72,34 @@ GENE_ALIASES = {
     "TNIK":       "TNIK",
 }
 
-# Proteins genuinely not in AlphaFold2 human database (e.g., non-human organisms)
-NO_AF2_PROTEINS = {
-    "PFPK5",    # Plasmodium falciparum — no human AF2
-    "PFCDPK1",  # Plasmodium falciparum — no human AF2
+# Organism name suffixes used in DAVIS protein IDs → full UniProt organism name
+ORGANISM_SUFFIX_MAP = {
+    "Pfalciparum":   "Plasmodium falciparum",
+    "Mtuberculosis": "Mycobacterium tuberculosis",
+    "Hsapiens":      "Homo sapiens",
 }
 
 
 def gene_name_to_uniprot(gene_name: str, organism: str = "Homo sapiens") -> Optional[str]:
     """Query UniProt REST API to get accession ID from gene name."""
-    params = {
-        "query": f"gene_exact:{gene_name} AND organism_name:{organism} AND reviewed:true",
-        "format": "tsv",
-        "fields": "accession",
-        "size": 1
-    }
-    try:
-        resp = requests.get(UNIPROT_SEARCH_URL, params=params, timeout=15)
-        resp.raise_for_status()
-        lines = resp.text.strip().split("\n")
-        if len(lines) >= 2:
-            return lines[1].strip()
-    except Exception as e:
-        print(f"  UniProt lookup failed for {gene_name}: {e}")
+    # Try reviewed (SwissProt) first, then unreviewed (TrEMBL) for non-model organisms
+    for reviewed in ("true", "false"):
+        params = {
+            "query": f"gene_exact:{gene_name} AND organism_name:{organism} AND reviewed:{reviewed}",
+            "format": "tsv",
+            "fields": "accession",
+            "size": 1
+        }
+        try:
+            resp = requests.get(UNIPROT_SEARCH_URL, params=params, timeout=15)
+            resp.raise_for_status()
+            lines = resp.text.strip().split("\n")
+            if len(lines) >= 2:
+                return lines[1].strip()
+        except Exception as e:
+            print(f"  UniProt lookup failed for {gene_name} ({organism}): {e}")
+        if reviewed == "true":
+            time.sleep(0.1)
     return None
 
 
@@ -190,28 +195,72 @@ def _fetch_af2(gene_key: str, cache: dict) -> Optional[np.ndarray]:
     return cmap
 
 
+def parse_organism_suffix(prot_id: str) -> Optional[str]:
+    """Extract organism from suffix like PFPK5(Pfalciparum) → 'Plasmodium falciparum'."""
+    match = re.search(r'\(([^)]+)\)', prot_id)
+    if match:
+        suffix = match.group(1)
+        return ORGANISM_SUFFIX_MAP.get(suffix)
+    return None
+
+
+def _fetch_af2_organism(gene_key: str, organism: str, cache: dict) -> Optional[np.ndarray]:
+    """Download AF2 for gene_key in a specific organism."""
+    cache_key = f"{gene_key}|{organism}"
+    if cache_key in cache:
+        return cache[cache_key]
+    lookup_name = GENE_ALIASES.get(gene_key, gene_key)
+    uniprot_id = gene_name_to_uniprot(lookup_name, organism)
+    if not uniprot_id:
+        cache[cache_key] = None
+        return None
+    pdb_string = download_alphafold_pdb(uniprot_id)
+    if not pdb_string:
+        time.sleep(0.3)
+        cache[cache_key] = None
+        return None
+    ca_coords = extract_ca_coords(pdb_string)
+    if ca_coords is None or len(ca_coords) == 0:
+        cache[cache_key] = None
+        return None
+    cmap = coords_to_contact_map(ca_coords)
+    cache[cache_key] = cmap
+    time.sleep(0.2)
+    return cmap
+
+
 def try_get_contact_map(prot_id: str, seq_len: int, cache: dict) -> tuple:
-    """Try AlphaFold2 download with alias resolution. Returns (contact_map, source_label)."""
+    """Try AlphaFold2 download with alias and organism resolution. Returns (contact_map, source_label).
+    Every protein gets a contact map — backbone fallback is the guaranteed last resort."""
     base = extract_base_gene(prot_id) or prot_id  # strips mutation/domain suffix
+    organism_from_suffix = parse_organism_suffix(prot_id)
 
-    # Check if this is a known non-human protein with no AF2
-    if prot_id in NO_AF2_PROTEINS or base in NO_AF2_PROTEINS:
-        return backbone_fallback_map(seq_len), "backbone-fallback(non-human)"
-
-    # Try exact protein name (covers plain gene names + alias lookup)
+    # 1. Try exact protein name with human AF2 first
     cmap = _fetch_af2(prot_id, cache)
     if cmap is not None:
         min_len = min(cmap.shape[0], seq_len)
         return cmap[:min_len, :min_len], "af2"
 
-    # Try base gene name when prot_id had a mutation/domain suffix
+    # 2. Try base gene (strip mutation/domain suffix) with human AF2
     if base != prot_id:
         cmap = _fetch_af2(base, cache)
         if cmap is not None:
             min_len = min(cmap.shape[0], seq_len)
             return cmap[:min_len, :min_len], f"af2-wildtype({base})"
 
-    # Final fallback: sequential backbone map
+    # 3. Try organism-specific AF2 if protein ID contains organism suffix
+    if organism_from_suffix and organism_from_suffix != "Homo sapiens":
+        cmap = _fetch_af2_organism(base, organism_from_suffix, cache)
+        if cmap is not None:
+            min_len = min(cmap.shape[0], seq_len)
+            return cmap[:min_len, :min_len], f"af2-{organism_from_suffix}"
+        # Also try with full prot_id as gene name
+        cmap = _fetch_af2_organism(prot_id, organism_from_suffix, cache)
+        if cmap is not None:
+            min_len = min(cmap.shape[0], seq_len)
+            return cmap[:min_len, :min_len], f"af2-{organism_from_suffix}"
+
+    # 4. Guaranteed fallback — backbone sequential connectivity (all proteins included)
     return backbone_fallback_map(seq_len), "backbone-fallback"
 
 
