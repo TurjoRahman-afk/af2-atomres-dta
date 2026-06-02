@@ -112,12 +112,6 @@ if __name__ == "__main__":
     # read data
     df = pd.read_csv("./datasets/" + args.dataset + "/data.csv")
 
-    # Remove non-human organism proteins that have no AlphaFold2 structure
-    no_af2_proteins = {"PFPK5(Pfalciparum)", "PFCDPK1(Pfalciparum)", "PKNB(Mtuberculosis)"}
-    before = len(df)
-    df = df[~df["target_key"].isin(no_af2_proteins)].reset_index(drop=True)
-    print(f"Filtered {before - len(df)} rows with non-human proteins. Remaining: {len(df)}")
-
     # create folds
     warm_fold = create_fold(df, args.SEED, [0.8, 0.1, 0.1])
     warm_fold["train"].to_csv("./datasets/" + args.dataset + "/warm/" + "train.csv", index=False)
