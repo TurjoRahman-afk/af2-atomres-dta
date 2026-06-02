@@ -137,10 +137,12 @@ def extract_ca_coords(pdb_string: str) -> Optional[np.ndarray]:
 
 
 def coords_to_contact_map(ca_coords: np.ndarray, threshold: float = CONTACT_THRESHOLD_ANGSTROM) -> np.ndarray:
-    """Compute pairwise Cα distance matrix and threshold at given Angstroms."""
+    """Compute pairwise Cα distance matrix. Store actual distances for contacts, 0.0 for non-contacts."""
     diff = ca_coords[:, None, :] - ca_coords[None, :, :]   # [L, L, 3]
-    dist_matrix = np.sqrt((diff ** 2).sum(axis=-1))         # [L, L]
-    return (dist_matrix < threshold).astype(np.float32)
+    dist_matrix = np.sqrt((diff ** 2).sum(axis=-1))         # [L, L] actual Angstrom distances
+    contact_mask = dist_matrix < threshold
+    dist_matrix[~contact_mask] = 0.0                        # zero out non-contacts
+    return dist_matrix.astype(np.float32)                   # actual distances, 0 = no contact
 
 
 def backbone_fallback_map(seq_len: int) -> np.ndarray:
