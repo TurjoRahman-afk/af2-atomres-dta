@@ -325,7 +325,7 @@ The KAN's learnable activation functions allow it to fit more complex non-linear
 
 ### AF2-CrossKAN-DTA Results
 
-To get stable and reproducible results we run 3 independent trainings on the DAVIS warm setting, each with a different data split seed (41, 42, 43 — the same protocol used in KANPM-DTA). The final reported MSE/CI/r2m are the mean and standard deviation across the 3 runs.
+To get stable and reproducible results we run 4 independent trainings on the DAVIS warm setting, each with a different data split seed (41, 42, 43, 32 — the same protocol used in KANPM-DTA). The final reported MSE/CI/r2m are the mean and standard deviation across the 4 runs.
 
 #### Davis (Warm Setting)
 
@@ -334,7 +334,8 @@ To get stable and reproducible results we run 3 independent trainings on the DAV
 | AF2-CrossKAN-DTA — Run 1 | 41 | 0.1954 | 0.8764 | 0.7190 |
 | AF2-CrossKAN-DTA — Run 2 | 42 | 0.2087 | 0.8872 | 0.6788 |
 | AF2-CrossKAN-DTA — Run 3 | 43 | 0.2155 | 0.8855 | 0.6564 |
-| **AF2-CrossKAN-DTA (Mean ± Std)** | — | **0.2065 ± 0.0102** | **0.8830 ± 0.0058** | **0.6847 ± 0.0317** |
+| AF2-CrossKAN-DTA — Run 4 | 32 | 0.2258 | 0.8793 | 0.6854 |
+| **AF2-CrossKAN-DTA (Mean ± Std)** | — | **0.2114 ± 0.0128** | **0.8821 ± 0.0051** | **0.6849 ± 0.0259** |
 
 #### KIBA (Warm Setting)
 
@@ -428,15 +429,22 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 | 120 | 0.0645 | 0.1920 | 0.8988 | 0.7313 |
 | **121** | **0.0657** | **0.1840** | **0.9025** | **0.7424** |
 
-### Run 4 — Split Seed 32 (In Progress)
+### Run 4 — Split Seed 32 (Complete)
 
-> **Best Checkpoint — Epoch 77 (Training Ongoing)**
+> **Best Checkpoint — Epoch 77**
 > | Metric | Value |
 > |--------|-------|
 > | Train MSE | 0.1200 |
 > | Valid MSE | **0.2243** |
 > | Valid CI | **0.8937** |
 > | Valid r2m | **0.6671** |
+
+> **Final Test Result**
+> | Metric | Value |
+> |--------|-------|
+> | Test MSE | **0.2258** |
+> | Test CI | **0.8793** |
+> | Test r2m | **0.6854** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
@@ -449,6 +457,8 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 | 70 | 0.1222 | 0.2485 | 0.8904 | 0.6077 |
 | 80 | 0.1145 | 0.2447 | 0.8807 | 0.6225 |
 | 90 | 0.0894 | 0.2380 | 0.8882 | 0.6511 |
+| 100 | 0.0781 | - | - | - |
+| 108 | 0.0690 | - | - | - |
 
 ---
 
