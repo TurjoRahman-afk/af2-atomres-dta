@@ -40,34 +40,42 @@ class DrugGraphNet(torch.nn.Module):
         self.relu = nn.ReLU()
         self.n_output = n_output
 
+        # Learned projection: 6-dim bond features → 1 scalar for GCNConv
+        # Better than mean() because the model learns which bond features matter
+        self.bond_proj = nn.Linear(6, 1)
+
         self.conv0 = GCNConv(num_features_xd, dim)
         self.bn0 = torch.nn.BatchNorm1d(dim)
-        self.conv1 = GATConv(dim, dim)
+        # edge_dim=6: all 5 GAT layers now receive full bond type features
+        self.conv1 = GATConv(dim, dim, edge_dim=6)
         self.bn1 = torch.nn.BatchNorm1d(dim)
-        self.conv2 = GATConv(dim, dim)
+        self.conv2 = GATConv(dim, dim, edge_dim=6)
         self.bn2 = torch.nn.BatchNorm1d(dim)
-        self.conv3 = GATConv(dim, dim)
+        self.conv3 = GATConv(dim, dim, edge_dim=6)
         self.bn3 = torch.nn.BatchNorm1d(dim)
-        self.conv4 = GATConv(dim, dim)
+        self.conv4 = GATConv(dim, dim, edge_dim=6)
         self.bn4 = torch.nn.BatchNorm1d(dim)
-        self.conv5 = GATConv(dim, dim)
+        self.conv5 = GATConv(dim, dim, edge_dim=6)
         self.bn5 = torch.nn.BatchNorm1d(dim)
         self.fc1_xd = Linear(dim, output_dim)
 
     def forward(self, data):
-        x, edge_index, edge_weight, batch = data.x.to(device), data.edge_index.to(device), data.edge_weight.to(device), data.batch.to(device)
+        x, edge_index, edge_attr, batch = data.x.to(device), data.edge_index.to(device), data.edge_weight.to(device), data.batch.to(device)
 
-        x = self.relu(self.conv0(x, edge_index, edge_weight.mean(dim=1)))
+        # Project 6-dim bond features → scalar for GCNConv
+        edge_scalar = self.bond_proj(edge_attr).squeeze(-1)   # [num_edges, 6] → [num_edges]
+
+        x = self.relu(self.conv0(x, edge_index, edge_scalar))
         x = self.bn0(x)
-        x = F.relu(self.conv1(x, edge_index))
+        x = F.relu(self.conv1(x, edge_index, edge_attr))      # GAT sees full bond type
         x = self.bn1(x)
-        x = F.relu(self.conv2(x, edge_index))
+        x = F.relu(self.conv2(x, edge_index, edge_attr))
         x = self.bn2(x)
-        x = F.relu(self.conv3(x, edge_index))
+        x = F.relu(self.conv3(x, edge_index, edge_attr))
         x = self.bn3(x)
-        x = F.relu(self.conv4(x, edge_index))
+        x = F.relu(self.conv4(x, edge_index, edge_attr))
         x = self.bn4(x)
-        x = F.relu(self.conv5(x, edge_index))
+        x = F.relu(self.conv5(x, edge_index, edge_attr))
         x = self.bn5(x)
         x = global_add_pool(x, batch)
         x = F.relu(self.fc1_xd(x))
