@@ -86,7 +86,8 @@ if __name__ == "__main__":
     torch.manual_seed(SEED)
     torch.cuda.manual_seed_all(SEED)
     torch.set_num_threads(4)
-    
+    torch.backends.cudnn.benchmark = True   # lets cuDNN find fastest conv algorithm
+
     hp = HyperParameter()
     os.environ["CUDA_VISIBLE_DEVICES"] = hp.cuda
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")    
@@ -113,9 +114,9 @@ if __name__ == "__main__":
 
     collate = lambda x: my_collate_fn(x, device, hp, drug_df, prot_df, mol2vec_dict, protvec_dict, contact_map,
                                       drug_graph_cache=drug_graph_cache, protein_graph_cache=protein_graph_cache)
-    train_dataset_load = DataLoader(train_set, batch_size=hp.Batch_size, shuffle=True, drop_last=True, num_workers=0, collate_fn=collate)
-    valid_dataset_load = DataLoader(valid_set, batch_size=hp.Batch_size, shuffle=False, drop_last=True, num_workers=0, collate_fn=collate)
-    test_dataset_load = DataLoader(test_set, batch_size=hp.Batch_size, shuffle=False, drop_last=True, num_workers=0, collate_fn=collate)
+    train_dataset_load = DataLoader(train_set, batch_size=hp.Batch_size, shuffle=True, drop_last=True, num_workers=0, collate_fn=collate, pin_memory=True)
+    valid_dataset_load = DataLoader(valid_set, batch_size=hp.Batch_size, shuffle=False, drop_last=True, num_workers=0, collate_fn=collate, pin_memory=True)
+    test_dataset_load = DataLoader(test_set, batch_size=hp.Batch_size, shuffle=False, drop_last=True, num_workers=0, collate_fn=collate, pin_memory=True)
     
     os.makedirs('./savemodel', exist_ok=True)
     os.makedirs('./log', exist_ok=True)
@@ -175,10 +176,11 @@ if __name__ == "__main__":
             affinity = affinity.to(device)
 
             predictions = model(mol_vec, mol_mat, mol_mat_mask, prot_vec, prot_mat, prot_mat_mask, drugh_graph, protein_graph)
+            loss = criterion(predictions.squeeze(), affinity)
+
             pred = pred + predictions.cpu().detach().numpy().reshape(-1).tolist()
             label = label + affinity.cpu().detach().numpy().reshape(-1).tolist()
 
-            loss = criterion(predictions.squeeze(), affinity)
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
