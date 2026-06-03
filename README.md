@@ -63,22 +63,24 @@ We replace sequence-predicted contact maps with real 3D Cα distance matrices fr
 2. Query AlphaFold2 EBI API to get the PDB file URL
 3. Download the PDB and extract Cα (alpha-carbon) atom 3D coordinates — one per residue
 4. Compute all pairwise Euclidean distances in Angstroms
-5. Threshold at 8Å → binary contact map (1 = in contact, 0 = not)
+5. Keep actual distances for pairs within 8Å — zero out beyond threshold (no binarization)
+6. Encode each edge distance as a 16-dimensional RBF vector for use in GAT layers
 
-The 8Å threshold is the standard cutoff in structural biology for defining residue-residue contacts. Edges in the protein graph now correspond to real physical proximity in 3D space — not statistical predictions. This gives the GNN genuine structural information about the protein's folding, active site geometry, and binding pocket topology.
+The 8Å threshold is the standard cutoff in structural biology for defining residue-residue contacts. Crucially, we preserve the **actual distance value** rather than thresholding to binary — a contact at 2Å (tight hydrogen bond) carries very different information from one at 7.9Å (loose peripheral contact). The 16-dim RBF encoding allows each GAT layer to learn distance-dependent attention weights, giving the GNN genuine geometric awareness of the binding pocket.
 
 | Property | Sequence-predicted (KANPM-DTA) | AlphaFold2 3D (Ours) |
 |----------|-------------------------------|----------------------|
 | Source | ESM-2 probability matrix | Real Cα coordinates |
 | Edge criterion | Probability > 0.5 | Physical distance < 8Å |
-| Geometric information | None | Actual Euclidean space |
+| Edge features | Binary scalar (0 or 1) | 16-dim RBF distance encoding |
+| Geometric information | None | Actual Euclidean distances |
 | Binding site accuracy | Statistical approximation | Real 3D topology |
 | False edges | Possible (co-evolution ≠ proximity) | None (distance is exact) |
 
 **DAVIS coverage:**
 - 364 proteins → direct AlphaFold2 3D structure
 - 72 proteins → wildtype AlphaFold2 for mutant variants (e.g. EGFR(L858R) uses EGFR — single point mutations do not change the overall fold)
-- 3 proteins removed (non-human organisms with no AlphaFold2 entry)
+- 6 proteins → backbone fallback (non-human organisms: 2× P. falciparum, 1× M. tuberculosis, 3 others with no AF2 entry) — all 442 proteins included in training
 
 ---
 
@@ -194,15 +196,17 @@ While the sequence branch runs, the graph branch processes structural informatio
 
 **Drug graph:** 1 GCNConv layer followed by 5 GATConv layers, each with BatchNorm + ReLU. Global add pooling collapses all atom nodes into one vector:
 ```
-Drug atoms [N_atoms, 88]  →  GCN → 5×GAT → global_add_pool  →  smiles_graph [B, 128]
+Drug atoms [N_atoms, 88]  →  GCN(edge_scalar) → 5×GAT(edge_dim=6) → global_add_pool  →  smiles_graph [B, 128]
 ```
+Each bond carries 6-dim edge features (bond type: single/double/triple/aromatic + conjugation). A learned linear projection maps these to a scalar for GCNConv; all 5 GAT layers receive the full 6-dim bond vector so attention weights are informed by bond chemistry.
 
 **Protein graph:** Same architecture but starts from 1152-dim ESM-C node features:
 ```
-Protein residues [N_res, 1152]  →  GCN → 5×GAT → global_add_pool  →  fasta_graph [B, 128]
+Protein residues [N_res, 1152]  →  GCN(dist/8) → 5×GAT(edge_dim=16) → global_add_pool  →  fasta_graph [B, 128]
 ```
+Each residue pair within 8Å carries a 16-dim RBF-encoded distance vector. The scalar distance/8.0 is used for GCNConv; all 5 GAT layers receive the full 16-dim RBF vector so attention weights reflect actual 3D proximity.
 
-The graph branch captures **topological structure** (atom connectivity for drugs, 3D spatial contacts for proteins) that the sequence branch cannot see.
+The graph branch captures **structural chemistry** (bond types for drugs, 3D spatial distances for proteins) that the sequence branch cannot see.
 
 ---
 
@@ -325,6 +329,10 @@ The KAN's learnable activation functions allow it to fit more complex non-linear
 
 ### AF2-CrossKAN-DTA Results
 
+#### v1 — Binary Contact Maps (Runs 1–4)
+
+Runs 1–4 used binary protein contact maps (0/1 threshold), no drug bond edge features, and no KAN regularization.
+
 To get stable and reproducible results we run 4 independent trainings on the DAVIS warm setting, each with a different data split seed (41, 42, 43, 32 — the same protocol used in KANPM-DTA). The final reported MSE/CI/r2m are the mean and standard deviation across the 4 runs.
 
 #### Davis (Warm Setting)
@@ -336,6 +344,19 @@ To get stable and reproducible results we run 4 independent trainings on the DAV
 | AF2-CrossKAN-DTA — Run 3 | 43 | 0.2155 | 0.8855 | 0.6564 |
 | AF2-CrossKAN-DTA — Run 4 | 32 | 0.2258 | 0.8793 | 0.6854 |
 | **AF2-CrossKAN-DTA (Mean ± Std)** | — | **0.2114 ± 0.0128** | **0.8821 ± 0.0051** | **0.6849 ± 0.0259** |
+
+#### v2 — RBF Distance Encoding + Bond Features (In Progress)
+
+Improvements over v1:
+- Protein graph: actual Cα distances with 16-dim RBF encoding (all 6 GNN layers use edge features)
+- Drug graph: 6-dim bond type features in all 5 GAT layers (learned projection for GCNConv)
+- All 442 proteins included (no filtering)
+- KAN regularization active (λ1=1.0, λ2=1.0, weight=1e-5)
+- Fixed interaction attention masking (correct sequence lengths per sample)
+
+| Model | Split Seed | Test MSE | Test CI | Test r2m |
+|-------|------------|----------|---------|----------|
+| AF2-CrossKAN-DTA v2 — Run 1 | 42 | - | - | - |
 
 #### KIBA (Warm Setting)
 
@@ -460,6 +481,21 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 | 100 | 0.0781 | - | - | - |
 | 108 | 0.0690 | - | - | - |
 
+### Run 5 — Split Seed 42, v2 RBF (In Progress)
+
+Improvements: RBF protein distances, drug bond edge features, KAN regularization, fixed masks, all 442 proteins.
+
+> **Best Checkpoint — (Training Ongoing)**
+> | Metric | Value |
+> |--------|-------|
+> | Train MSE | - |
+> | Valid MSE | - |
+> | Valid CI | - |
+> | Valid r2m | - |
+
+| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
+|-------|-----------|-----------|----------|-----------|
+
 ---
 
 ## Ablation Study (To Be Updated After Training)
@@ -509,10 +545,10 @@ Each atom becomes a node with 88 features:
 
 | Split | Train | Valid | Test |
 |-------|-------|-------|------|
-| Warm | 23,882 | 2,985 | 2,985 |
-| Unseen Protein | 23,868 | 2,992 | 2,992 |
-| Unseen Drug | 23,706 | 3,073 | 3,073 |
-| Unseen Pair | 18,954 | 308 | 308 |
+| Warm | 24,044 | 3,006 | 3,006 |
+| Unseen Protein | 24,072 | 2,992 | 2,992 |
+| Unseen Drug | 23,868 | 3,094 | 3,094 |
+| Unseen Pair | 19,116 | 308 | 308 |
 
 ---
 
