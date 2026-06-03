@@ -233,8 +233,11 @@ class MODEL(nn.Module):
 
         # Interaction branch: combined drug+protein sequence → attention pooling
         cat_f = torch.cat([xp, xd], dim=1)                         # [B, 1420, 128]
-        smiles_mask = self.generate_masks(xd, 128, 8)
-        fasta_mask = self.generate_masks(xp, 128, 8)
+        # Use actual sequence lengths from masks instead of hardcoded value
+        drug_lengths = drug_mask.sum(dim=1).long()                  # [B] real drug lengths
+        prot_lengths = prot_mask.sum(dim=1).long()                  # [B] real protein lengths
+        smiles_mask = self.generate_masks(xd, drug_lengths, 8)
+        fasta_mask = self.generate_masks(xp, prot_lengths, 8)
         cat_mask = torch.cat([fasta_mask, smiles_mask], dim=-1)     # [B, 8, 1420]
         cat_attn = self.cat_attn_proj(self.inter_attn_one(cat_f, cat_mask))  # [B, 256]
 

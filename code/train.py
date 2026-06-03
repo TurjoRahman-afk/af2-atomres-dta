@@ -176,7 +176,10 @@ if __name__ == "__main__":
             affinity = affinity.to(device)
 
             predictions = model(mol_vec, mol_mat, mol_mat_mask, prot_vec, prot_mat, prot_mat_mask, drugh_graph, protein_graph)
-            loss = criterion(predictions.squeeze(), affinity)
+            mse_loss = criterion(predictions.squeeze(), affinity)
+            # KAN regularization: L1 sparsity + entropy (λ1=1.0, λ2=1.0 per KANPM-DTA paper)
+            kan_reg = model.module.kan_predictor.regularization_loss(1.0, 1.0)
+            loss = mse_loss + 1e-5 * kan_reg
 
             pred = pred + predictions.cpu().detach().numpy().reshape(-1).tolist()
             label = label + affinity.cpu().detach().numpy().reshape(-1).tolist()
