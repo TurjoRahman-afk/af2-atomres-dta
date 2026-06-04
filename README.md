@@ -481,6 +481,12 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 | 100 | 0.0781 | - | - | - |
 | 108 | 0.0690 | - | - | - |
 
+---
+
+## Training Progress Log — DAVIS Warm (v2: RBF + Bond Features)
+
+New architecture: RBF distance encoding in protein graph, bond type edge features in drug graph, KAN regularization, fixed interaction attention masking, all 442 proteins included.
+
 ### Run 5 — Split Seed 42, v2 RBF (In Progress)
 
 Improvements: RBF protein distances, drug bond edge features, KAN regularization, fixed masks, all 442 proteins.
