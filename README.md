@@ -485,16 +485,17 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 
 Improvements: RBF protein distances, drug bond edge features, KAN regularization, fixed masks, all 442 proteins.
 
-> **Best Checkpoint — (Training Ongoing)**
+> **Best Checkpoint — Epoch 17 (Training Ongoing)**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | - |
-> | Valid MSE | - |
-> | Valid CI | - |
-> | Valid r2m | - |
+> | Train MSE | 0.3400 |
+> | Valid MSE | **0.3610** |
+> | Valid CI | **0.8253** |
+> | Valid r2m | **0.5214** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
+| 10 | 0.4039 | 0.3961 | 0.8096 | 0.4951 |
 
 ---
 
