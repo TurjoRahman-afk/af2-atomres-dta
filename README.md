@@ -491,13 +491,13 @@ New architecture: RBF distance encoding in protein graph, bond type edge feature
 
 Improvements: RBF protein distances, drug bond edge features, KAN regularization, fixed masks, all 442 proteins.
 
-> **Best Checkpoint — Epoch 80 (Training Ongoing)**
+> **Best Checkpoint — Epoch 87 (Training Ongoing)**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.1129 |
-> | Valid MSE | **0.2324** |
-> | Valid CI | **0.8691** |
-> | Valid r2m | **0.6482** |
+> | Train MSE | 0.0994 |
+> | Valid MSE | **0.2253** |
+> | Valid CI | **0.8703** |
+> | Valid r2m | **0.6984** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
@@ -509,6 +509,7 @@ Improvements: RBF protein distances, drug bond edge features, KAN regularization
 | 60 | 0.1582 | 0.2462 | 0.8731 | 0.6531 |
 | 70 | 0.1327 | 0.2364 | 0.8677 | 0.6779 |
 | 80 | 0.1129 | 0.2324 | 0.8691 | 0.6482 |
+| 90 | 0.0948 | 0.2438 | 0.8691 | 0.6531 |
 
 ---
 
