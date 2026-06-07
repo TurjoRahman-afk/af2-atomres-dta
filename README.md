@@ -356,7 +356,7 @@ Improvements over v1:
 
 | Model | Split Seed | Test MSE | Test CI | Test r2m |
 |-------|------------|----------|---------|----------|
-| AF2-CrossKAN-DTA v2 — Run 1 | 42 | - | - | - |
+| AF2-CrossKAN-DTA v2 — Run 1 | 42 | 0.2400 | 0.8836 | 0.6363 |
 
 #### KIBA (Warm Setting)
 
@@ -487,17 +487,24 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 
 New architecture: RBF distance encoding in protein graph, bond type edge features in drug graph, KAN regularization, fixed interaction attention masking, all 442 proteins included.
 
-### Run 5 — Split Seed 42, v2 RBF (In Progress)
+### Run 5 — Split Seed 42, v2 RBF (Complete — 129 Epochs)
 
 Improvements: RBF protein distances, drug bond edge features, KAN regularization, fixed masks, all 442 proteins.
 
-> **Best Checkpoint — Epoch 107 (Training Ongoing)**
+> **Best Checkpoint — Epoch 107**
 > | Metric | Value |
 > |--------|-------|
 > | Train MSE | 0.0778 |
 > | Valid MSE | **0.2174** |
 > | Valid CI | **0.8698** |
 > | Valid r2m | **0.6800** |
+
+> **Final Test Result**
+> | Metric | Value |
+> |--------|-------|
+> | Test MSE | **0.2400** |
+> | Test CI | **0.8836** |
+> | Test r2m | **0.6363** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
@@ -512,6 +519,7 @@ Improvements: RBF protein distances, drug bond edge features, KAN regularization
 | 90 | 0.0948 | 0.2438 | 0.8691 | 0.6531 |
 | 100 | 0.0863 | 0.2227 | 0.8725 | 0.6627 |
 | 110 | 0.0747 | 0.2258 | 0.8756 | 0.6749 |
+| 129 (final) | 0.0644 | — | — | — |
 
 ---
 
