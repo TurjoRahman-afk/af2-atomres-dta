@@ -46,16 +46,17 @@ class DrugGraphNet(torch.nn.Module):
 
         self.conv0 = GCNConv(num_features_xd, dim)
         self.bn0 = torch.nn.BatchNorm1d(dim)
-        # edge_dim=6: all 5 GAT layers now receive full bond type features
+        # Bond features (edge_dim=6) only in first 2 GAT layers; layers 3-5 are plain
+        # GAT to avoid over-parameterizing on just 68 distinct drug graphs
         self.conv1 = GATConv(dim, dim, edge_dim=6)
         self.bn1 = torch.nn.BatchNorm1d(dim)
         self.conv2 = GATConv(dim, dim, edge_dim=6)
         self.bn2 = torch.nn.BatchNorm1d(dim)
-        self.conv3 = GATConv(dim, dim, edge_dim=6)
+        self.conv3 = GATConv(dim, dim)
         self.bn3 = torch.nn.BatchNorm1d(dim)
-        self.conv4 = GATConv(dim, dim, edge_dim=6)
+        self.conv4 = GATConv(dim, dim)
         self.bn4 = torch.nn.BatchNorm1d(dim)
-        self.conv5 = GATConv(dim, dim, edge_dim=6)
+        self.conv5 = GATConv(dim, dim)
         self.bn5 = torch.nn.BatchNorm1d(dim)
         self.fc1_xd = Linear(dim, output_dim)
 
@@ -67,15 +68,15 @@ class DrugGraphNet(torch.nn.Module):
 
         x = self.relu(self.conv0(x, edge_index, edge_scalar))
         x = self.bn0(x)
-        x = F.relu(self.conv1(x, edge_index, edge_attr))      # GAT sees full bond type
+        x = F.relu(self.conv1(x, edge_index, edge_attr))      # bond features
         x = self.bn1(x)
-        x = F.relu(self.conv2(x, edge_index, edge_attr))
+        x = F.relu(self.conv2(x, edge_index, edge_attr))      # bond features
         x = self.bn2(x)
-        x = F.relu(self.conv3(x, edge_index, edge_attr))
+        x = F.relu(self.conv3(x, edge_index))                 # plain GAT
         x = self.bn3(x)
-        x = F.relu(self.conv4(x, edge_index, edge_attr))
+        x = F.relu(self.conv4(x, edge_index))
         x = self.bn4(x)
-        x = F.relu(self.conv5(x, edge_index, edge_attr))
+        x = F.relu(self.conv5(x, edge_index))
         x = self.bn5(x)
         x = global_add_pool(x, batch)
         x = F.relu(self.fc1_xd(x))
@@ -95,15 +96,17 @@ class ProteinGraphNet(torch.nn.Module):
 
         self.conv0 = GCNConv(num_features_xd, dim)
         self.bn0 = torch.nn.BatchNorm1d(dim)
+        # RBF distance features (edge_dim=16) only in first 2 GAT layers; layers 3-5
+        # are plain GAT to avoid over-parameterizing on just 442 distinct protein graphs
         self.conv1 = GATConv(dim, dim, edge_dim=16)
         self.bn1 = torch.nn.BatchNorm1d(dim)
         self.conv2 = GATConv(dim, dim, edge_dim=16)
         self.bn2 = torch.nn.BatchNorm1d(dim)
-        self.conv3 = GATConv(dim, dim, edge_dim=16)
+        self.conv3 = GATConv(dim, dim)
         self.bn3 = torch.nn.BatchNorm1d(dim)
-        self.conv4 = GATConv(dim, dim, edge_dim=16)
+        self.conv4 = GATConv(dim, dim)
         self.bn4 = torch.nn.BatchNorm1d(dim)
-        self.conv5 = GATConv(dim, dim, edge_dim=16)
+        self.conv5 = GATConv(dim, dim)
         self.bn5 = torch.nn.BatchNorm1d(dim)
         self.fc1_xd = Linear(dim, output_dim)
 
@@ -115,15 +118,15 @@ class ProteinGraphNet(torch.nn.Module):
 
         x = self.relu(self.conv0(x, edge_index, edge_weight))
         x = self.bn0(x)
-        x = F.relu(self.conv1(x, edge_index, edge_attr))
+        x = F.relu(self.conv1(x, edge_index, edge_attr))      # RBF distances
         x = self.bn1(x)
-        x = F.relu(self.conv2(x, edge_index, edge_attr))
+        x = F.relu(self.conv2(x, edge_index, edge_attr))      # RBF distances
         x = self.bn2(x)
-        x = F.relu(self.conv3(x, edge_index, edge_attr))
+        x = F.relu(self.conv3(x, edge_index))                 # plain GAT
         x = self.bn3(x)
-        x = F.relu(self.conv4(x, edge_index, edge_attr))
+        x = F.relu(self.conv4(x, edge_index))
         x = self.bn4(x)
-        x = F.relu(self.conv5(x, edge_index, edge_attr))
+        x = F.relu(self.conv5(x, edge_index))
         x = self.bn5(x)
         x = global_add_pool(x, batch)
         x = F.relu(self.fc1_xd(x))
