@@ -521,6 +521,22 @@ Improvements: RBF protein distances, drug bond edge features, KAN regularization
 | 110 | 0.0747 | 0.2258 | 0.8756 | 0.6749 |
 | 129 (final) | 0.0644 | — | — | — |
 
+### Run 6 — Split Seed 42, v2 RBF (lighter edges) (In Progress)
+
+Single change from Run 5: RBF distance + bond edge features now feed only **GAT layers 1–2** (plain GAT for layers 3–5), reducing graph-branch capacity to fight overfitting. Everything else identical to Run 5 — same seed, splits, KAN, FFN.
+
+> **Best Checkpoint — Epoch 13 (Training Ongoing)**
+> | Metric | Value |
+> |--------|-------|
+> | Train MSE | 0.3765 |
+> | Valid MSE | **0.3703** |
+> | Valid CI | **0.8235** |
+> | Valid r2m | **0.5444** |
+
+| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
+|-------|-----------|-----------|----------|-----------|
+| 10 | 0.4130 | 0.4026 | 0.8139 | 0.4790 |
+
 ---
 
 ## Ablation Study (To Be Updated After Training)
