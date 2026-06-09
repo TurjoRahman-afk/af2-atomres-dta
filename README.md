@@ -525,13 +525,13 @@ Improvements: RBF protein distances, drug bond edge features, KAN regularization
 
 Single change from Run 5: RBF distance + bond edge features now feed only **GAT layers 1–2** (plain GAT for layers 3–5), reducing graph-branch capacity to fight overfitting. Everything else identical to Run 5 — same seed, splits, KAN, FFN.
 
-> **Best Checkpoint — Epoch 41 (Training Ongoing)**
+> **Best Checkpoint — Epoch 50 (Training Ongoing)**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.2150 |
-> | Valid MSE | **0.2683** |
-> | Valid CI | **0.8607** |
-> | Valid r2m | **0.6613** |
+> | Train MSE | 0.1822 |
+> | Valid MSE | **0.2589** |
+> | Valid CI | **0.8663** |
+> | Valid r2m | **0.6769** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
@@ -539,6 +539,7 @@ Single change from Run 5: RBF distance + bond edge features now feed only **GAT 
 | 20 | 0.3263 | 0.3720 | 0.8307 | 0.5580 |
 | 30 | 0.2669 | 0.2942 | 0.8531 | 0.6183 |
 | 40 | 0.2155 | 0.2990 | 0.8455 | 0.6448 |
+| 50 | 0.1822 | 0.2589 | 0.8663 | 0.6769 |
 
 ---
 
