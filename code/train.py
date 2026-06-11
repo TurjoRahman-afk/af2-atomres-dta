@@ -243,12 +243,9 @@ if __name__ == "__main__":
                 v = valid_log[valid_idx] if 0 <= valid_idx < len(valid_log) else ['', '', '']
                 writer.writerow([i] + row + list(v))
 
+    # NOTE: the per-epoch 7-column log above is the canonical log.
+    # (Removed the old post-training 3-column overwrite that destroyed valid columns.)
     log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run6.csv"
-    with open(log_dir, "w+") as f:
-        writer = csv.writer(f)
-        writer.writerow(["mse", "ci", "rm2"])
-        for r in train_log:
-            writer.writerow(r)
     print(f'Save log over at {log_dir}')
 
     # Test

@@ -356,7 +356,8 @@ Improvements over v1:
 
 | Model | Split Seed | Test MSE | Test CI | Test r2m |
 |-------|------------|----------|---------|----------|
-| AF2-CrossKAN-DTA v2 — Run 1 | 42 | 0.2400 | 0.8836 | 0.6363 |
+| AF2-CrossKAN-DTA v2 — Run 5 (full edges, all 5 GAT layers) | 42 | 0.2400 | 0.8836 | 0.6363 |
+| AF2-CrossKAN-DTA v2 — Run 6 (light edges, GAT layers 1–2) | 42 | 0.2463 | 0.8723 | 0.6313 |
 
 #### KIBA (Warm Setting)
 
@@ -521,17 +522,24 @@ Improvements: RBF protein distances, drug bond edge features, KAN regularization
 | 110 | 0.0747 | 0.2258 | 0.8756 | 0.6749 |
 | 129 (final) | 0.0644 | — | — | — |
 
-### Run 6 — Split Seed 42, v2 RBF (lighter edges) (In Progress)
+### Run 6 — Split Seed 42, v2 RBF (lighter edges) (Complete — 115 Epochs)
 
 Single change from Run 5: RBF distance + bond edge features now feed only **GAT layers 1–2** (plain GAT for layers 3–5), reducing graph-branch capacity to fight overfitting. Everything else identical to Run 5 — same seed, splits, KAN, FFN.
 
-> **Best Checkpoint — Epoch 92 (Training Ongoing)**
+> **Best Checkpoint — Epoch 95**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.0910 |
-> | Valid MSE | **0.2258** |
-> | Valid CI | **0.8729** |
-> | Valid r2m | **0.6720** |
+> | Train MSE | 0.0906 |
+> | Valid MSE | **0.2202** |
+> | Valid CI | **0.8588** |
+> | Valid r2m | **0.6770** |
+
+> **Final Test Result**
+> | Metric | Value |
+> |--------|-------|
+> | Test MSE | **0.2463** |
+> | Test CI | **0.8723** |
+> | Test r2m | **0.6313** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
@@ -544,6 +552,8 @@ Single change from Run 5: RBF distance + bond edge features now feed only **GAT 
 | 70 | 0.1279 | 0.2437 | 0.8672 | 0.6625 |
 | 80 | 0.1148 | 0.2383 | 0.8619 | 0.6552 |
 | 90 | 0.0936 | 0.2263 | 0.8660 | 0.6937 |
+| 100 | 0.0800 | 0.2261 | 0.8638 | 0.6848 |
+| 110 | 0.0785 | 0.2286 | 0.8641 | 0.6743 |
 
 ---
 
