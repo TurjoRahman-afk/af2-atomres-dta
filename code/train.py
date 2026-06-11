@@ -123,11 +123,12 @@ if __name__ == "__main__":
 
     model = nn.DataParallel(Model(hp, device))
     model = model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=hp.Learning_rate, betas=(0.9, 0.999))
+    # weight_decay=1e-4: L2 regularization to fight overfitting (train→0.08 vs test→0.24 gap in Run 5/6)
+    optimizer = torch.optim.Adam(model.parameters(), lr=hp.Learning_rate, betas=(0.9, 0.999), weight_decay=1e-4)
     criterion = F.mse_loss
 
-    model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run6.pth'
-    checkpoint_path = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run6_checkpoint.pth'
+    model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run7.pth'
+    checkpoint_path = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run7_checkpoint.pth'
 
     train_log = []
     valid_log = []
@@ -233,7 +234,7 @@ if __name__ == "__main__":
         }, checkpoint_path)
 
         # Write log CSV after every epoch so results are never lost on interruption
-        log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run6.csv"
+        log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run7.csv"
         with open(log_dir, "w+", newline='') as f:
             writer = csv.writer(f)
             writer.writerow(["epoch", "train_mse", "train_ci", "train_r2m", "valid_mse", "valid_ci", "valid_r2m"])
@@ -245,7 +246,7 @@ if __name__ == "__main__":
 
     # NOTE: the per-epoch 7-column log above is the canonical log.
     # (Removed the old post-training 3-column overwrite that destroyed valid columns.)
-    log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run6.csv"
+    log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run7.csv"
     print(f'Save log over at {log_dir}')
 
     # Test
@@ -260,5 +261,5 @@ if __name__ == "__main__":
 
     # Save summary metrics
     test_metrics = pd.DataFrame(save_metrics)
-    test_metrics.to_csv(f'./log/Test-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run6.csv', index=False)
-    print(f"Dataset-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run6")
+    test_metrics.to_csv(f'./log/Test-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run7.csv', index=False)
+    print(f"Dataset-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run7")
