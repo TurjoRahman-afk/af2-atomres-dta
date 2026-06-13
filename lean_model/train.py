@@ -24,10 +24,19 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-# reuse proven config / metrics / dataset wrapper from code/ (read-only)
-_CODE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "code")
-if _CODE_DIR not in sys.path:
-    sys.path.append(_CODE_DIR)
+# paths: this file lives in lean_model/, code/ and the data dirs are at the project root
+LEAN_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(LEAN_DIR)
+CODE_DIR = os.path.join(PROJECT_ROOT, "code")
+# lean_model's own modules MUST win over code/ (both define model.py), so put
+# LEAN_DIR first; code/ is appended only for read-only reuse (MyDataset, metrics, config).
+sys.path.insert(0, LEAN_DIR)
+if CODE_DIR not in sys.path:
+    sys.path.append(CODE_DIR)
+# HyperParameter resolves data with paths relative to the project root
+# (./datasets, ./pretrained), so run from there no matter where we were launched.
+os.chdir(PROJECT_ROOT)
+
 from hyperparameter import HyperParameter          # noqa: E402
 from metrics import calculate_metrics              # noqa: E402
 from MyDataset import CustomDataSet                 # noqa: E402
@@ -99,8 +108,10 @@ def main():
     test_loader = DataLoader(test_set, batch_size=hp.Batch_size, shuffle=False,
                              drop_last=True, collate_fn=collate, pin_memory=True)
 
-    os.makedirs("./savemodel", exist_ok=True)
-    os.makedirs("./log", exist_ok=True)
+    save_dir = os.path.join(LEAN_DIR, "savemodel")
+    log_dir = os.path.join(LEAN_DIR, "log")
+    os.makedirs(save_dir, exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)
 
     model = LeanDTA(dim=128, n_heads=4, dropout=0.3, use_kan=False).to(device)
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -111,9 +122,9 @@ def main():
                                  betas=(0.9, 0.999), weight_decay=1e-5)
     criterion = F.mse_loss
 
-    best_path = f"./savemodel/{TAG}-split{SPLIT_SEED}.pth"
-    ckpt_path = f"./savemodel/{TAG}-split{SPLIT_SEED}_checkpoint.pth"
-    log_path = f"./log/{TAG}-split{SPLIT_SEED}.csv"
+    best_path = os.path.join(save_dir, f"{TAG}-split{SPLIT_SEED}.pth")
+    ckpt_path = os.path.join(save_dir, f"{TAG}-split{SPLIT_SEED}_checkpoint.pth")
+    log_path = os.path.join(log_dir, f"{TAG}-split{SPLIT_SEED}.csv")
 
     train_log, valid_log = [], []
     best_valid_mse = 1e9
@@ -195,7 +206,7 @@ def main():
     te_mse, te_ci, te_r2m = evaluate(model, test_loader, device)
     print(f"\nTest | MSE {te_mse:.4f} | CI {te_ci:.4f} | r2m {te_r2m:.4f}")
     pd.DataFrame({"mse": [te_mse], "ci": [te_ci], "rm2": [te_r2m]}).to_csv(
-        f"./log/Test-{TAG}-split{SPLIT_SEED}.csv", index=False)
+        os.path.join(log_dir, f"Test-{TAG}-split{SPLIT_SEED}.csv"), index=False)
 
 
 if __name__ == "__main__":
