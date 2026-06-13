@@ -8,17 +8,43 @@ per-residue mutation flag on the protein graph.
 
 import os
 import sys
+import numpy as np
 import torch
 from torch_geometric.data import Data, Batch
 from tqdm import tqdm
 
-# make code/ importable (read-only reuse of the tested graph builders)
+# make code/ importable (read-only reuse of the tested DRUG graph builder + padders)
 _CODE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "code")
 if _CODE_DIR not in sys.path:
     sys.path.append(_CODE_DIR)
-from MyDataset import smile2graph, target2graph, matrix_pad_drug, matrix_pad_prot  # noqa: E402
+from MyDataset import smile2graph, matrix_pad_drug, matrix_pad_prot  # noqa: E402
 
 from featurize import morgan_fingerprint, mutation_flag_vector
+
+
+def build_protein_graph(distance_map, esm_mat, target_key, sequence=None):
+    """Lean protein graph: ESM-C node features (+ mutation flag) and edge_index only.
+
+    Produces the SAME node features and edge topology as code/MyDataset.target2graph
+    (ESM BOS/EOS strip, align to map size, forced self-loops + backbone edges,
+    edges where distance > 0) but skips the RBF / edge_weight computation that
+    LeanDTA never uses.
+    """
+    esm = esm_mat[1:-1, :]                                  # strip BOS/EOS
+    size = min(esm.shape[0], distance_map.shape[0])
+    esm = esm[:size, :]
+    dmap = distance_map[:size, :size].copy()
+    for i in range(size):
+        if dmap[i, i] == 0.0:
+            dmap[i, i] = 2.0                                # self-loop
+        if i + 1 < size and dmap[i, i + 1] == 0.0:
+            dmap[i, i + 1] = 3.8                            # backbone Cα-Cα
+    rows, cols = np.where(dmap > 0.0)
+    edge_index = torch.LongTensor(np.vstack([rows, cols]))  # [2, E]
+    feats = torch.FloatTensor(esm)                          # [size, 1152]
+    flag = torch.from_numpy(mutation_flag_vector(target_key, size, sequence))  # [size, 1]
+    x = torch.cat([feats, flag], dim=1)                     # [size, 1153]
+    return Data(x=x, edge_index=edge_index)
 
 
 def build_caches(drug_df, prot_df, protvec_dict, contact_map):
@@ -44,10 +70,8 @@ def build_caches(drug_df, prot_df, protvec_dict, contact_map):
             continue
         cmap = contact_map["contact_map"][pid].copy()
         esm = protvec_dict["mat_dict"][pid]
-        _, feats, edge_index, _, _ = target2graph(cmap, esm)          # feats: [S, 1152]
-        flag = torch.from_numpy(mutation_flag_vector(pid, feats.shape[0]))  # [S, 1]
-        x = torch.cat([feats, flag], dim=1)                           # [S, 1153]
-        protein_graph_cache[pid] = Data(x=x, edge_index=edge_index)
+        sequence = row.get("target_sequence", None)   # used to validate mutation positions
+        protein_graph_cache[pid] = build_protein_graph(cmap, esm, pid, sequence)
 
     print(f"Caches: {len(drug_graph_cache)} drugs, {len(protein_graph_cache)} proteins")
     return drug_graph_cache, drug_fp_cache, protein_graph_cache

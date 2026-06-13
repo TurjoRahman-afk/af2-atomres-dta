@@ -96,8 +96,16 @@ python model.py
   gene names like `CSNK1G2` and tags like `phosphorylated`) ✓
 - `dataset.py` + `train.py` import cleanly ✓
 
-## Note
-`build_caches` reuses `target2graph` from code/, which still returns the RBF
-edge features — LeanDTA simply ignores them (it uses `x` + `edge_index` only,
-per the "edge features don't help" finding). The mutation flag is appended to
-each protein node, giving node dim 1153 = ESM-C 1152 + 1.
+## Protein graph (node dim 1153 = ESM-C 1152 + mutation flag)
+
+The protein graph is built by `build_protein_graph()` in `dataset.py`, a lean
+builder that produces the **same node features and edge topology** as
+code/MyDataset's `target2graph` (ESM BOS/EOS strip, align to map size, forced
+self-loops + backbone edges, edges where distance > 0) **without** computing the
+RBF / edge_weight features LeanDTA never uses.
+
+**Mutation flag is validated against the sequence.** The mutation string carries
+the wildtype letter (the `T` in `T315I`); we only set the flag at residue P-1
+when `sequence[P-1]` actually equals that letter. If it doesn't (truncated /
+renumbered structure), we skip it rather than flag the wrong residue. This makes
+the position mapping robust instead of best-effort.
