@@ -38,6 +38,13 @@ Evidence behind each choice:
   `DrugEncoder`, `ProteinEncoder`, `CrossInteraction`, `BilinearFusion`.
 - `model.py` — `LeanDTA`, assembling the blocks. Run it directly for a shape /
   param-count sanity check: `python model.py`.
+- `featurize.py` — the two new inputs: `morgan_fingerprint()` and the
+  mutation-flag parser (`parse_mutation_positions`, `mutation_flag_vector`).
+- `dataset.py` — `build_caches()` (drug graphs, Morgan FPs, mutation-aware
+  protein graphs) and `lean_collate_fn()`. Reuses code/MyDataset's tested
+  `smile2graph` / `target2graph` via a read-only import (nothing in code/ changes).
+- `train.py` — full training loop. Reads the same data files as the existing
+  pipeline; writes its own logs/checkpoints.
 
 ## Forward signature
 
@@ -53,24 +60,44 @@ out = model(
 )   # -> [B] predicted affinity
 ```
 
-## What is NOT done yet (the integration step)
+## How to train
 
-This is the **model only**. To train it you still need two data additions, which
-touch the data pipeline and are intentionally left out of this folder:
+It's fully wired. The two new inputs (Morgan FP, mutation flag) are built
+automatically inside `build_caches()`. Just run:
 
-1. **Morgan fingerprints** — compute a 2048-bit Morgan FP per drug (RDKit
-   `AllChem.GetMorganFingerprintAsBitVect`) and feed `drug_fp`.
-2. **Mutation flag** — append a 1-bit per-residue flag to the protein graph node
-   features (1 at mutated positions, 0 elsewhere). Davis encodes mutants in the
-   target name, e.g. `ABL1(T315I)`.
+```bash
+cd lean_model
+python train.py
+```
 
-Once Run 7 finishes, the next step is wiring these into a copy of the data
-loader + a training script. Ask and I'll build that part.
+- Reads the same data as `code/train.py` (davis warm split42, the ChemBERTa /
+  ESM-C / AF2 pkls). **No need to regenerate splits** (seed unchanged).
+- Writes `lean_model/log/davis-warm-lean-split42.csv` (7-column per-epoch log)
+  and `lean_model/savemodel/davis-warm-lean-split42.pth` (best checkpoint).
+- Resumable: re-running picks up from the checkpoint.
+- **Wait for Run 7 to finish first** — both want the GPU.
 
-## Quick check
+### Config (edit in `train.py` / inherited from `code/hyperparameter.py`)
+- `dim=128`, `n_heads=4`, dropout `0.3`, `use_kan=False`
+- Adam lr `1e-4`, **weight_decay `1e-5`** (1e-4 over-regularized in Run 7)
+- batch 16, early-stop patience 20
+
+## Quick check (no training)
 
 ```bash
 cd lean_model
 python model.py
-# prints: Trainable parameters: ~1.3M  and  Output shape: torch.Size([4])
+# prints: Trainable parameters: 1.43M  and  Output shape: torch.Size([4])
 ```
+
+## Verified
+- `python model.py` → 1.43M params, output `[4]` ✓
+- Morgan FP (2048-bit) and mutation parser (`ABL1(T315I)`→315→node 314; ignores
+  gene names like `CSNK1G2` and tags like `phosphorylated`) ✓
+- `dataset.py` + `train.py` import cleanly ✓
+
+## Note
+`build_caches` reuses `target2graph` from code/, which still returns the RBF
+edge features — LeanDTA simply ignores them (it uses `x` + `edge_index` only,
+per the "edge features don't help" finding). The mutation flag is appended to
+each protein node, giving node dim 1153 = ESM-C 1152 + 1.

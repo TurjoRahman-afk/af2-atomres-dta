@@ -66,8 +66,8 @@ class LeanDTA(nn.Module):
         drug_pad = ~drug_mask.bool()    # True = padding
         prot_pad = ~prot_mask.bool()
 
-        xd, drug_g, drug_f = self.drug_enc(drug_tokens, drug_graph, drug_fp)
-        xp, prot_g = self.prot_enc(prot_residues, prot_graph)
+        xd, drug_g, drug_f = self.drug_enc(drug_tokens, drug_pad, drug_graph, drug_fp)
+        xp, prot_g = self.prot_enc(prot_residues, prot_pad, prot_graph)
 
         xd_attn, xp_attn = self.cross(xd, xp, drug_pad, prot_pad)
 

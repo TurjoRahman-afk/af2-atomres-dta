@@ -86,8 +86,10 @@ class DrugEncoder(nn.Module):
             nn.Linear(fp_dim, dim), nn.ReLU(), nn.Dropout(dropout)
         )
 
-    def forward(self, tokens, graph, fp):
-        xd = self.tok_ln(self.tok_encoder(self.tok_proj(tokens)))  # [B, L_d, dim]
+    def forward(self, tokens, pad_mask, graph, fp):
+        # pad_mask: [B, L_d]  True = padding (ignored by attention)
+        h = self.tok_encoder(self.tok_proj(tokens), src_key_padding_mask=pad_mask)
+        xd = self.tok_ln(h)                                        # [B, L_d, dim]
         g = self.graph(graph.x, graph.edge_index, graph.batch)     # [B, dim]
         f = self.fp(fp)                                            # [B, dim]
         return xd, g, f
@@ -113,8 +115,10 @@ class ProteinEncoder(nn.Module):
         self.res_ln = nn.LayerNorm(dim)
         self.graph = GraphEncoder(node_dim, dim, layers=3, dropout=dropout)
 
-    def forward(self, residues, graph):
-        xp = self.res_ln(self.res_encoder(self.res_proj(residues)))  # [B, L_p, dim]
+    def forward(self, residues, pad_mask, graph):
+        # pad_mask: [B, L_p]  True = padding (ignored by attention)
+        h = self.res_encoder(self.res_proj(residues), src_key_padding_mask=pad_mask)
+        xp = self.res_ln(h)                                          # [B, L_p, dim]
         g = self.graph(graph.x, graph.edge_index, graph.batch)       # [B, dim]
         return xp, g
 
