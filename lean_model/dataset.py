@@ -22,8 +22,8 @@ from MyDataset import smile2graph, matrix_pad_drug, matrix_pad_prot  # noqa: E40
 from featurize import morgan_fingerprint, mutation_flag_vector
 
 
-def build_protein_graph(distance_map, esm_mat, target_key, sequence=None):
-    """Lean protein graph: ESM-C node features (+ mutation flag) and edge_index only.
+def build_protein_graph(distance_map, esm_mat, target_key):
+    """Lean protein graph: ESM-C node features (+ global mutation flag) and edge_index only.
 
     Produces the SAME node features and edge topology as code/MyDataset.target2graph
     (ESM BOS/EOS strip, align to map size, forced self-loops + backbone edges,
@@ -42,7 +42,7 @@ def build_protein_graph(distance_map, esm_mat, target_key, sequence=None):
     rows, cols = np.where(dmap > 0.0)
     edge_index = torch.LongTensor(np.vstack([rows, cols]))  # [2, E]
     feats = torch.FloatTensor(esm)                          # [size, 1152]
-    flag = torch.from_numpy(mutation_flag_vector(target_key, size, sequence))  # [size, 1]
+    flag = torch.from_numpy(mutation_flag_vector(target_key, size))  # [size, 1] global flag
     x = torch.cat([feats, flag], dim=1)                     # [size, 1153]
     return Data(x=x, edge_index=edge_index)
 
@@ -70,8 +70,7 @@ def build_caches(drug_df, prot_df, protvec_dict, contact_map):
             continue
         cmap = contact_map["contact_map"][pid].copy()
         esm = protvec_dict["mat_dict"][pid]
-        sequence = row.get("target_sequence", None)   # used to validate mutation positions
-        protein_graph_cache[pid] = build_protein_graph(cmap, esm, pid, sequence)
+        protein_graph_cache[pid] = build_protein_graph(cmap, esm, pid)
 
     print(f"Caches: {len(drug_graph_cache)} drugs, {len(protein_graph_cache)} proteins")
     return drug_graph_cache, drug_fp_cache, protein_graph_cache

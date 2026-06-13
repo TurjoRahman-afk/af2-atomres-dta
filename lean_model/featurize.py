@@ -39,32 +39,30 @@ def parse_mutations(target_key):
     return muts
 
 
-def parse_mutation_positions(target_key):
-    """Convenience: just the 1-indexed positions."""
-    return [pos for _, pos, _ in parse_mutations(target_key)]
+def is_mutant(target_key):
+    """True if the target is a mutant variant rather than the base/wildtype entry.
 
-
-def mutation_flag_vector(target_key, num_nodes, sequence=None):
-    """1-bit-per-residue flag aligned to protein graph nodes.
-
-    Protein graph node i corresponds to residue (i+1) after the ESM BOS/EOS
-    strip, so a mutation at 1-indexed position P maps to node index P-1.
-
-    Robustness: if a `sequence` is given, we only set the flag when the residue
-    at that index actually matches the wildtype letter from the mutation string
-    (e.g. the 'T' of 'T315I'). If it doesn't match, the numbering is misaligned
-    (truncated / renumbered structure), so we skip rather than flag the wrong
-    residue. Without a sequence, we fall back to the raw P-1 mapping.
-
-    Returns [num_nodes, 1] float32.
+    Detects point mutations inside parentheses (e.g. 'ABL1(T315I)') and the common
+    Davis non-point variants (del / ins / ITD / dup). Plain gene names ('CSNK1G2')
+    and the phosphorylation tags are NOT treated as mutations.
     """
-    flag = np.zeros((num_nodes, 1), dtype=np.float32)
-    for wt, pos, _mut in parse_mutations(target_key):
-        idx = pos - 1
-        if not (0 <= idx < num_nodes):
-            continue                              # mutation outside the graph
-        if sequence is not None and idx < len(sequence):
-            if sequence[idx].upper() != wt:
-                continue                          # numbering mismatch -> don't trust it
-        flag[idx, 0] = 1.0
-    return flag
+    if parse_mutations(target_key):
+        return True
+    for paren in re.findall(r"\(([^)]*)\)", str(target_key)):
+        low = paren.lower()
+        if any(k in low for k in ("del", "ins", "itd", "dup")):
+            return True
+    return False
+
+
+def mutation_flag_vector(target_key, num_nodes):
+    """Global mutation flag (3DProtDTA-style).
+
+    Every node gets the SAME value: 1.0 if the protein is a mutant variant, else
+    0.0. This avoids position-level mapping entirely — there is no per-residue
+    index to get wrong — and is complementary to the ESM-C node features, which
+    already differ at the mutated position because they come from the mutant
+    sequence. Returns [num_nodes, 1] float32.
+    """
+    val = 1.0 if is_mutant(target_key) else 0.0
+    return np.full((num_nodes, 1), val, dtype=np.float32)

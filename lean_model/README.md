@@ -92,8 +92,8 @@ python model.py
 
 ## Verified
 - `python model.py` → 1.43M params, output `[4]` ✓
-- Morgan FP (2048-bit) and mutation parser (`ABL1(T315I)`→315→node 314; ignores
-  gene names like `CSNK1G2` and tags like `phosphorylated`) ✓
+- Morgan FP (2048-bit) and global mutation flag (`ABL1(T315I)`/del/ITD → all
+  nodes = 1; `ABL1`, `CSNK1G2`, `ABL1(phosphorylated)` → all nodes = 0) ✓
 - `dataset.py` + `train.py` import cleanly ✓
 
 ## Protein graph (node dim 1153 = ESM-C 1152 + mutation flag)
@@ -104,8 +104,10 @@ code/MyDataset's `target2graph` (ESM BOS/EOS strip, align to map size, forced
 self-loops + backbone edges, edges where distance > 0) **without** computing the
 RBF / edge_weight features LeanDTA never uses.
 
-**Mutation flag is validated against the sequence.** The mutation string carries
-the wildtype letter (the `T` in `T315I`); we only set the flag at residue P-1
-when `sequence[P-1]` actually equals that letter. If it doesn't (truncated /
-renumbered structure), we skip it rather than flag the wrong residue. This makes
-the position mapping robust instead of best-effort.
+**Mutation flag is GLOBAL (3DProtDTA-style).** Every residue node in a mutant
+protein gets flag = 1; every node in a wildtype gets 0 (`is_mutant()` detects
+point mutations and del/ins/ITD/dup variants, ignoring gene names and the
+phosphorylation tags). There is no per-residue position mapping, so there is no
+wrong-residue failure mode. This matches what 3DProtDTA did and is complementary
+to the ESM-C node features, which already encode the per-position change because
+they come from the mutant sequence.
