@@ -559,13 +559,13 @@ Single change from Run 5: RBF distance + bond edge features now feed only **GAT 
 
 Single change from Run 6: added **`weight_decay=1e-4`** to the Adam optimizer (L2 regularization) to attack the train→test overfitting gap (~0.17 in Runs 5–6). RBF kept, same architecture, same seed/splits. Expect train MSE to settle higher (intended) and valid/test to drop if overfitting was the bottleneck.
 
-> **Best Checkpoint — Epoch 46 (Training Ongoing)**
+> **Best Checkpoint — Epoch 50 (Training Ongoing)**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.2393 |
-> | Valid MSE | **0.2828** |
-> | Valid CI | **0.8593** |
-> | Valid r2m | **0.6198** |
+> | Train MSE | 0.2313 |
+> | Valid MSE | **0.2814** |
+> | Valid CI | **0.8607** |
+> | Valid r2m | **0.6574** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
@@ -573,6 +573,7 @@ Single change from Run 6: added **`weight_decay=1e-4`** to the Adam optimizer (L
 | 20 | 0.3297 | 0.3965 | 0.8180 | 0.5450 |
 | 30 | 0.2888 | 0.3258 | 0.8455 | 0.5817 |
 | 40 | 0.2530 | 0.3094 | 0.8463 | 0.6221 |
+| 50 | 0.2313 | 0.2814 | 0.8607 | 0.6574 |
 
 ---
 
