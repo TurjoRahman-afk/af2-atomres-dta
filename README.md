@@ -316,16 +316,20 @@ The KAN's learnable activation functions allow it to fit more complex non-linear
 
 ### Prior Work (Comparison Baseline)
 
+Davis dataset, warm/random split (log-scale pKd MSE — lower is better). Values taken from the respective papers; sorted best MSE first.
+
 | Model                  | MSE       | CI        | r2m       |
 |------------------------|-----------|-----------|-----------|
-| DeepDTA (2018)         | 0.633     | 0.844     | 0.633     |
-| GraphDTA-GIN (2021)    | 0.535     | 0.858     | -         |
-| CoVAE (2021)           | 0.512     | 0.847     | 0.412     |
-| ELECTRA-DTA (2022)     | 0.650     | 0.837     | 0.670     |
-| DoubleSG-DTA (2023)    | 0.533     | 0.862     | 0.726     |
-| GDilatedDTA (2024)     | 0.483     | 0.868     | 0.730     |
-| MF-DTA (2025)          | 0.569     | 0.865     | 0.737     |
-| DeepDTAGen (2025)      | 0.458     | 0.876     | 0.760     |
+| 3DProtDTA (2023)       | 0.184     | 0.917     | 0.722     |
+| HCAF-DTA (2025)        | 0.198     | 0.908     | 0.728     |
+| GSAML-DTA (2022)       | 0.201     | 0.896     | 0.718     |
+| DGraphDTA (2020)       | 0.202     | 0.904     | 0.700     |
+| KANPM-DTA (2026)       | 0.204     | 0.898     | 0.715     |
+| WGNN-DTA (2022)        | 0.208     | 0.900     | 0.691     |
+| GraphDTA (2021)        | 0.229     | 0.893     | 0.685     |
+| DeepDTA (2018)         | 0.261     | 0.878     | 0.630     |
+
+> **Note:** these are Davis *warm/random-split* results as reported in each paper. Evaluation protocols differ (e.g. 3DProtDTA uses 5-fold CV), so treat this as the competitive landscape rather than a perfectly controlled head-to-head. KANPM-DTA is the direct predecessor; 3DProtDTA (also AlphaFold-structure-based) is the current best.
 
 ### AF2-CrossKAN-DTA Results
 
