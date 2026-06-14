@@ -49,7 +49,8 @@ warnings.filterwarnings("ignore")
 
 TAG = "davis-warm-lean"     # output filename tag
 SPLIT_SEED = 42             # must match the split used to generate train/valid/test
-LR = 3e-4                   # higher than v2's 1e-4: small model trained from scratch converges faster
+BATCH_SIZE = 32             # bigger batch than v2 (16): steadier gradients, healthier BatchNorm
+LR = 5e-4                   # paired with batch 32 (HCAF used 5e-4); fixes the slow 1e-4 convergence
 
 
 def load_pickle(path):
@@ -102,11 +103,11 @@ def main():
         b, hp, mol2vec_dict, protvec_dict,
         drug_graph_cache, drug_fp_cache, protein_graph_cache,
     )
-    train_loader = DataLoader(train_set, batch_size=hp.Batch_size, shuffle=True,
+    train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True,
                               drop_last=True, collate_fn=collate, pin_memory=True)
-    valid_loader = DataLoader(valid_set, batch_size=hp.Batch_size, shuffle=False,
+    valid_loader = DataLoader(valid_set, batch_size=BATCH_SIZE, shuffle=False,
                               drop_last=True, collate_fn=collate, pin_memory=True)
-    test_loader = DataLoader(test_set, batch_size=hp.Batch_size, shuffle=False,
+    test_loader = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=False,
                              drop_last=True, collate_fn=collate, pin_memory=True)
 
     save_dir = os.path.join(LEAN_DIR, "savemodel")
@@ -118,8 +119,8 @@ def main():
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"LeanDTA trainable parameters: {n_params/1e6:.2f}M")
 
-    # lr=LR (3e-4) for faster convergence of the small from-scratch model;
-    # weight_decay 1e-5 (1e-4 over-regularized in Run 7)
+    # lr=LR (5e-4) paired with batch 32 for faster convergence of the small
+    # from-scratch model; weight_decay 1e-5 (1e-4 over-regularized in Run 7)
     optimizer = torch.optim.Adam(model.parameters(), lr=LR,
                                  betas=(0.9, 0.999), weight_decay=1e-5)
     criterion = F.mse_loss
