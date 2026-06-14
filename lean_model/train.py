@@ -49,6 +49,7 @@ warnings.filterwarnings("ignore")
 
 TAG = "davis-warm-lean"     # output filename tag
 SPLIT_SEED = 42             # must match the split used to generate train/valid/test
+LR = 3e-4                   # higher than v2's 1e-4: small model trained from scratch converges faster
 
 
 def load_pickle(path):
@@ -117,8 +118,9 @@ def main():
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"LeanDTA trainable parameters: {n_params/1e6:.2f}M")
 
-    # lr 1e-4, weight_decay 1e-5 (1e-4 over-regularized in Run 7)
-    optimizer = torch.optim.Adam(model.parameters(), lr=hp.Learning_rate,
+    # lr=LR (3e-4) for faster convergence of the small from-scratch model;
+    # weight_decay 1e-5 (1e-4 over-regularized in Run 7)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LR,
                                  betas=(0.9, 0.999), weight_decay=1e-5)
     criterion = F.mse_loss
 

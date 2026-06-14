@@ -583,36 +583,6 @@ Single change from Run 6: added **`weight_decay=1e-4`** to the Adam optimizer (L
 
 ---
 
-## Training Progress Log — DAVIS Warm (LeanDTA: lean Path-B rebuild)
-
-A from-scratch lean architecture (~1.43M trainable params, ~10x smaller than v2).
-Drug = ChemBERTa + GIN graph + Morgan fingerprint; Protein = ESM-C + AF2 GIN graph
-with a global mutation flag (3DProtDTA-style); bidirectional cross-attention with
-attention pooling (not mean); low-rank bilinear fusion; small MLP head. No edge
-features (evidence shows they don't help). Adam lr 1e-4, weight_decay 1e-5.
-
-### Run 8 — Split Seed 42, LeanDTA (In Progress)
-
-> **Best Checkpoint — Epoch 33 (Training Ongoing)**
-> | Metric | Value |
-> |--------|-------|
-> | Train MSE | 0.5879 |
-> | Valid MSE | **0.3854** |
-> | Valid CI | **0.8078** |
-> | Valid r2m | **0.5163** |
-
-| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
-|-------|-----------|-----------|----------|-----------|
-| 10 | 0.9583 | 0.5466 | 0.7600 | 0.3716 |
-| 20 | 0.7299 | 0.4088 | 0.7994 | 0.5129 |
-| 30 | 0.6054 | 0.3996 | 0.8015 | 0.5054 |
-
-> **Note:** converging slowly with high train MSE (underfitting) — likely the
-> learning rate is too low for a small model trained from scratch. Candidate fix:
-> raise lr to 3e-4. Tracking before deciding.
-
----
-
 ## Ablation Study (To Be Updated After Training)
 
 | Configuration | MSE | CI | r2m |
