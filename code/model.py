@@ -19,7 +19,7 @@ class BilinearFusion(nn.Module):
         self.drug_proj = nn.Linear(drug_dim, rank)
         self.prot_proj = nn.Linear(prot_dim, rank)
         self.output_proj = nn.Linear(rank, output_dim)
-        self.dropout = nn.Dropout(0.2)
+        self.dropout = nn.Dropout(0.3)
         self.bn = nn.BatchNorm1d(output_dim)
 
     def forward(self, drug, prot):
@@ -71,7 +71,7 @@ class DrugGraphNet(torch.nn.Module):
         x = self.bn5(x)
         x = global_add_pool(x, batch)
         x = F.relu(self.fc1_xd(x))
-        x = F.dropout(x, p=0.2, training=self.training)
+        x = F.dropout(x, p=0.3, training=self.training)
         return x          #smiles_graph[B, 128]
 
 
@@ -116,7 +116,7 @@ class ProteinGraphNet(torch.nn.Module):
         x = self.bn5(x)
         x = global_add_pool(x, batch)
         x = F.relu(self.fc1_xd(x))
-        x = F.dropout(x, p=0.2, training=self.training)
+        x = F.dropout(x, p=0.3, training=self.training)
         return x           #fasta_graph[B, 128]
 
 
