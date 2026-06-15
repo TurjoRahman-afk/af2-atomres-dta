@@ -40,17 +40,11 @@ class DrugGraphNet(torch.nn.Module):
         self.relu = nn.ReLU()
         self.n_output = n_output
 
-        # Learned projection: 6-dim bond features → 1 scalar for GCNConv
-        # Better than mean() because the model learns which bond features matter
-        self.bond_proj = nn.Linear(6, 1)
-
         self.conv0 = GCNConv(num_features_xd, dim)
         self.bn0 = torch.nn.BatchNorm1d(dim)
-        # Bond features (edge_dim=6) only in first 2 GAT layers; layers 3-5 are plain
-        # GAT to avoid over-parameterizing on just 68 distinct drug graphs
-        self.conv1 = GATConv(dim, dim, edge_dim=6)
+        self.conv1 = GATConv(dim, dim)
         self.bn1 = torch.nn.BatchNorm1d(dim)
-        self.conv2 = GATConv(dim, dim, edge_dim=6)
+        self.conv2 = GATConv(dim, dim)
         self.bn2 = torch.nn.BatchNorm1d(dim)
         self.conv3 = GATConv(dim, dim)
         self.bn3 = torch.nn.BatchNorm1d(dim)
@@ -61,18 +55,15 @@ class DrugGraphNet(torch.nn.Module):
         self.fc1_xd = Linear(dim, output_dim)
 
     def forward(self, data):
-        x, edge_index, edge_attr, batch = data.x.to(device), data.edge_index.to(device), data.edge_weight.to(device), data.batch.to(device)
+        x, edge_index, edge_weight, batch = data.x.to(device), data.edge_index.to(device), data.edge_weight.to(device), data.batch.to(device)
 
-        # Project 6-dim bond features → scalar for GCNConv
-        edge_scalar = self.bond_proj(edge_attr).squeeze(-1)   # [num_edges, 6] → [num_edges]
-
-        x = self.relu(self.conv0(x, edge_index, edge_scalar))
+        x = self.relu(self.conv0(x, edge_index, edge_weight.mean(dim=1)))
         x = self.bn0(x)
-        x = F.relu(self.conv1(x, edge_index, edge_attr))      # bond features
+        x = F.relu(self.conv1(x, edge_index))
         x = self.bn1(x)
-        x = F.relu(self.conv2(x, edge_index, edge_attr))      # bond features
+        x = F.relu(self.conv2(x, edge_index))
         x = self.bn2(x)
-        x = F.relu(self.conv3(x, edge_index))                 # plain GAT
+        x = F.relu(self.conv3(x, edge_index))
         x = self.bn3(x)
         x = F.relu(self.conv4(x, edge_index))
         x = self.bn4(x)
@@ -96,11 +87,9 @@ class ProteinGraphNet(torch.nn.Module):
 
         self.conv0 = GCNConv(num_features_xd, dim)
         self.bn0 = torch.nn.BatchNorm1d(dim)
-        # RBF distance features (edge_dim=16) only in first 2 GAT layers; layers 3-5
-        # are plain GAT to avoid over-parameterizing on just 442 distinct protein graphs
-        self.conv1 = GATConv(dim, dim, edge_dim=16)
+        self.conv1 = GATConv(dim, dim)
         self.bn1 = torch.nn.BatchNorm1d(dim)
-        self.conv2 = GATConv(dim, dim, edge_dim=16)
+        self.conv2 = GATConv(dim, dim)
         self.bn2 = torch.nn.BatchNorm1d(dim)
         self.conv3 = GATConv(dim, dim)
         self.bn3 = torch.nn.BatchNorm1d(dim)
@@ -111,18 +100,15 @@ class ProteinGraphNet(torch.nn.Module):
         self.fc1_xd = Linear(dim, output_dim)
 
     def forward(self, data):
-        x, edge_index, edge_weight, edge_attr, batch = (
-            data.x.to(device), data.edge_index.to(device),
-            data.edge_weight.to(device), data.edge_attr.to(device), data.batch.to(device)
-        )
+        x, edge_index, edge_weight, batch = data.x.to(device), data.edge_index.to(device), data.edge_weight.to(device), data.batch.to(device)
 
         x = self.relu(self.conv0(x, edge_index, edge_weight))
         x = self.bn0(x)
-        x = F.relu(self.conv1(x, edge_index, edge_attr))      # RBF distances
+        x = F.relu(self.conv1(x, edge_index))
         x = self.bn1(x)
-        x = F.relu(self.conv2(x, edge_index, edge_attr))      # RBF distances
+        x = F.relu(self.conv2(x, edge_index))
         x = self.bn2(x)
-        x = F.relu(self.conv3(x, edge_index))                 # plain GAT
+        x = F.relu(self.conv3(x, edge_index))
         x = self.bn3(x)
         x = F.relu(self.conv4(x, edge_index))
         x = self.bn4(x)
@@ -236,9 +222,9 @@ class MODEL(nn.Module):
 
         # Interaction branch: combined drug+protein sequence → attention pooling
         cat_f = torch.cat([xp, xd], dim=1)                         # [B, 1420, 128]
-        # Use actual sequence lengths from masks instead of hardcoded value
-        drug_lengths = drug_mask.sum(dim=1).long()                  # [B] real drug lengths
-        prot_lengths = prot_mask.sum(dim=1).long()                  # [B] real protein lengths
+        # use each sample's real length (was hardcoded 128, which only masked the first sample in the batch)
+        drug_lengths = drug_mask.sum(dim=1).long()                 # [B]
+        prot_lengths = prot_mask.sum(dim=1).long()                 # [B]
         smiles_mask = self.generate_masks(xd, drug_lengths, 8)
         fasta_mask = self.generate_masks(xp, prot_lengths, 8)
         cat_mask = torch.cat([fasta_mask, smiles_mask], dim=-1)     # [B, 8, 1420]
