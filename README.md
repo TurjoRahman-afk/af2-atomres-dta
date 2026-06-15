@@ -346,20 +346,6 @@ To get stable and reproducible results we run 4 independent trainings on the DAV
 | AF2-CrossKAN-DTA — Run 4 | 32 | 0.2258 | 0.8793 | 0.6854 |
 | **AF2-CrossKAN-DTA (Mean ± Std)** | — | **0.2114 ± 0.0128** | **0.8821 ± 0.0051** | **0.6849 ± 0.0259** |
 
-#### v2 — RBF Distance Encoding + Bond Features (In Progress)
-
-Improvements over v1:
-- Protein graph: actual Cα distances with 16-dim RBF encoding (all 6 GNN layers use edge features)
-- Drug graph: 6-dim bond type features in all 5 GAT layers (learned projection for GCNConv)
-- All 442 proteins included (no filtering)
-- KAN regularization active (λ1=1.0, λ2=1.0, weight=1e-5)
-- Fixed interaction attention masking (correct sequence lengths per sample)
-
-| Model | Split Seed | Test MSE | Test CI | Test r2m |
-|-------|------------|----------|---------|----------|
-| AF2-CrossKAN-DTA v2 — Run 5 (full edges, all 5 GAT layers) | 42 | 0.2400 | 0.8836 | 0.6363 |
-| AF2-CrossKAN-DTA v2 — Run 6 (light edges, GAT layers 1–2) | 42 | 0.2463 | 0.8723 | 0.6313 |
-
 #### KIBA (Warm Setting)
 
 | Model                       | MSE | CI | r2m |
@@ -482,101 +468,6 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 | 90 | 0.0894 | 0.2380 | 0.8882 | 0.6511 |
 | 100 | 0.0781 | - | - | - |
 | 108 | 0.0690 | - | - | - |
-
----
-
-## Training Progress Log — DAVIS Warm (v2: RBF + Bond Features)
-
-New architecture: RBF distance encoding in protein graph, bond type edge features in drug graph, KAN regularization, fixed interaction attention masking, all 442 proteins included.
-
-### Run 5 — Split Seed 42, v2 RBF (Complete — 129 Epochs)
-
-Improvements: RBF protein distances, drug bond edge features, KAN regularization, fixed masks, all 442 proteins.
-
-> **Best Checkpoint — Epoch 107**
-> | Metric | Value |
-> |--------|-------|
-> | Train MSE | 0.0778 |
-> | Valid MSE | **0.2174** |
-> | Valid CI | **0.8698** |
-> | Valid r2m | **0.6800** |
-
-> **Final Test Result**
-> | Metric | Value |
-> |--------|-------|
-> | Test MSE | **0.2400** |
-> | Test CI | **0.8836** |
-> | Test r2m | **0.6363** |
-
-| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
-|-------|-----------|-----------|----------|-----------|
-| 10 | 0.4039 | 0.3961 | 0.8096 | 0.4951 |
-| 20 | 0.3156 | 0.3419 | 0.8364 | 0.5729 |
-| 30 | 0.2650 | 0.3018 | 0.8515 | 0.5886 |
-| 40 | 0.2258 | 0.2819 | 0.8429 | 0.6349 |
-| 50 | 0.1898 | 0.2482 | 0.8732 | 0.6652 |
-| 60 | 0.1582 | 0.2462 | 0.8731 | 0.6531 |
-| 70 | 0.1327 | 0.2364 | 0.8677 | 0.6779 |
-| 80 | 0.1129 | 0.2324 | 0.8691 | 0.6482 |
-| 90 | 0.0948 | 0.2438 | 0.8691 | 0.6531 |
-| 100 | 0.0863 | 0.2227 | 0.8725 | 0.6627 |
-| 110 | 0.0747 | 0.2258 | 0.8756 | 0.6749 |
-| 129 (final) | 0.0644 | — | — | — |
-
-### Run 6 — Split Seed 42, v2 RBF (lighter edges) (Complete — 115 Epochs)
-
-Single change from Run 5: RBF distance + bond edge features now feed only **GAT layers 1–2** (plain GAT for layers 3–5), reducing graph-branch capacity to fight overfitting. Everything else identical to Run 5 — same seed, splits, KAN, FFN.
-
-> **Best Checkpoint — Epoch 95**
-> | Metric | Value |
-> |--------|-------|
-> | Train MSE | 0.0906 |
-> | Valid MSE | **0.2202** |
-> | Valid CI | **0.8588** |
-> | Valid r2m | **0.6770** |
-
-> **Final Test Result**
-> | Metric | Value |
-> |--------|-------|
-> | Test MSE | **0.2463** |
-> | Test CI | **0.8723** |
-> | Test r2m | **0.6313** |
-
-| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
-|-------|-----------|-----------|----------|-----------|
-| 10 | 0.4130 | 0.4026 | 0.8139 | 0.4790 |
-| 20 | 0.3263 | 0.3720 | 0.8307 | 0.5580 |
-| 30 | 0.2669 | 0.2942 | 0.8531 | 0.6183 |
-| 40 | 0.2155 | 0.2990 | 0.8455 | 0.6448 |
-| 50 | 0.1822 | 0.2589 | 0.8663 | 0.6769 |
-| 60 | 0.1516 | 0.2464 | 0.8580 | 0.6787 |
-| 70 | 0.1279 | 0.2437 | 0.8672 | 0.6625 |
-| 80 | 0.1148 | 0.2383 | 0.8619 | 0.6552 |
-| 90 | 0.0936 | 0.2263 | 0.8660 | 0.6937 |
-| 100 | 0.0800 | 0.2261 | 0.8638 | 0.6848 |
-| 110 | 0.0785 | 0.2286 | 0.8641 | 0.6743 |
-
-### Run 7 — Split Seed 42, v2 RBF + Weight Decay (In Progress)
-
-Single change from Run 6: added **`weight_decay=1e-4`** to the Adam optimizer (L2 regularization) to attack the train→test overfitting gap (~0.17 in Runs 5–6). RBF kept, same architecture, same seed/splits. Expect train MSE to settle higher (intended) and valid/test to drop if overfitting was the bottleneck.
-
-> **Best Checkpoint — Epoch 71 (Training Ongoing)**
-> | Metric | Value |
-> |--------|-------|
-> | Train MSE | 0.1823 |
-> | Valid MSE | **0.2577** |
-> | Valid CI | **0.8649** |
-> | Valid r2m | **0.6435** |
-
-| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
-|-------|-----------|-----------|----------|-----------|
-| 10 | 0.4226 | 0.4513 | 0.8027 | 0.4162 |
-| 20 | 0.3297 | 0.3965 | 0.8180 | 0.5450 |
-| 30 | 0.2888 | 0.3258 | 0.8455 | 0.5817 |
-| 40 | 0.2530 | 0.3094 | 0.8463 | 0.6221 |
-| 50 | 0.2313 | 0.2814 | 0.8607 | 0.6574 |
-| 60 | 0.2001 | 0.2694 | 0.8651 | 0.6406 |
-| 70 | 0.1839 | 0.2679 | 0.8614 | 0.6743 |
 
 ---
 
