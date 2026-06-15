@@ -79,34 +79,6 @@ def test(model, dataloader):
     mse, ci, rm2 = calculate_metrics(labels, preds)
     return mse, ci, rm2
 
-
-def update_swa_bn(loader, swa_model, device):
-    """Recompute BatchNorm running stats for the SWA-averaged weights.
-
-    Required for SWA with BatchNorm: averaging the weights leaves the BN running
-    mean/var stale, so we do one pass over the training data (in train mode) to
-    refresh them. Mirrors torch.optim.swa_utils.update_bn but with this model's
-    8-argument forward signature.
-    """
-    momenta = {}
-    for module in swa_model.modules():
-        if isinstance(module, nn.modules.batchnorm._BatchNorm):
-            module.reset_running_stats()
-            momenta[module] = module.momentum
-            module.momentum = None
-    if not momenta:
-        return
-    swa_model.train()
-    with torch.no_grad():
-        for batch_data in loader:
-            mol_vec, prot_vec, mol_mat, mol_mat_mask, prot_mat, prot_mat_mask, drugh_graph, protein_graph, affinity = batch_data
-            swa_model(mol_vec.to(device), mol_mat.to(device), mol_mat_mask.to(device),
-                      prot_vec.to(device), prot_mat.to(device), prot_mat_mask.to(device),
-                      drugh_graph.to(device), protein_graph.to(device))
-    for module in momenta:
-        module.momentum = momenta[module]
-
-
 if __name__ == "__main__":
     SEED = 0          # weight init + batch shuffle seed (keep fixed across runs)
     SPLIT_SEED = 42   # data split seed — must match cold_split.py SEED
@@ -151,17 +123,8 @@ if __name__ == "__main__":
 
     model = nn.DataParallel(Model(hp, device))
     model = model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=hp.Learning_rate, betas=(0.9, 0.999), weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=hp.Learning_rate, betas=(0.9, 0.999))
     criterion = F.mse_loss
-
-    # SWA: once the model converges (early-stop point), average its weights over SWA_EPOCHS more
-    # epochs -> flatter minimum -> better generalization and lower variance across seeds.
-    from torch.optim.swa_utils import AveragedModel, SWALR
-    swa_model = AveragedModel(model)
-    swa_scheduler = SWALR(optimizer, swa_lr=hp.Learning_rate)
-    SWA_EPOCHS = 40
-    swa_started = False
-    swa_count = 0
 
     model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_v1.pth'
     checkpoint_path = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_v1_checkpoint.pth'
@@ -182,11 +145,7 @@ if __name__ == "__main__":
         patience = ckpt['patience']
         train_log = ckpt['train_log']
         valid_log = ckpt.get('valid_log', [])
-        swa_started = ckpt.get('swa_started', False)
-        swa_count = ckpt.get('swa_count', 0)
-        if 'swa_state' in ckpt:
-            swa_model.load_state_dict(ckpt['swa_state'])
-        print(f"Resumed from epoch {ckpt['epoch']} — best MSE so far: {best_valid_mse:.4f}, patience: {patience}, swa_count: {swa_count}")
+        print(f"Resumed from epoch {ckpt['epoch']} — best MSE so far: {best_valid_mse:.4f}, patience: {patience}")
     else:
         print("No checkpoint found — starting fresh training")
 
@@ -246,28 +205,17 @@ if __name__ == "__main__":
         valid_log.append([mse, ci, rm2])
         print(f'Valid at: mse: {mse}, ci: {ci}, rm2: {rm2}')
 
-        # Phase 1 (not converged): track best single model with early-stop patience.
-        # Phase 2 (converged -> SWA): average weights for SWA_EPOCHS more epochs, then stop.
-        if not swa_started:
-            if mse < best_valid_mse:
-                patience = 0
-                best_valid_mse = mse
-                torch.save(model.state_dict(), model_fromTrain)
-                print(f'Update best_mse, Valid at epoch: {epoch}: mse: {mse}, ci: {ci}, rm2: {rm2}')
-            else:
-                patience += 1
-                if patience > hp.max_patience:
-                    swa_started = True
-                    print(f'Converged at epoch {epoch} — entering SWA phase for {SWA_EPOCHS} epochs')
+        # Early stop
+        if mse < best_valid_mse :
+            patience = 0
+            best_valid_mse = mse
+            # save best model (overwrite only)
+            torch.save(model.state_dict(), model_fromTrain)
+            print(f'Update best_mse, Valid at epoch: {epoch}: mse: {mse}, ci: {ci}, rm2: {rm2}')
         else:
-            swa_model.update_parameters(model)   # accumulate the running weight average
-            swa_scheduler.step()
-            swa_count += 1
-            if mse < best_valid_mse:
-                best_valid_mse = mse
-                torch.save(model.state_dict(), model_fromTrain)
-            if swa_count >= SWA_EPOCHS:
-                print(f'SWA phase complete at epoch {epoch} ({swa_count} averaged epochs)')
+            patience += 1
+            if patience > hp.max_patience:
+                print(f'Training stopped at epoch {epoch}, best model saved at {model_fromTrain}')
                 break
 
         # Save checkpoint after every epoch so training can be resumed if interrupted
@@ -279,9 +227,6 @@ if __name__ == "__main__":
             'patience': patience,
             'train_log': train_log,
             'valid_log': valid_log,
-            'swa_started': swa_started,
-            'swa_count': swa_count,
-            'swa_state': swa_model.state_dict(),
         }, checkpoint_path)
 
         # Write log CSV after every epoch so results are never lost on interruption
@@ -300,27 +245,12 @@ if __name__ == "__main__":
     log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_v1.csv"
     print(f'Save log over at {log_dir}')
 
-    # Test — best single model
+    # Test
     predModel = nn.DataParallel(Model(hp, device))
     predModel.load_state_dict(torch.load(model_fromTrain))
     predModel = predModel.to(device)
     mse, ci, rm2 = test(predModel, test_dataset_load)
-    print(f'[Best single] Test: mse: {mse}, ci: {ci}, rm2: {rm2}')
-
-    # Test — SWA averaged model (recompute BatchNorm stats first)
-    if swa_count > 0:
-        update_swa_bn(train_dataset_load, swa_model, device)
-        swa_path = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_v1_swa.pth'
-        torch.save(swa_model.module.state_dict(), swa_path)
-        swa_mse, swa_ci, swa_rm2 = test(swa_model, test_dataset_load)
-        print(f'[SWA] Test: mse: {swa_mse}, ci: {swa_ci}, rm2: {swa_rm2}')
-        if swa_mse < mse:   # report whichever generalizes better
-            print('SWA model is better — reporting SWA result.')
-            mse, ci, rm2 = swa_mse, swa_ci, swa_rm2
-        else:
-            print('Best-single model is better — reporting single result.')
-
-    print(f'Final Test, mse: {mse}, ci: {ci}, rm2: {rm2}\n')
+    print(f'Test at, mse: {mse}, ci: {ci}, rm2: {rm2}\n')
     save_metrics['mse'].append(mse)
     save_metrics['ci'].append(ci)
     save_metrics['rm2'].append(rm2)
