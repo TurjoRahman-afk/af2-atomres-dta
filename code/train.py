@@ -123,12 +123,11 @@ if __name__ == "__main__":
 
     model = nn.DataParallel(Model(hp, device))
     model = model.to(device)
-    # weight_decay=1e-4: L2 regularization to fight overfitting (train→0.08 vs test→0.24 gap in Run 5/6)
-    optimizer = torch.optim.Adam(model.parameters(), lr=hp.Learning_rate, betas=(0.9, 0.999), weight_decay=1e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=hp.Learning_rate, betas=(0.9, 0.999))
     criterion = F.mse_loss
 
-    model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run7.pth'
-    checkpoint_path = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run7_checkpoint.pth'
+    model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_v1.pth'
+    checkpoint_path = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_v1_checkpoint.pth'
 
     train_log = []
     valid_log = []
@@ -177,10 +176,7 @@ if __name__ == "__main__":
             affinity = affinity.to(device)
 
             predictions = model(mol_vec, mol_mat, mol_mat_mask, prot_vec, prot_mat, prot_mat_mask, drugh_graph, protein_graph)
-            mse_loss = criterion(predictions.squeeze(), affinity)
-            # KAN regularization: L1 sparsity + entropy (λ1=1.0, λ2=1.0 per KANPM-DTA paper)
-            kan_reg = model.module.kan_predictor.regularization_loss(1.0, 1.0)
-            loss = mse_loss + 1e-5 * kan_reg
+            loss = criterion(predictions.squeeze(), affinity)
 
             pred = pred + predictions.cpu().detach().numpy().reshape(-1).tolist()
             label = label + affinity.cpu().detach().numpy().reshape(-1).tolist()
@@ -234,7 +230,7 @@ if __name__ == "__main__":
         }, checkpoint_path)
 
         # Write log CSV after every epoch so results are never lost on interruption
-        log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run7.csv"
+        log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_v1.csv"
         with open(log_dir, "w+", newline='') as f:
             writer = csv.writer(f)
             writer.writerow(["epoch", "train_mse", "train_ci", "train_r2m", "valid_mse", "valid_ci", "valid_r2m"])
@@ -246,7 +242,7 @@ if __name__ == "__main__":
 
     # NOTE: the per-epoch 7-column log above is the canonical log.
     # (Removed the old post-training 3-column overwrite that destroyed valid columns.)
-    log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run7.csv"
+    log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_v1.csv"
     print(f'Save log over at {log_dir}')
 
     # Test
@@ -261,5 +257,5 @@ if __name__ == "__main__":
 
     # Save summary metrics
     test_metrics = pd.DataFrame(save_metrics)
-    test_metrics.to_csv(f'./log/Test-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run7.csv', index=False)
-    print(f"Dataset-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_rbf_run7")
+    test_metrics.to_csv(f'./log/Test-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_v1.csv', index=False)
+    print(f"Dataset-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_v1")

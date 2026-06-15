@@ -76,8 +76,8 @@ def target2graph(distance_map, protein_features_esm):
 
     target_feature = torch.FloatTensor(protein_features_esm)
     target_edge_index = torch.LongTensor(target_edge_index).transpose(1, 0)
-    # Scalar weight for GCNConv: normalize distance to [0,1]
-    edge_weight = torch.FloatTensor(np.array(target_edge_distance) / 8.0)
+    # v1: binary contact map — uniform edge weight 1.0 (not distance-scaled), to match the 0.19 setup
+    edge_weight = torch.ones(len(target_edge_distance), dtype=torch.float32)
     # RBF edge features for GATConv: [num_edges, 16]
     edge_attr = torch.FloatTensor(rbf_encode(target_edge_distance))
 
