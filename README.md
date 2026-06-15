@@ -8,7 +8,7 @@ AF2-CrossKAN-DTA is a drug-target affinity (DTA) prediction model that predicts 
 
 **The three core contributions of this work:**
 
-1. **AlphaFold2 3D Contact Maps** — uses real 3D Cα distance matrices from the AlphaFold2 public database instead of sequence-predicted contact maps, giving the protein graph branch genuine structural information
+1. **AlphaFold2 3D Contact Maps** — builds binary protein contact maps from real 3D Cα coordinates in the AlphaFold2 public database (edge if Cα distance < 8Å) instead of sequence-predicted contact maps, giving the protein graph branch genuine structural topology
 2. **Cross-Attention** — drug and protein sequence tokens attend to each other, creating drug-aware protein representations and protein-aware drug representations before fusion
 3. **Bilinear Fusion + KAN** — a low-rank bilinear product explicitly models multiplicative drug-protein feature interactions, followed by a Kolmogorov-Arnold Network as the final predictor
 
@@ -55,25 +55,24 @@ Most prior DTA models that incorporate protein graph structure rely on **sequenc
 
 This means sequence-predicted contact maps do not faithfully represent the true binding site geometry of a protein — which is precisely the information a DTA model needs to determine how a drug docks.
 
-#### Our Approach — Real 3D Structural Contact Maps
+#### Our Approach — Binary Contact Maps from Real 3D Structure
 
-We replace sequence-predicted contact maps with real 3D Cα distance matrices from AlphaFold2 predicted structures. For each protein in the dataset we:
+We replace sequence-predicted contact maps with binary contact maps derived from real 3D Cα coordinates in AlphaFold2 predicted structures. For each protein in the dataset we:
 
 1. Query UniProt REST API to resolve the gene name to an accession ID
 2. Query AlphaFold2 EBI API to get the PDB file URL
 3. Download the PDB and extract Cα (alpha-carbon) atom 3D coordinates — one per residue
 4. Compute all pairwise Euclidean distances in Angstroms
-5. Keep actual distances for pairs within 8Å — zero out beyond threshold (no binarization)
-6. Encode each edge distance as a 16-dimensional RBF vector for use in GAT layers
+5. Threshold at 8Å: residue pairs with Cα distance < 8Å become edges (binary contact, weight 1.0); pairs beyond 8Å are not connected
 
-The 8Å threshold is the standard cutoff in structural biology for defining residue-residue contacts. Crucially, we preserve the **actual distance value** rather than thresholding to binary — a contact at 2Å (tight hydrogen bond) carries very different information from one at 7.9Å (loose peripheral contact). The 16-dim RBF encoding allows each GAT layer to learn distance-dependent attention weights, giving the GNN genuine geometric awareness of the binding pocket.
+The 8Å threshold is the standard cutoff in structural biology for defining residue-residue contacts. The advantage over sequence-predicted maps is not edge *weighting* but edge **correctness**: every edge reflects true 3D proximity measured from the AlphaFold2 structure, rather than a co-evolutionary statistical guess. The graph topology therefore matches the protein's real binding-site geometry.
 
 | Property | Sequence-predicted (KANPM-DTA) | AlphaFold2 3D (Ours) |
 |----------|-------------------------------|----------------------|
 | Source | ESM-2 probability matrix | Real Cα coordinates |
-| Edge criterion | Probability > 0.5 | Physical distance < 8Å |
-| Edge features | Binary scalar (0 or 1) | 16-dim RBF distance encoding |
-| Geometric information | None | Actual Euclidean distances |
+| Edge criterion | Probability > 0.5 | Real Cα distance < 8Å |
+| Edge weight | Binary (0 / 1) | Binary (0 / 1) |
+| Geometric information | None | Edges set by true 3D distances |
 | Binding site accuracy | Statistical approximation | Real 3D topology |
 | False edges | Possible (co-evolution ≠ proximity) | None (distance is exact) |
 
@@ -141,8 +140,6 @@ f(x) = w_base * SiLU(x)  +  Σ c_k * B_k(x)
 | Spline Order       | 3 (cubic)           |
 | Grid Size          | 5                   |
 | Base Activation    | SiLU                |
-| L1 Reg Weight      | 1.0                 |
-| Entropy Reg Weight | 1.0                 |
 
 ---
 
@@ -196,17 +193,17 @@ While the sequence branch runs, the graph branch processes structural informatio
 
 **Drug graph:** 1 GCNConv layer followed by 5 GATConv layers, each with BatchNorm + ReLU. Global add pooling collapses all atom nodes into one vector:
 ```
-Drug atoms [N_atoms, 88]  →  GCN(edge_scalar) → 5×GAT(edge_dim=6) → global_add_pool  →  smiles_graph [B, 128]
+Drug atoms [N_atoms, 88]  →  GCN(bond_scalar) → 5×GAT → global_add_pool  →  smiles_graph [B, 128]
 ```
-Each bond carries 6-dim edge features (bond type: single/double/triple/aromatic + conjugation). A learned linear projection maps these to a scalar for GCNConv; all 5 GAT layers receive the full 6-dim bond vector so attention weights are informed by bond chemistry.
+The GCNConv layer is weighted by a scalar derived from the bond features (the 6-dim bond vector averaged to one value); the 5 GAT layers operate on the graph connectivity alone.
 
 **Protein graph:** Same architecture but starts from 1152-dim ESM-C node features:
 ```
-Protein residues [N_res, 1152]  →  GCN(dist/8) → 5×GAT(edge_dim=16) → global_add_pool  →  fasta_graph [B, 128]
+Protein residues [N_res, 1152]  →  GCN(binary contact) → 5×GAT → global_add_pool  →  fasta_graph [B, 128]
 ```
-Each residue pair within 8Å carries a 16-dim RBF-encoded distance vector. The scalar distance/8.0 is used for GCNConv; all 5 GAT layers receive the full 16-dim RBF vector so attention weights reflect actual 3D proximity.
+Edges are the binary AlphaFold2 contacts (Cα < 8Å, uniform weight 1.0); the GCNConv layer uses this binary adjacency and the 5 GAT layers operate on the connectivity. The graph topology reflects the protein's real 3D structure.
 
-The graph branch captures **structural chemistry** (bond types for drugs, 3D spatial distances for proteins) that the sequence branch cannot see.
+The graph branch captures **structure** (bond connectivity for drugs, real 3D residue contacts for proteins) that the sequence branch cannot see.
 
 ---
 
@@ -592,6 +589,49 @@ Single change from Run 6: added **`weight_decay=1e-4`** to the Adam optimizer (L
 | W/O Bilinear Fusion | - | - | - |
 | W/O AlphaFold2 (use predicted map) | - | - | - |
 | W/O KAN (use MLP) | - | - | - |
+
+---
+
+## Current Model & Training Setup
+
+The current/official model is the **v1 architecture** (binary AlphaFold2 contact maps, plain GAT graph layers, ChemBERTa + ESM-C sequence transformers, cross-attention, bilinear fusion, KAN predictor) — the configuration that produced the best result (**MSE 0.1954, seed 41**) — plus two corrections/additions:
+
+- **Fixed interaction-attention masking** — the original `generate_masks` hardcoded length 128 and only masked the first sample in each batch; it now uses each sample's real sequence length.
+- **Light regularization for seed consistency** — `weight_decay=1e-5`, a cosine LR schedule, and dropout raised 0.2 → 0.3 in the graph nets and bilinear fusion.
+
+| Setting | Value |
+|---------|-------|
+| Optimizer | Adam, lr 1e-4, betas (0.9, 0.999), weight_decay 1e-5 |
+| LR schedule | CosineAnnealingLR (T_max = epochs) |
+| Dropout | 0.3 (graph nets + bilinear), 0.2 (cross-attn), 0.1 (transformers) |
+| Batch size | 16 |
+| Early stopping | patience 20 on validation MSE |
+| Loss | MSE |
+
+Results are reported as **mean ± std over seeds 41/42/43/32** (the spread is the consistency measure).
+
+---
+
+## What We Tried (and What Didn't Work)
+
+A record of experiments so the dead ends aren't repeated. **Best result throughout: v1, MSE 0.1954 (seed 41).** Everything below underperformed it.
+
+| Experiment | What it changed | Result | Verdict |
+|------------|-----------------|--------|---------|
+| **v2 — RBF edge features** (Run 5) | 16-dim RBF distance vectors + 6-dim bond features fed through all GAT layers | Test 0.2400 (worse than v1 0.21) | ❌ edge features in GNN don't help |
+| **v2 — lighter edges** (Run 6) | RBF/bond only in GAT layers 1–2 | Test 0.2463 (tied Run 5) | ❌ confirms edges irrelevant |
+| **Weight decay 1e-4** (Run 7) | added wd=1e-4 to v2 | best valid 0.2577 (worse) | ❌ over-regularized |
+| **LeanDTA rebuild** (~1.4M params) | 10× smaller, sequence transformers cut 3→1 layer, added Morgan FP + mutation flag | train stuck ~0.6, valid ~0.40 | ❌ underfit — cut the dominant sequence branch |
+| **Lean + lr 5e-4 / batch 32** | bigger batch + higher LR on lean model | valid ~0.57 (worse, noisy) | ❌ LR too high |
+| **Lean + dim 256** | added capacity back to lean model | CI ~0.5, r2m ~0 (failed to learn) | ❌ optimization collapse |
+| **SWA** | stochastic weight averaging | implemented, then removed | — removed by preference |
+
+**Key lessons learned:**
+- **The graph/structure branch is low-leverage (~0.023 MSE in the KANPM ablation); the sequence branch dominates (~0.336).** Don't over-invest in the protein graph or edge features.
+- **Edge features in the GNN don't help** — confirmed three independent ways (our Runs 5–7, the KANPM ablation, and 3DProtDTA's own ablation where edge-aware GINE matched plain GIN).
+- **The model overfits** (train → ~0.06, test → ~0.20). The real lever is generalization (light regularization, ensembling/CV, honest mean±std reporting), **not** more capacity.
+- **Smaller is not better here** — cutting capacity, especially the sequence transformers, caused underfitting.
+- **Targets (Davis warm):** KANPM-DTA 0.204, HCAF-DTA 0.198, 3DProtDTA 0.184. The prior-work table was originally ~2.5× too high; it has been corrected with verified per-paper numbers.
 
 ---
 
