@@ -19,7 +19,7 @@ class BilinearFusion(nn.Module):
         self.drug_proj = nn.Linear(drug_dim, rank)
         self.prot_proj = nn.Linear(prot_dim, rank)
         self.output_proj = nn.Linear(rank, output_dim)
-        self.dropout = nn.Dropout(0.3)
+        self.dropout = nn.Dropout(0.2)
         self.bn = nn.BatchNorm1d(output_dim)
 
     def forward(self, drug, prot):
@@ -71,7 +71,7 @@ class DrugGraphNet(torch.nn.Module):
         x = self.bn5(x)
         x = global_add_pool(x, batch)
         x = F.relu(self.fc1_xd(x))
-        x = F.dropout(x, p=0.3, training=self.training)
+        x = F.dropout(x, p=0.2, training=self.training)
         return x          #smiles_graph[B, 128]
 
 
@@ -116,7 +116,7 @@ class ProteinGraphNet(torch.nn.Module):
         x = self.bn5(x)
         x = global_add_pool(x, batch)
         x = F.relu(self.fc1_xd(x))
-        x = F.dropout(x, p=0.3, training=self.training)
+        x = F.dropout(x, p=0.2, training=self.training)
         return x           #fasta_graph[B, 128]
 
 
@@ -168,6 +168,11 @@ class MODEL(nn.Module):
         self.cross_attn_drug = nn.MultiheadAttention(embed_dim=128, num_heads=8, dropout=0.2, batch_first=True)
         self.cross_attn_prot = nn.MultiheadAttention(embed_dim=128, num_heads=8, dropout=0.2, batch_first=True)
 
+        # Attention pooling for the cross-attention outputs (learned weighted pool,
+        # replaces plain mean — focuses on binding-relevant tokens/residues)
+        self.drug_pool = LinearAttention(128, 64, 8)
+        self.prot_pool = LinearAttention(128, 64, 8)
+
         # Interaction branch (concatenated drug+protein sequence) — kept for additional context
         self.inter_attn_one = LinearAttention(128, 64, 8)
 
@@ -217,16 +222,19 @@ class MODEL(nn.Module):
         xd_cross, _ = self.cross_attn_drug(query=xd, key=xp, value=xp, key_padding_mask=prot_pad_mask)
         xp_cross, _ = self.cross_attn_prot(query=xp, key=xd, value=xd, key_padding_mask=drug_pad_mask)
 
-        xd_attn = xd_cross.mean(dim=1)     # [B, 128]
-        xp_attn = xp_cross.mean(dim=1)     # [B, 128]
+        # per-sample real lengths → masks for attention pooling (and the interaction branch)
+        drug_lengths = drug_mask.sum(dim=1).long()                 # [B]
+        prot_lengths = prot_mask.sum(dim=1).long()                 # [B]
+        smiles_mask = self.generate_masks(xd, drug_lengths, 8)     # [B, 8, 220]
+        fasta_mask = self.generate_masks(xp, prot_lengths, 8)      # [B, 8, 1200]
+
+        # Attention pooling (learned, masked) — replaces mean(dim=1): weights binding-relevant
+        # positions instead of averaging all of them equally
+        xd_attn = self.drug_pool(xd_cross, smiles_mask)            # [B, 128]
+        xp_attn = self.prot_pool(xp_cross, fasta_mask)             # [B, 128]
 
         # Interaction branch: combined drug+protein sequence → attention pooling
         cat_f = torch.cat([xp, xd], dim=1)                         # [B, 1420, 128]
-        # use each sample's real length (was hardcoded 128, which only masked the first sample in the batch)
-        drug_lengths = drug_mask.sum(dim=1).long()                 # [B]
-        prot_lengths = prot_mask.sum(dim=1).long()                 # [B]
-        smiles_mask = self.generate_masks(xd, drug_lengths, 8)
-        fasta_mask = self.generate_masks(xp, prot_lengths, 8)
         cat_mask = torch.cat([fasta_mask, smiles_mask], dim=-1)     # [B, 8, 1420]
         cat_attn = self.cat_attn_proj(self.inter_attn_one(cat_f, cat_mask))  # [B, 256]
 
