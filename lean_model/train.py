@@ -49,8 +49,8 @@ warnings.filterwarnings("ignore")
 
 TAG = "davis-warm-lean"     # output filename tag
 SPLIT_SEED = 42             # must match the split used to generate train/valid/test
-BATCH_SIZE = 32             # bigger batch than v2 (16): steadier gradients, healthier BatchNorm
-LR = 5e-4                   # paired with batch 32 (HCAF used 5e-4); fixes the slow 1e-4 convergence
+BATCH_SIZE = 16             # batch 16 / lr 1e-4 converged better than the 32 / 5e-4 attempt
+LR = 1e-4                   # 5e-4 was too high — it made convergence worse
 
 
 def load_pickle(path):
@@ -115,11 +115,12 @@ def main():
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(log_dir, exist_ok=True)
 
-    model = LeanDTA(dim=128, n_heads=4, dropout=0.3, use_kan=False).to(device)
+    # dim 128 -> 256: add capacity to fix underfitting (train MSE was stuck ~0.6)
+    model = LeanDTA(dim=256, n_heads=4, dropout=0.3, use_kan=False).to(device)
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"LeanDTA trainable parameters: {n_params/1e6:.2f}M")
 
-    # lr=LR (5e-4) paired with batch 32 for faster convergence of the small
+    # lr=LR (1e-4) paired with batch 16 for faster convergence of the small
     # from-scratch model; weight_decay 1e-5 (1e-4 over-regularized in Run 7)
     optimizer = torch.optim.Adam(model.parameters(), lr=LR,
                                  betas=(0.9, 0.999), weight_decay=1e-5)
