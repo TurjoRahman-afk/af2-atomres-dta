@@ -346,6 +346,18 @@ To get stable and reproducible results we run 4 independent trainings on the DAV
 | AF2-CrossKAN-DTA — Run 4 | 32 | 0.2258 | 0.8793 | 0.6854 |
 | **AF2-CrossKAN-DTA (Mean ± Std)** | — | **0.2114 ± 0.0128** | **0.8821 ± 0.0051** | **0.6849 ± 0.0259** |
 
+#### Improved v1 — Mask Fix + Attention Pooling (`_new` runs)
+
+Changes over v1: fixed interaction-attention masking, **attention pooling** on the cross-attention outputs (replacing mean), and light regularization (weight_decay 1e-5, cosine LR; dropout 0.2). Same 4-seed protocol. Aimed especially at improving **r2m**.
+
+| Model | Split Seed | Test MSE | Test CI | Test r2m |
+|-------|------------|----------|---------|----------|
+| Improved v1 — seed 41 | 41 | - | - | - |
+| Improved v1 — seed 42 | 42 | - | - | - |
+| Improved v1 — seed 43 | 43 | - | - | - |
+| Improved v1 — seed 32 | 32 | - | - | - |
+| **Improved v1 (Mean ± Std)** | — | - | - | - |
+
 #### KIBA (Warm Setting)
 
 | Model                       | MSE | CI | r2m |
@@ -468,6 +480,38 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 | 90 | 0.0894 | 0.2380 | 0.8882 | 0.6511 |
 | 100 | 0.0781 | - | - | - |
 | 108 | 0.0690 | - | - | - |
+
+---
+
+## Training Progress Log — DAVIS Warm (Improved v1 — attention pooling, `_new`)
+
+Improved v1: fixed interaction masks + attention pooling on cross-attention outputs + light regularization (weight_decay 1e-5, cosine LR, dropout 0.2). Output tag `_new`. Goal: improve r2m and tighten the seed spread.
+
+### Seed 42 (In Progress)
+
+> **Best Checkpoint — Epoch — (Training Ongoing)**
+> | Metric | Value |
+> |--------|-------|
+> | Train MSE | - |
+> | Valid MSE | - |
+> | Valid CI | - |
+> | Valid r2m | - |
+
+| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
+|-------|-----------|-----------|----------|-----------|
+| 10 | - | - | - | - |
+
+### Seed 41 (Pending)
+
+_To be run._
+
+### Seed 43 (Pending)
+
+_To be run._
+
+### Seed 32 (Pending)
+
+_To be run._
 
 ---
 
