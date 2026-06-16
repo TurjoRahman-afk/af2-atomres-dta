@@ -129,8 +129,8 @@ if __name__ == "__main__":
     # more consistent convergence across seeds
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=hp.Epoch)
 
-    model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_v1.pth'
-    checkpoint_path = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_v1_checkpoint.pth'
+    model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new.pth'
+    checkpoint_path = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new_checkpoint.pth'
 
     train_log = []
     valid_log = []
@@ -238,7 +238,7 @@ if __name__ == "__main__":
         }, checkpoint_path)
 
         # Write log CSV after every epoch so results are never lost on interruption
-        log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_v1.csv"
+        log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new.csv"
         with open(log_dir, "w+", newline='') as f:
             writer = csv.writer(f)
             writer.writerow(["epoch", "train_mse", "train_ci", "train_r2m", "valid_mse", "valid_ci", "valid_r2m"])
@@ -250,7 +250,7 @@ if __name__ == "__main__":
 
     # NOTE: the per-epoch 7-column log above is the canonical log.
     # (Removed the old post-training 3-column overwrite that destroyed valid columns.)
-    log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_v1.csv"
+    log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new.csv"
     print(f'Save log over at {log_dir}')
 
     # Test
@@ -265,5 +265,5 @@ if __name__ == "__main__":
 
     # Save summary metrics
     test_metrics = pd.DataFrame(save_metrics)
-    test_metrics.to_csv(f'./log/Test-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_v1.csv', index=False)
-    print(f"Dataset-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_v1")
+    test_metrics.to_csv(f'./log/Test-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new.csv', index=False)
+    print(f"Dataset-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new")
