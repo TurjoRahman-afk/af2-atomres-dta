@@ -489,13 +489,13 @@ Improved v1: fixed interaction masks + attention pooling on cross-attention outp
 
 ### Seed 42 (In Progress)
 
-> **Best Checkpoint — Epoch 72 (Training Ongoing)**
+> **Best Checkpoint — Epoch 81 (Training Ongoing)**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.1211 |
-> | Valid MSE | **0.2250** |
-> | Valid CI | **0.8703** |
-> | Valid r2m | **0.6849** |
+> | Train MSE | 0.1065 |
+> | Valid MSE | **0.2209** |
+> | Valid CI | **0.8783** |
+> | Valid r2m | **0.6896** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
