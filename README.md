@@ -506,6 +506,7 @@ Improved v1: fixed interaction masks + attention pooling on cross-attention outp
 | 50 | 0.1882 | 0.2558 | 0.8721 | 0.6492 |
 | 60 | 0.1566 | 0.2424 | 0.8736 | 0.6604 |
 | 70 | 0.1283 | 0.2421 | 0.8735 | 0.6597 |
+| 80 | 0.1114 | 0.2314 | 0.8770 | 0.6783 |
 
 ### Seed 41 (Pending)
 
