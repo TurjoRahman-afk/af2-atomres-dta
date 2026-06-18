@@ -348,12 +348,12 @@ To get stable and reproducible results we run 4 independent trainings on the DAV
 
 #### Improved v1 — Mask Fix + Attention Pooling (`_new` runs)
 
-Changes over v1: fixed interaction-attention masking, **attention pooling** on the cross-attention outputs (replacing mean), and light regularization (weight_decay 1e-5, cosine LR; dropout 0.2). Same 4-seed protocol. Aimed especially at improving **r2m**.
+Changes over v1: fixed interaction-attention masking, **attention pooling** on the cross-attention outputs (replacing mean), a **small KAN [512, 256, 1]** (8× fewer params, anti-overfitting), weight_decay 1e-5, flat LR, dropout 0.2. Same 4-seed protocol. Aimed at improving **r2m** and shrinking the valid→test gap.
 
 | Model | Split Seed | Test MSE | Test CI | Test r2m |
 |-------|------------|----------|---------|----------|
 | Improved v1 — seed 41 | 41 | - | - | - |
-| Improved v1 — seed 42 | 42 | 0.2533 | 0.8737 | 0.6190 |
+| Improved v1 — seed 42 | 42 | running | - | - |
 | Improved v1 — seed 43 | 43 | - | - | - |
 | Improved v1 — seed 32 | 32 | - | - | - |
 | **Improved v1 (Mean ± Std)** | — | - | - | - |
@@ -485,41 +485,21 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 
 ## Training Progress Log — DAVIS Warm (Improved v1 — attention pooling, `_new`)
 
-Improved v1: fixed interaction masks + attention pooling on cross-attention outputs + light regularization (weight_decay 1e-5, cosine LR, dropout 0.2). Output tag `_new`. Goal: improve r2m and tighten the seed spread.
+Improved v1 (current config): fixed interaction masks + attention pooling on cross-attention outputs + **small KAN [512, 256, 1]** + weight_decay 1e-5, **flat LR**, dropout 0.2. Output tag `_new`. Goal: improve r2m and cut overfitting. (An earlier variant — cosine LR + full-size KAN — overfit badly: test 0.2533, valid→test gap +0.046; recorded under "What We Tried".)
 
-### Seed 42 (Complete — early-stopped at 129 epochs)
+### Seed 42 (In Progress)
 
-> **Best Checkpoint — Epoch 109**
+> **Best Checkpoint — Epoch 16 (Training Ongoing)**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.0615 |
-> | Valid MSE | **0.2073** |
-> | Valid CI | **0.8819** |
-> | Valid r2m | **0.7072** |
-
-> **Final Test Result**
-> | Metric | Value |
-> |--------|-------|
-> | Test MSE | **0.2533** |
-> | Test CI | **0.8737** |
-> | Test r2m | **0.6190** |
-
-> ⚠️ Worse than plain v1 seed-42 (test 0.2087). The valid→test gap blew up (0.207 → 0.253 = +0.046, vs v1's +0.023) — the changes hurt generalization on this seed.
+> | Train MSE | 0.3712 |
+> | Valid MSE | **0.3780** |
+> | Valid CI | **0.8155** |
+> | Valid r2m | **0.5246** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
-| 10 | 0.4129 | 0.4049 | 0.8067 | 0.4964 |
-| 20 | 0.3299 | 0.3522 | 0.8253 | 0.5545 |
-| 30 | 0.2882 | 0.3293 | 0.8368 | 0.5779 |
-| 40 | 0.2324 | 0.3015 | 0.8595 | 0.5946 |
-| 50 | 0.1882 | 0.2558 | 0.8721 | 0.6492 |
-| 60 | 0.1566 | 0.2424 | 0.8736 | 0.6604 |
-| 70 | 0.1283 | 0.2421 | 0.8735 | 0.6597 |
-| 80 | 0.1114 | 0.2314 | 0.8770 | 0.6783 |
-| 90 | 0.0880 | 0.2137 | 0.8819 | 0.7065 |
-| 100 | 0.0743 | 0.2167 | 0.8783 | 0.7159 |
-| 110 | 0.0614 | 0.2115 | 0.8829 | 0.6880 |
-| 120 | 0.0545 | 0.2150 | 0.8834 | 0.6940 |
+| 10 | 0.4278 | 0.4287 | 0.7955 | 0.4438 |
 
 ### Seed 41 (Pending)
 
@@ -580,6 +560,7 @@ A record of experiments so the dead ends aren't repeated. **Best result througho
 | **Lean + lr 5e-4 / batch 32** | bigger batch + higher LR on lean model | valid ~0.57 (worse, noisy) | ❌ LR too high |
 | **Lean + dim 256** | added capacity back to lean model | CI ~0.5, r2m ~0 (failed to learn) | ❌ optimization collapse |
 | **SWA** | stochastic weight averaging | implemented, then removed | — removed by preference |
+| **Improved-v1 + cosine LR** (seed 42) | attention pooling + cosine LR + full KAN | valid 0.207 but **test 0.2533** (gap +0.046) | ❌ cosine + full KAN overfit; flat LR + small KAN tried next |
 
 **Key lessons learned:**
 - **The graph/structure branch is low-leverage (~0.023 MSE in the KANPM ablation); the sequence branch dominates (~0.336).** Don't over-invest in the protein graph or edge features.
