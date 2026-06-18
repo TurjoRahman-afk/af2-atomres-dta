@@ -125,9 +125,6 @@ if __name__ == "__main__":
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=hp.Learning_rate, betas=(0.9, 0.999), weight_decay=1e-5)
     criterion = F.mse_loss
-    # cosine LR schedule: smoothly anneal the learning rate over training for steadier,
-    # more consistent convergence across seeds
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=hp.Epoch)
 
     model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new.pth'
     checkpoint_path = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new_checkpoint.pth'
@@ -148,8 +145,6 @@ if __name__ == "__main__":
         patience = ckpt['patience']
         train_log = ckpt['train_log']
         valid_log = ckpt.get('valid_log', [])
-        if 'scheduler_state' in ckpt:
-            scheduler.load_state_dict(ckpt['scheduler_state'])
         print(f"Resumed from epoch {ckpt['epoch']} — best MSE so far: {best_valid_mse:.4f}, patience: {patience}")
     else:
         print("No checkpoint found — starting fresh training")
@@ -205,8 +200,6 @@ if __name__ == "__main__":
         eta_str = time.strftime("%H:%M:%S", time.gmtime(eta_seconds))
         print(f"Epoch {epoch}/{hp.Epoch} | Train MSE: {mse_value:.4f} | Time: {epoch_time:.0f}s | ETA: {eta_str}")
 
-        scheduler.step()   # cosine LR step, once per epoch
-
         # valid
         mse, ci, rm2 = test(model, valid_dataset_load)
         valid_log.append([mse, ci, rm2])
@@ -234,7 +227,6 @@ if __name__ == "__main__":
             'patience': patience,
             'train_log': train_log,
             'valid_log': valid_log,
-            'scheduler_state': scheduler.state_dict(),
         }, checkpoint_path)
 
         # Write log CSV after every epoch so results are never lost on interruption
