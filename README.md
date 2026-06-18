@@ -353,7 +353,7 @@ Changes over v1: fixed interaction-attention masking, **attention pooling** on t
 | Model | Split Seed | Test MSE | Test CI | Test r2m |
 |-------|------------|----------|---------|----------|
 | Improved v1 — seed 41 | 41 | - | - | - |
-| Improved v1 — seed 42 | 42 | - | - | - |
+| Improved v1 — seed 42 | 42 | 0.2533 | 0.8737 | 0.6190 |
 | Improved v1 — seed 43 | 43 | - | - | - |
 | Improved v1 — seed 32 | 32 | - | - | - |
 | **Improved v1 (Mean ± Std)** | — | - | - | - |
@@ -487,15 +487,24 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 
 Improved v1: fixed interaction masks + attention pooling on cross-attention outputs + light regularization (weight_decay 1e-5, cosine LR, dropout 0.2). Output tag `_new`. Goal: improve r2m and tighten the seed spread.
 
-### Seed 42 (In Progress)
+### Seed 42 (Complete — early-stopped at 129 epochs)
 
-> **Best Checkpoint — Epoch 109 (Training Ongoing)**
+> **Best Checkpoint — Epoch 109**
 > | Metric | Value |
 > |--------|-------|
 > | Train MSE | 0.0615 |
 > | Valid MSE | **0.2073** |
 > | Valid CI | **0.8819** |
 > | Valid r2m | **0.7072** |
+
+> **Final Test Result**
+> | Metric | Value |
+> |--------|-------|
+> | Test MSE | **0.2533** |
+> | Test CI | **0.8737** |
+> | Test r2m | **0.6190** |
+
+> ⚠️ Worse than plain v1 seed-42 (test 0.2087). The valid→test gap blew up (0.207 → 0.253 = +0.046, vs v1's +0.023) — the changes hurt generalization on this seed.
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
@@ -510,6 +519,7 @@ Improved v1: fixed interaction masks + attention pooling on cross-attention outp
 | 90 | 0.0880 | 0.2137 | 0.8819 | 0.7065 |
 | 100 | 0.0743 | 0.2167 | 0.8783 | 0.7159 |
 | 110 | 0.0614 | 0.2115 | 0.8829 | 0.6880 |
+| 120 | 0.0545 | 0.2150 | 0.8834 | 0.6940 |
 
 ### Seed 41 (Pending)
 
