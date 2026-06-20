@@ -189,8 +189,8 @@ class MODEL(nn.Module):
         self.cat_attn_proj = nn.Linear(128, 256)
 
         # KAN predictor: bilinear_out(256) + cat_attn_proj(256) = 512.
-        # Contracting funnel [512->256->1] (was [512,1024,512,1]) — ~8x smaller to fight overfitting.
-        self.kan_predictor = KAN([512, 256, 1])
+        # [512->512->1] — ~4x smaller than the original [512,1024,512,1]. ([512,256,1] underfit:
+        self.kan_predictor = KAN([512, 512, 1])
 
     def generate_masks(self, adj, adj_sizes, n_heads):
         out = torch.ones(adj.shape[0], adj.shape[1])

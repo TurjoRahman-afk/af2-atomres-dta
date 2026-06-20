@@ -485,25 +485,21 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 
 ## Training Progress Log — DAVIS Warm (Improved v1 — attention pooling, `_new`)
 
-Improved v1 (current config): fixed interaction masks + attention pooling on cross-attention outputs + **small KAN [512, 256, 1]** + weight_decay 1e-5, **flat LR**, dropout 0.2. Output tag `_new`. Goal: improve r2m and cut overfitting. (An earlier variant — cosine LR + full-size KAN — overfit badly: test 0.2533, valid→test gap +0.046; recorded under "What We Tried".)
+Improved v1 (current config): fixed interaction masks + attention pooling on cross-attention outputs + **KAN [512, 512, 1]** (4× smaller than original) + weight_decay 1e-5, **flat LR**, dropout 0.2. Output tag `_new`. Goal: improve r2m / cut overfitting without underfitting. (Earlier variants — cosine+full KAN, and small KAN [512,256,1] — both failed; see "What We Tried".)
 
 ### Seed 42 (In Progress)
 
-> **Best Checkpoint — Epoch 54 (Training Ongoing)**
+> **Best Checkpoint — Epoch — (Training Ongoing)**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.1919 |
-> | Valid MSE | **0.2646** |
-> | Valid CI | **0.8645** |
-> | Valid r2m | **0.6347** |
+> | Train MSE | - |
+> | Valid MSE | - |
+> | Valid CI | - |
+> | Valid r2m | - |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
-| 10 | 0.4278 | 0.4287 | 0.7955 | 0.4438 |
-| 20 | 0.3588 | 0.3723 | 0.8078 | 0.5347 |
-| 30 | 0.3065 | 0.3289 | 0.8366 | 0.5642 |
-| 40 | 0.2565 | 0.3103 | 0.8371 | 0.6268 |
-| 50 | 0.2109 | 0.2732 | 0.8593 | 0.6102 |
+| 10 | - | - | - | - |
 
 ### Seed 41 (Pending)
 
@@ -565,6 +561,7 @@ A record of experiments so the dead ends aren't repeated. **Best result througho
 | **Lean + dim 256** | added capacity back to lean model | CI ~0.5, r2m ~0 (failed to learn) | ❌ optimization collapse |
 | **SWA** | stochastic weight averaging | implemented, then removed | — removed by preference |
 | **Improved-v1 + cosine LR** (seed 42) | attention pooling + cosine LR + full KAN | valid 0.207 but **test 0.2533** (gap +0.046) | ❌ cosine + full KAN overfit; flat LR + small KAN tried next |
+| **Small KAN [512,256,1]** (seed 42) | 8× smaller KAN + attention pooling, flat LR | valid plateaued ~0.26 (vs v1 ~0.20); larger train→valid gap | ❌ underfit — 8× cut too aggressive; [512,512,1] tried next |
 
 **Key lessons learned:**
 - **The graph/structure branch is low-leverage (~0.023 MSE in the KANPM ablation); the sequence branch dominates (~0.336).** Don't over-invest in the protein graph or edge features.
