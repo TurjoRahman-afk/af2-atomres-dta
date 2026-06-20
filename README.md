@@ -489,13 +489,13 @@ Improved v1 (current config): fixed interaction masks + attention pooling on cro
 
 ### Seed 42 (In Progress)
 
-> **Best Checkpoint — Epoch 51 (Training Ongoing)**
+> **Best Checkpoint — Epoch 54 (Training Ongoing)**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.2076 |
-> | Valid MSE | **0.2695** |
-> | Valid CI | **0.8536** |
-> | Valid r2m | **0.6447** |
+> | Train MSE | 0.1919 |
+> | Valid MSE | **0.2646** |
+> | Valid CI | **0.8645** |
+> | Valid r2m | **0.6347** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
