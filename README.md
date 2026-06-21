@@ -502,6 +502,7 @@ Improved v1 (current config): fixed interaction masks + attention pooling on cro
 | 10 | 0.4370 | 0.4301 | 0.7989 | 0.4638 |
 | 20 | 0.3445 | 0.3560 | 0.8285 | 0.5329 |
 | 30 | 0.2857 | 0.3122 | 0.8484 | 0.5923 |
+| 40 | 0.2416 | 0.2966 | 0.8572 | 0.5849 |
 
 ### Seed 41 (Pending)
 
