@@ -79,7 +79,7 @@ def test(model, dataloader):
 
 if __name__ == "__main__":
     SEED = 0          # weight init + batch shuffle seed (keep fixed across runs)
-    SPLIT_SEED = 42   # data split seed — must match cold_split.py SEED
+    SPLIT_SEED = 41   # data split seed — must match cold_split.py SEED
     random.seed(SEED)
     torch.manual_seed(SEED)
     torch.cuda.manual_seed_all(SEED)
