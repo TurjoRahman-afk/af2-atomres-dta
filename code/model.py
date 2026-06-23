@@ -181,6 +181,7 @@ class MODEL(nn.Module):
 
         # ESM-C (1152) -> 128 via a 2-layer nonlinear projection instead of one flat linear,
         # so the model can combine ESM-C features before compressing (less signal lost).
+        # isnstead of 1152 → 128, we do 1152 → 512 → 128. This is a common practice in deep learning to allow the model to learn more complex representations.
         self.fc2 = nn.Sequential(
             nn.Linear(self.protvec_dim, 512),
             nn.GELU(),
@@ -210,7 +211,7 @@ class MODEL(nn.Module):
         out = out.unsqueeze(1).expand(-1, n_heads, -1)
         return out.cuda(device=adj.device)
 
-    def forward(self, drug, drug_mat, drug_mask, protein, prot_mat, prot_mask, drug_graph, protein_graph):
+    def forward(self, drug_mat, drug_mask, prot_mat, prot_mask, drug_graph, protein_graph):
 
         smiles_graph = self.drug_graph_model(drug_graph)        # [B, 128]
         fasta_graph = self.protein_graph_model(protein_graph)   # [B, 128]

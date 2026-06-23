@@ -26,9 +26,7 @@ def test(model, dataloader):
     model.eval()
     preds, labels = [], []
     for batch_data in dataloader:
-        mol_vec, prot_vec, mol_mat, mol_mat_mask, prot_mat, prot_mat_mask, drugh_graph, protein_graph, affinity = batch_data
-        mol_vec = mol_vec.to(device)
-        prot_vec = prot_vec.to(device)
+        mol_mat, mol_mat_mask, prot_mat, prot_mat_mask, drugh_graph, protein_graph, affinity = batch_data
         mol_mat = mol_mat.to(device)
         mol_mat_mask = mol_mat_mask.to(device)
         prot_mat = prot_mat.to(device)
@@ -36,7 +34,7 @@ def test(model, dataloader):
         drugh_graph = drugh_graph.to(device)
         protein_graph = protein_graph.to(device)
         with torch.no_grad():
-            pred = model(mol_vec, mol_mat, mol_mat_mask, prot_vec, prot_mat, prot_mat_mask, drugh_graph, protein_graph)
+            pred = model(mol_mat, mol_mat_mask, prot_mat, prot_mat_mask, drugh_graph, protein_graph)
             preds += pred.cpu().detach().numpy().reshape(-1).tolist()
             labels += affinity.numpy().reshape(-1).tolist()
     mse, ci, rm2 = calculate_metrics(np.array(labels), np.array(preds))

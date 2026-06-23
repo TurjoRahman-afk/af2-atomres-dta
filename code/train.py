@@ -57,10 +57,8 @@ def test(model, dataloader):
     preds = []
     labels = []
     for batch_i, batch_data in enumerate(dataloader):
-        mol_vec, prot_vec, mol_mat, mol_mat_mask,  prot_mat, prot_mat_mask, drugh_graph, protein_graph, affinity = batch_data
+        mol_mat, mol_mat_mask,  prot_mat, prot_mat_mask, drugh_graph, protein_graph, affinity = batch_data
 
-        mol_vec = mol_vec.to(device)
-        prot_vec = prot_vec.to(device)
         mol_mat = mol_mat.to(device)
         mol_mat_mask = mol_mat_mask.to(device)
         prot_mat = prot_mat.to(device)
@@ -70,7 +68,7 @@ def test(model, dataloader):
         affinity = affinity.to(device)
 
         with torch.no_grad():
-            pred = model(mol_vec, mol_mat, mol_mat_mask, prot_vec, prot_mat, prot_mat_mask, drugh_graph, protein_graph)
+            pred = model(mol_mat, mol_mat_mask, prot_mat, prot_mat_mask, drugh_graph, protein_graph)
             preds += pred.cpu().detach().numpy().reshape(-1).tolist()
             labels += affinity.cpu().numpy().reshape(-1).tolist()
 
@@ -163,10 +161,8 @@ if __name__ == "__main__":
                     desc=f"Epoch {epoch}/{hp.Epoch}", unit="batch", leave=False)
 
         for batch_data in pbar:
-            mol_vec, prot_vec, mol_mat, mol_mat_mask, prot_mat, prot_mat_mask, drugh_graph, protein_graph, affinity = batch_data
+            mol_mat, mol_mat_mask, prot_mat, prot_mat_mask, drugh_graph, protein_graph, affinity = batch_data
 
-            mol_vec = mol_vec.to(device)
-            prot_vec = prot_vec.to(device)
             mol_mat = mol_mat.to(device)
             mol_mat_mask = mol_mat_mask.to(device)
             prot_mat = prot_mat.to(device)
@@ -175,7 +171,7 @@ if __name__ == "__main__":
             protein_graph = protein_graph.to(device)
             affinity = affinity.to(device)
 
-            predictions = model(mol_vec, mol_mat, mol_mat_mask, prot_vec, prot_mat, prot_mat_mask, drugh_graph, protein_graph)
+            predictions = model(mol_mat, mol_mat_mask, prot_mat, prot_mat_mask, drugh_graph, protein_graph)
             loss = criterion(predictions.squeeze(), affinity)
 
             pred = pred + predictions.cpu().detach().numpy().reshape(-1).tolist()

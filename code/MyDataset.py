@@ -195,9 +195,7 @@ def my_collate_fn(batch_data, device, hp, drug_df, prot_df, mol2vec_dict, protve
     mol2vec_dim = hp.mol2vec_dim
     protvec_dim = hp.protvec_dim
     
-    # initialize empty batch tensors, creates tensors filled with zeros to store batch data 
-    b_drug_vec = torch.zeros((batch_size, mol2vec_dim), dtype=torch.float32)
-    b_prot_vec = torch.zeros((batch_size, protvec_dim), dtype=torch.float32)
+    # initialize empty batch tensors, creates tensors filled with zeros to store batch data
     b_drug_mask = torch.zeros((batch_size, drug_max), dtype=torch.float32)
     b_prot_mask = torch.zeros((batch_size, protein_max), dtype=torch.float32)    
     b_drug_mat = torch.zeros((batch_size, drug_max, mol2vec_dim), dtype=torch.float32)
@@ -216,8 +214,6 @@ def my_collate_fn(batch_data, device, hp, drug_df, prot_df, mol2vec_dict, protve
         prot_seq = prot_df.loc[prot_df['target_key'] == prot_id, 'target_sequence'].iloc[0]        
         drug_id = str(drug_id)
         prot_id = str(prot_id)
-        drug_vec = mol2vec_dict["vec_dict"][drug_id]
-        prot_vec = protvec_dict["vec_dict"][prot_id]
         drug_mat = mol2vec_dict["mat_dict"][drug_id]
         prot_mat = protvec_dict["mat_dict"][prot_id]
         prot_contact_map = contact_map['contact_map'][prot_id]
@@ -242,8 +238,6 @@ def my_collate_fn(batch_data, device, hp, drug_df, prot_df, mol2vec_dict, protve
         
         
         # Store other values for the batch
-        b_drug_vec[i] = drug_vec
-        b_prot_vec[i] = torch.from_numpy(prot_vec)
         b_drug_mat[i] = drug_mat_pad
         b_drug_mask[i] = drug_mask
         b_prot_mat[i] = prot_mat_pad
@@ -256,7 +250,7 @@ def my_collate_fn(batch_data, device, hp, drug_df, prot_df, mol2vec_dict, protve
     b_drug_graph = Batch.from_data_list(b_drug_graph)
     b_protein_graph = Batch.from_data_list(b_protein_graph)
     
-    return b_drug_vec, b_prot_vec, b_drug_mat, b_drug_mask, b_prot_mat, b_prot_mask, b_drug_graph, b_protein_graph, b_label
+    return b_drug_mat, b_drug_mask, b_prot_mat, b_prot_mask, b_drug_graph, b_protein_graph, b_label
 
 
 """
@@ -270,8 +264,6 @@ def pred_my_collate_fn(batch_data, device, hp, drug_df, prot_df, mol2vec_dict, p
     protvec_dim = hp.protvec_dim
     
     # Mat for pretrain feat
-    b_drug_vec = torch.zeros((batch_size, mol2vec_dim), dtype=torch.float32)
-    b_prot_vec = torch.zeros((batch_size, protvec_dim), dtype=torch.float32)
     b_drug_mask = torch.zeros((batch_size, drug_max), dtype=torch.float32)
     b_prot_mask = torch.zeros((batch_size, protein_max), dtype=torch.float32)    
     b_drug_mat = torch.zeros((batch_size, drug_max, mol2vec_dim), dtype=torch.float32)
@@ -287,8 +279,6 @@ def pred_my_collate_fn(batch_data, device, hp, drug_df, prot_df, mol2vec_dict, p
         prot_seq = prot_df.loc[prot_df['target_key'] == prot_id, 'target_sequence'].iloc[0]        
         drug_id = str(drug_id)
         prot_id = str(prot_id)
-        drug_vec = mol2vec_dict["vec_dict"][drug_id]
-        prot_vec = protvec_dict["vec_dict"][prot_id]
         drug_mat = mol2vec_dict["mat_dict"][drug_id]
         prot_mat = protvec_dict["mat_dict"][prot_id]
         prot_contact_map = contact_map['contact_map'][prot_id]
@@ -306,8 +296,6 @@ def pred_my_collate_fn(batch_data, device, hp, drug_df, prot_df, mol2vec_dict, p
         
         
         # Store other values for the batch
-        b_drug_vec[i] = drug_vec
-        b_prot_vec[i] = torch.from_numpy(prot_vec)
         b_drug_mat[i] = drug_mat_pad
         b_drug_mask[i] = drug_mask
         b_prot_mat[i] = prot_mat_pad
@@ -317,7 +305,7 @@ def pred_my_collate_fn(batch_data, device, hp, drug_df, prot_df, mol2vec_dict, p
     b_drug_graph = Batch.from_data_list(b_drug_graph)
     b_protein_graph = Batch.from_data_list(b_protein_graph)
     
-    return b_drug_vec, b_prot_vec, b_drug_mat, b_drug_mask, b_prot_mat, b_prot_mask, b_drug_graph, b_protein_graph
+    return b_drug_mat, b_drug_mask, b_prot_mat, b_prot_mask, b_drug_graph, b_protein_graph
 
 
 class CustomDataSet(Dataset):
