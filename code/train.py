@@ -121,7 +121,7 @@ if __name__ == "__main__":
 
     model = nn.DataParallel(Model(hp, device))
     model = model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=hp.Learning_rate, betas=(0.9, 0.999), weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=hp.Learning_rate, betas=(0.9, 0.999))
     criterion = F.mse_loss
 
     model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new.pth'
