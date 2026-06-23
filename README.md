@@ -93,11 +93,11 @@ xd_cross, _ = self.cross_attn_drug(query=xd, key=xp, value=xp, key_padding_mask=
 # Protein tokens attend to drug tokens
 xp_cross, _ = self.cross_attn_prot(query=xp, key=xd, value=xd, key_padding_mask=drug_pad_mask)
 
-xd_attn = xd_cross.mean(dim=1)   # [B, 128]
-xp_attn = xp_cross.mean(dim=1)   # [B, 128]
+xd_attn = self.drug_pool(xd_cross, smiles_mask)   # [B, 128]  — attention pooling
+xp_attn = self.prot_pool(xp_cross, fasta_mask)    # [B, 128]  — attention pooling
 ```
 
-This ensures each drug representation is conditioned on the protein it is paired with, and vice versa.
+This ensures each drug representation is conditioned on the protein it is paired with, and vice versa. The pooled outputs use KANPM's `LinearAttention` (learned weighted pool) rather than a plain mean.
 
 ---
 
@@ -163,14 +163,14 @@ A step-by-step walkthrough of how a drug-protein pair moves through every layer 
 
 ### Step 2 — Dimension Projection
 
-Both embedding dimensions are projected down to 128 via a single linear layer:
+Both embedding dimensions are projected down to 128 before further processing:
 
 ```
-Drug:    fc3: [B, 220, 384]  →  [B, 220, 128]
-Protein: fc2: [B, 1200, 1152] → [B, 1200, 128]
+Drug:    fc3: [B, 220, 384]   →  [B, 220, 128]   (single linear)
+Protein: fc2: [B, 1200, 1152] →  [B, 1200, 128]  (Linear 1152→512 → GELU → LayerNorm → Linear 512→128)
 ```
 
-This gives both modalities a common representation size before further processing.
+The protein side uses a 2-layer **nonlinear** projection (rather than a single flat linear) so more of ESM-C's 1152-dim signal is preserved through the 9× compression. This gives both modalities a common representation size.
 
 ---
 
@@ -221,10 +221,10 @@ xp_cross, _ = cross_attn_prot(query=xp, key=xd, value=xd, key_padding_mask=drug_
 
 Padding positions are masked out so attention never falls on zero-padded slots.
 
-Both outputs are mean-pooled across the sequence dimension to get fixed-size vectors:
+Both outputs are collapsed to fixed-size vectors via **attention pooling** (KANPM's `LinearAttention`, 8 heads) — a learned, masked weighted pool that focuses on binding-relevant residues instead of averaging all of them equally:
 ```
-xd_attn = xd_cross.mean(dim=1)   [B, 128]  — protein-conditioned drug representation
-xp_attn = xp_cross.mean(dim=1)   [B, 128]  — drug-conditioned protein representation
+xd_attn = drug_pool(xd_cross, smiles_mask)   [B, 128]  — protein-conditioned drug representation
+xp_attn = prot_pool(xp_cross, fasta_mask)    [B, 128]  — drug-conditioned protein representation
 ```
 
 After this step, `xd_attn` is no longer a generic drug embedding — it is a drug representation that has been shaped by the specific protein it is paired with, and vice versa.
@@ -346,17 +346,17 @@ To get stable and reproducible results we run 4 independent trainings on the DAV
 | AF2-CrossKAN-DTA — Run 4 | 32 | 0.2258 | 0.8793 | 0.6854 |
 | **AF2-CrossKAN-DTA (Mean ± Std)** | — | **0.2114 ± 0.0128** | **0.8821 ± 0.0051** | **0.6849 ± 0.0259** |
 
-#### Improved v1 — Mask Fix + Attention Pooling (`_new` runs)
+#### v2 — Attention Pooling + Nonlinear ESM-C Projection + Full KAN (`_new` runs)
 
-Changes over v1: fixed interaction-attention masking, **attention pooling** on the cross-attention outputs (replacing mean), a **small KAN [512, 256, 1]** (8× fewer params, anti-overfitting), weight_decay 1e-5, flat LR, dropout 0.2. Same 4-seed protocol. Aimed at improving **r2m** and shrinking the valid→test gap.
+Changes over v1: fixed interaction-attention masking, **attention pooling** on the cross-attention outputs (KANPM's `LinearAttention`, replacing mean), a **nonlinear ESM-C projection** (`fc2`: 1152 → 512 → 128 with GELU+LayerNorm, replacing the flat linear), **full KAN [512, 1024, 512, 1]** (shrinking it underfit), and a **KANPM-faithful optimizer** (Adam lr 1e-4, **no weight decay**, **flat LR**). Same 4-seed protocol. Aimed at improving **r2m** with a clean KANPM-faithful recipe.
 
 | Model | Split Seed | Test MSE | Test CI | Test r2m |
 |-------|------------|----------|---------|----------|
-| Improved v1 — seed 41 | 41 | - | - | - |
-| Improved v1 — seed 42 | 42 | running | - | - |
-| Improved v1 — seed 43 | 43 | - | - | - |
-| Improved v1 — seed 32 | 32 | - | - | - |
-| **Improved v1 (Mean ± Std)** | — | - | - | - |
+| v2 — seed 41 | 41 | running | - | - |
+| v2 — seed 42 | 42 | - | - | - |
+| v2 — seed 43 | 43 | - | - | - |
+| v2 — seed 32 | 32 | - | - | - |
+| **v2 (Mean ± Std)** | — | - | - | - |
 
 #### KIBA (Warm Setting)
 
@@ -483,31 +483,41 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 
 ---
 
-## Training Progress Log — DAVIS Warm (Improved v1 — attention pooling, `_new`)
+## Training Progress Log — DAVIS Warm (v2 — attention pooling + ESM-C projection, `_new`)
 
-Improved v1 (current config): fixed interaction masks + attention pooling on cross-attention outputs + **KAN [512, 512, 1]** (4× smaller than original) + weight_decay 1e-5, **flat LR**, dropout 0.2. Output tag `_new`. Goal: improve r2m / cut overfitting without underfitting. (Earlier variants — cosine+full KAN, and small KAN [512,256,1] — both failed; see "What We Tried".)
+v2 (current config): fixed interaction masks + attention pooling on cross-attention outputs + **nonlinear ESM-C projection (1152→512→128)** + **full KAN [512, 1024, 512, 1]** + KANPM-faithful optimizer (Adam lr 1e-4, **no weight decay**, **flat LR**), dropout 0.2. Output tag `_new`. Goal: improve r2m with a clean KANPM-faithful recipe. (Earlier variants — cosine+full KAN, small KAN [512,256,1], and [512,512,1] — all underperformed; see "What We Tried".)
 
-### Seed 42 (In Progress)
+### Seed 41 (In Progress)
 
-> **Best Checkpoint — Epoch 64 (Training Ongoing)**
+> **Best Checkpoint — Epoch —**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.1702 |
-> | Valid MSE | **0.2425** |
-> | Valid CI | **0.8668** |
-> | Valid r2m | **0.6629** |
+> | Train MSE | - |
+> | Valid MSE | - |
+> | Valid CI | - |
+> | Valid r2m | - |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
-| 10 | 0.4370 | 0.4301 | 0.7989 | 0.4638 |
-| 20 | 0.3445 | 0.3560 | 0.8285 | 0.5329 |
-| 30 | 0.2857 | 0.3122 | 0.8484 | 0.5923 |
-| 40 | 0.2416 | 0.2966 | 0.8572 | 0.5849 |
-| 50 | 0.2089 | 0.2633 | 0.8567 | 0.6491 |
-| 60 | 0.1872 | 0.2593 | 0.8637 | 0.6589 |
-| 70 | 0.1557 | 0.2626 | 0.8615 | 0.6641 |
+| 10 | - | - | - | - |
+| 20 | - | - | - | - |
+| 30 | - | - | - | - |
+| 40 | - | - | - | - |
+| 50 | - | - | - | - |
+| 60 | - | - | - | - |
+| 70 | - | - | - | - |
+| 80 | - | - | - | - |
+| 90 | - | - | - | - |
+| 100 | - | - | - | - |
 
-### Seed 41 (Pending)
+> **Final Test Result**
+> | Metric | Value |
+> |--------|-------|
+> | Test MSE | - |
+> | Test CI | - |
+> | Test r2m | - |
+
+### Seed 42 (Pending)
 
 _To be run._
 
@@ -535,16 +545,23 @@ _To be run._
 
 ## Current Model & Training Setup
 
-The current/official model is the **v1 architecture** (binary AlphaFold2 contact maps, plain GAT graph layers, ChemBERTa + ESM-C sequence transformers, cross-attention, bilinear fusion, KAN predictor) — the configuration that produced the best result (**MSE 0.1954, seed 41**) — plus two corrections/additions:
+The current/official model is the **v1 architecture** (binary AlphaFold2 contact maps, plain GAT graph layers, ChemBERTa + ESM-C sequence transformers, cross-attention, bilinear fusion, KAN predictor) — the configuration that produced the best result (**MSE 0.1954, seed 41**) — plus these changes (collectively, **v2**):
 
 - **Fixed interaction-attention masking** — the original `generate_masks` hardcoded length 128 and only masked the first sample in each batch; it now uses each sample's real sequence length.
-- **Light regularization for seed consistency** — `weight_decay=1e-5`, a cosine LR schedule, and dropout raised 0.2 → 0.3 in the graph nets and bilinear fusion.
+- **Attention pooling** — the cross-attention outputs are collapsed with KANPM's `LinearAttention` (8 heads) instead of plain `mean(dim=1)`, weighting binding-relevant residues rather than averaging all of them equally.
+- **Nonlinear ESM-C projection** — `fc2` is a 2-layer projection (Linear 1152→512 → GELU → LayerNorm → Linear 512→128) instead of a single flat linear, so more of ESM-C's 1152-dim signal survives the 9× compression. (The drug `fc3` is left as the original single linear.)
+- **Full KAN retained** — `[512, 1024, 512, 1]`; shrinking it ([512,512,1] and [512,256,1]) both underfit.
+- **KANPM-faithful optimizer** — plain Adam, lr 1e-4, **no weight decay**, **flat LR** (no scheduler), plain MSE. (Cosine LR and weight_decay 1e-4 both hurt — see "What We Tried".)
+- **Dead code removed** — the unused pooled `drug_vec`/`prot_vec` inputs (never referenced since the initial commit) were stripped from the model and data pipeline.
 
 | Setting | Value |
 |---------|-------|
-| Optimizer | Adam, lr 1e-4, betas (0.9, 0.999), weight_decay 1e-5 |
-| LR schedule | CosineAnnealingLR (T_max = epochs) |
-| Dropout | 0.3 (graph nets + bilinear), 0.2 (cross-attn), 0.1 (transformers) |
+| KAN predictor | [512, 1024, 512, 1] (full) |
+| ESM-C projection (`fc2`) | Linear(1152→512) → GELU → LayerNorm → Linear(512→128) |
+| Pooling | LinearAttention (attention pooling) on cross-attention outputs |
+| Optimizer | Adam, lr 1e-4, betas (0.9, 0.999), **no weight decay** |
+| LR schedule | none (flat) |
+| Dropout | 0.2 (graph nets, bilinear, cross-attn) |
 | Batch size | 16 |
 | Early stopping | patience 20 on validation MSE |
 | Loss | MSE |
@@ -568,6 +585,7 @@ A record of experiments so the dead ends aren't repeated. **Best result througho
 | **SWA** | stochastic weight averaging | implemented, then removed | — removed by preference |
 | **Improved-v1 + cosine LR** (seed 42) | attention pooling + cosine LR + full KAN | valid 0.207 but **test 0.2533** (gap +0.046) | ❌ cosine + full KAN overfit; flat LR + small KAN tried next |
 | **Small KAN [512,256,1]** (seed 42) | 8× smaller KAN + attention pooling, flat LR | valid plateaued ~0.26 (vs v1 ~0.20); larger train→valid gap | ❌ underfit — 8× cut too aggressive; [512,512,1] tried next |
+| **Medium KAN [512,512,1]** (seed 42) | 4× smaller KAN + attention pooling, flat LR | best valid 0.2425 @ ep64 (vs v1 ~0.19), plateaued while train → 0.156 | ❌ underfit — confirmed KAN size is not the lever; reverted to full KAN |
 
 **Key lessons learned:**
 - **The graph/structure branch is low-leverage (~0.023 MSE in the KANPM ablation); the sequence branch dominates (~0.336).** Don't over-invest in the protein graph or edge features.
