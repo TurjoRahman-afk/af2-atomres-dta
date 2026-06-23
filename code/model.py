@@ -179,7 +179,14 @@ class MODEL(nn.Module):
         self.drug_ln = nn.LayerNorm(128)
         self.target_ln = nn.LayerNorm(128)
 
-        self.fc2 = nn.Linear(self.protvec_dim, 128)
+        # ESM-C (1152) -> 128 via a 2-layer nonlinear projection instead of one flat linear,
+        # so the model can combine ESM-C features before compressing (less signal lost).
+        self.fc2 = nn.Sequential(
+            nn.Linear(self.protvec_dim, 512),
+            nn.GELU(),
+            nn.LayerNorm(512),
+            nn.Linear(512, 128),
+        )
         self.fc3 = nn.Linear(self.mol2vec_dim, 128)
 
         # Bilinear fusion: drug-side (seq+graph) x protein-side (seq+graph)
@@ -189,8 +196,8 @@ class MODEL(nn.Module):
         self.cat_attn_proj = nn.Linear(128, 256)
 
         # KAN predictor: bilinear_out(256) + cat_attn_proj(256) = 512.
-        # [512->512->1] — ~4x smaller than the original [512,1024,512,1]. ([512,256,1] underfit:
-        self.kan_predictor = KAN([512, 512, 1])
+        # Full original size — shrinking it (4x [512,512,1] and 8x [512,256,1]) both underfit.
+        self.kan_predictor = KAN([512, 1024, 512, 1])
 
     def generate_masks(self, adj, adj_sizes, n_heads):
         out = torch.ones(adj.shape[0], adj.shape[1])
