@@ -502,7 +502,7 @@ v2 (current config): fixed interaction masks + attention pooling on cross-attent
 | 10 | 0.4327 | 0.4252 | 0.8311 | 0.4625 |
 | 20 | 0.3355 | 0.3399 | 0.8543 | 0.5753 |
 | **26 (best)** | **0.3098** | **0.3183** | **0.8606** | **0.5962** |
-| 28 (latest) | 0.3078 | 0.3589 | 0.8521 | 0.5448 |
+| 30 | 0.2930 | 0.3301 | 0.8705 | 0.5742 |
 
 > **Final Test Result**
 > | Metric | Value |
