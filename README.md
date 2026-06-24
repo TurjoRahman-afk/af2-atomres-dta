@@ -489,26 +489,20 @@ v2 (current config): fixed interaction masks + attention pooling on cross-attent
 
 ### Seed 41 (In Progress)
 
-> **Best Checkpoint — Epoch —**
+> **Best Checkpoint — Epoch 26 (Training Ongoing)**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | - |
-> | Valid MSE | - |
-> | Valid CI | - |
-> | Valid r2m | - |
+> | Train MSE | 0.3098 |
+> | Valid MSE | **0.3183** |
+> | Valid CI | **0.8606** |
+> | Valid r2m | **0.5962** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
-| 10 | - | - | - | - |
-| 20 | - | - | - | - |
-| 30 | - | - | - | - |
-| 40 | - | - | - | - |
-| 50 | - | - | - | - |
-| 60 | - | - | - | - |
-| 70 | - | - | - | - |
-| 80 | - | - | - | - |
-| 90 | - | - | - | - |
-| 100 | - | - | - | - |
+| 10 | 0.4327 | 0.4252 | 0.8311 | 0.4625 |
+| 20 | 0.3355 | 0.3399 | 0.8543 | 0.5753 |
+| **26** | **0.3098** | **0.3183** | **0.8606** | **0.5962** |
+| 27 (latest) | 0.3085 | 0.3237 | 0.8681 | 0.6025 |
 
 > **Final Test Result**
 > | Metric | Value |
