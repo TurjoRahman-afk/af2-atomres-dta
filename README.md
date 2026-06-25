@@ -489,13 +489,13 @@ v2 (current config): fixed interaction masks + attention pooling on cross-attent
 
 ### Seed 41 (In Progress)
 
-> **Best Checkpoint — Epoch 50 (Training Ongoing)**
+> **Best Checkpoint — Epoch 87 (Training Ongoing)**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.2146 |
-> | Valid MSE | **0.2612** |
-> | Valid CI | **0.8779** |
-> | Valid r2m | **0.6573** |
+> | Train MSE | 0.1259 |
+> | Valid MSE | **0.2434** |
+> | Valid CI | **0.8848** |
+> | Valid r2m | **0.6551** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
@@ -503,8 +503,12 @@ v2 (current config): fixed interaction masks + attention pooling on cross-attent
 | 20 | 0.3355 | 0.3399 | 0.8543 | 0.5753 |
 | 30 | 0.2930 | 0.3301 | 0.8705 | 0.5742 |
 | 40 | 0.2551 | 0.2894 | 0.8674 | 0.6121 |
-| **50 (best)** | **0.2146** | **0.2612** | **0.8779** | **0.6573** |
-| 52 (latest) | 0.2034 | 0.2858 | 0.8836 | 0.5993 |
+| 50 | 0.2146 | 0.2612 | 0.8779 | 0.6573 |
+| 60 | 0.1732 | 0.2709 | 0.8836 | 0.6160 |
+| 70 | 0.1661 | 0.2538 | 0.8821 | 0.6577 |
+| 80 | 0.1337 | 0.2696 | 0.8760 | 0.6281 |
+| **87 (best)** | **0.1259** | **0.2434** | **0.8848** | **0.6551** |
+| 88 (latest) | 0.1244 | 0.2557 | 0.8868 | 0.6175 |
 
 > **Final Test Result**
 > | Metric | Value |
