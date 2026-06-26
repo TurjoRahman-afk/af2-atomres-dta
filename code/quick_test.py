@@ -71,8 +71,8 @@ if __name__ == "__main__":
             continue
         prot_mat = protvec_dict["mat_dict"][prot_id]
         prot_contact_map = contact_map['contact_map'][prot_id].copy()
-        _, target_features, target_edge_index, target_edge_distance = target2graph(prot_contact_map, prot_mat)
-        protein_graph_cache[prot_id] = Data(x=target_features, edge_index=target_edge_index, edge_weight=target_edge_distance)
+        _, target_features, target_edge_index, edge_weight = target2graph(prot_contact_map, prot_mat)
+        protein_graph_cache[prot_id] = Data(x=target_features, edge_index=target_edge_index, edge_weight=edge_weight)
 
     collate = lambda x: my_collate_fn(x, device, hp, drug_df, prot_df, mol2vec_dict, protvec_dict, contact_map,
                                       drug_graph_cache=drug_graph_cache, protein_graph_cache=protein_graph_cache)

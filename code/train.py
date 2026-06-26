@@ -46,8 +46,8 @@ def build_graph_cache(drug_df, prot_df, mol2vec_dict, protvec_dict, contact_map)
             continue
         prot_mat = protvec_dict["mat_dict"][prot_id]
         prot_contact_map = contact_map['contact_map'][prot_id].copy()
-        _, target_features, target_edge_index, edge_weight, edge_attr = target2graph(prot_contact_map, prot_mat)
-        protein_graph_cache[prot_id] = Data(x=target_features, edge_index=target_edge_index, edge_weight=edge_weight, edge_attr=edge_attr)
+        _, target_features, target_edge_index, edge_weight = target2graph(prot_contact_map, prot_mat)
+        protein_graph_cache[prot_id] = Data(x=target_features, edge_index=target_edge_index, edge_weight=edge_weight)
 
     print(f"Cache ready: {len(drug_graph_cache)} drug graphs, {len(protein_graph_cache)} protein graphs")
     return drug_graph_cache, protein_graph_cache
