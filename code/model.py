@@ -168,11 +168,6 @@ class MODEL(nn.Module):
         self.cross_attn_drug = nn.MultiheadAttention(embed_dim=128, num_heads=8, dropout=0.2, batch_first=True)
         self.cross_attn_prot = nn.MultiheadAttention(embed_dim=128, num_heads=8, dropout=0.2, batch_first=True)
 
-        # Attention pooling for the cross-attention outputs (learned weighted pool,
-        # replaces plain mean — focuses on binding-relevant tokens/residues)
-        self.drug_pool = LinearAttention(128, 64, 8)
-        self.prot_pool = LinearAttention(128, 64, 8)
-
         # Interaction branch (concatenated drug+protein sequence) — kept for additional context
         self.inter_attn_one = LinearAttention(128, 64, 8)
 
@@ -231,16 +226,15 @@ class MODEL(nn.Module):
         xd_cross, _ = self.cross_attn_drug(query=xd, key=xp, value=xp, key_padding_mask=prot_pad_mask)
         xp_cross, _ = self.cross_attn_prot(query=xp, key=xd, value=xd, key_padding_mask=drug_pad_mask)
 
-        # per-sample real lengths → masks for attention pooling (and the interaction branch)
+        # per-sample real lengths → masks for the interaction branch
         drug_lengths = drug_mask.sum(dim=1).long()                 # [B]
         prot_lengths = prot_mask.sum(dim=1).long()                 # [B]
         smiles_mask = self.generate_masks(xd, drug_lengths, 8)     # [B, 8, 220]
         fasta_mask = self.generate_masks(xp, prot_lengths, 8)      # [B, 8, 1200]
 
-        # Attention pooling (learned, masked) — replaces mean(dim=1): weights binding-relevant
-        # positions instead of averaging all of them equally
-        xd_attn = self.drug_pool(xd_cross, smiles_mask)            # [B, 128]
-        xp_attn = self.prot_pool(xp_cross, fasta_mask)             # [B, 128]
+        # Mean pooling over the sequence (v1 behavior) — non-parametric, strong regularizer
+        xd_attn = xd_cross.mean(dim=1)                             # [B, 128]
+        xp_attn = xp_cross.mean(dim=1)                             # [B, 128]
 
         # Interaction branch: combined drug+protein sequence → attention pooling
         cat_f = torch.cat([xp, xd], dim=1)                         # [B, 1420, 128]
