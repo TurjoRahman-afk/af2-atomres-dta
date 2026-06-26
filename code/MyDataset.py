@@ -11,14 +11,6 @@ from rdkit.Chem import ChemicalFeatures
 fdef_name = osp.join(RDConfig.RDDataDir, 'BaseFeatures.fdef')
 chem_feature_factory = ChemicalFeatures.BuildFeatureFactory(fdef_name)
 
-def rbf_encode(distances, num_rbf=16, d_min=2.0, d_max=8.0):
-    """Encode scalar distances as 16-dim RBF vectors. Each bin is a Gaussian centered at a different distance."""
-    centers = np.linspace(d_min, d_max, num_rbf)           # 16 centers from 2Å to 8Å
-    sigma = (d_max - d_min) / num_rbf
-    distances = np.array(distances)[:, None]                # [num_edges, 1]
-    return np.exp(-((distances - centers) ** 2) / (2 * sigma ** 2)).astype(np.float32)  # [num_edges, 16]
-
-
 # standardize sequence lengths by padding or truncating
 def matrix_pad_drug(arr, max_len):   
     dim = arr.shape[-1]
@@ -78,10 +70,8 @@ def target2graph(distance_map, protein_features_esm):
     target_edge_index = torch.LongTensor(target_edge_index).transpose(1, 0)
     # v1: binary contact map — uniform edge weight 1.0 (not distance-scaled), to match the 0.19 setup
     edge_weight = torch.ones(len(target_edge_distance), dtype=torch.float32)
-    # RBF edge features for GATConv: [num_edges, 16]
-    edge_attr = torch.FloatTensor(rbf_encode(target_edge_distance))
 
-    return target_size, target_feature, target_edge_index, edge_weight, edge_attr
+    return target_size, target_feature, target_edge_index, edge_weight
 
 def get_nodes(g):
     feat = []
@@ -232,8 +222,8 @@ def my_collate_fn(batch_data, device, hp, drug_df, prot_df, mol2vec_dict, protve
         if protein_graph_cache is not None and prot_id in protein_graph_cache:
             protein_graph = protein_graph_cache[prot_id]
         else:
-            target_size, target_features, target_edge_index, edge_weight, edge_attr = target2graph(prot_contact_map, prot_mat)
-            protein_graph = Data(x=target_features, edge_index=target_edge_index, edge_weight=edge_weight, edge_attr=edge_attr)
+            target_size, target_features, target_edge_index, edge_weight = target2graph(prot_contact_map, prot_mat)
+            protein_graph = Data(x=target_features, edge_index=target_edge_index, edge_weight=edge_weight)
         b_protein_graph.append(protein_graph)
         
         
@@ -290,8 +280,8 @@ def pred_my_collate_fn(batch_data, device, hp, drug_df, prot_df, mol2vec_dict, p
         drug_graph = Data(x=node_attr, edge_index=edge_index, edge_weight=edge_attr)
         b_drug_graph.append(drug_graph)
         
-        target_size, target_features, target_edge_index, edge_weight, edge_attr = target2graph(prot_contact_map, prot_mat)
-        protein_graph = Data(x=target_features, edge_index=target_edge_index, edge_weight=edge_weight, edge_attr=edge_attr)
+        target_size, target_features, target_edge_index, edge_weight = target2graph(prot_contact_map, prot_mat)
+        protein_graph = Data(x=target_features, edge_index=target_edge_index, edge_weight=edge_weight)
         b_protein_graph.append(protein_graph)
         
         
