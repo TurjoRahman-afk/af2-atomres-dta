@@ -489,13 +489,13 @@ v3 (current config): v1 + fixed interaction masks + **nonlinear ESM-C projection
 
 ### Seed 41 (In Progress)
 
-> **Best Checkpoint — Epoch 48 (Training Ongoing)**
+> **Best Checkpoint — Epoch 50 (Training Ongoing)**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.2135 |
-> | Valid MSE | **0.2720** |
-> | Valid CI | **0.8777** |
-> | Valid r2m | **0.6227** |
+> | Train MSE | 0.1978 |
+> | Valid MSE | **0.2579** |
+> | Valid CI | **0.8827** |
+> | Valid r2m | **0.6394** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
@@ -503,7 +503,8 @@ v3 (current config): v1 + fixed interaction masks + **nonlinear ESM-C projection
 | 20 | 0.3286 | 0.3533 | 0.8494 | 0.5583 |
 | 30 | 0.2821 | 0.3541 | 0.8385 | 0.5445 |
 | 40 | 0.2342 | 0.2933 | 0.8695 | 0.6259 |
-| **48 (best, latest)** | **0.2135** | **0.2720** | **0.8777** | **0.6227** |
+| **50 (best)** | **0.1978** | **0.2579** | **0.8827** | **0.6394** |
+| 53 (latest) | 0.1874 | 0.2735 | 0.8774 | 0.6479 |
 
 > **Final Test Result**
 > | Metric | Value |
