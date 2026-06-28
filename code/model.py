@@ -174,15 +174,9 @@ class MODEL(nn.Module):
         self.drug_ln = nn.LayerNorm(128)
         self.target_ln = nn.LayerNorm(128)
 
-        # ESM-C (1152) -> 128 via a 2-layer nonlinear projection instead of one flat linear,
-        # so the model can combine ESM-C features before compressing (less signal lost).
-        # isnstead of 1152 → 128, we do 1152 → 512 → 128. This is a common practice in deep learning to allow the model to learn more complex representations.
-        self.fc2 = nn.Sequential(
-            nn.Linear(self.protvec_dim, 512),
-            nn.GELU(),
-            nn.LayerNorm(512),
-            nn.Linear(512, 128),
-        )
+        # ESM-C (1152) -> 128 via a single flat linear (v1). The nonlinear 2-layer projection
+        # was tried in v3 and did not help — reverted to match v1.
+        self.fc2 = nn.Linear(self.protvec_dim, 128)
         self.fc3 = nn.Linear(self.mol2vec_dim, 128)
 
         # Bilinear fusion: drug-side (seq+graph) x protein-side (seq+graph)
