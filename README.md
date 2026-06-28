@@ -489,18 +489,18 @@ v4 (current config): v1 + **fixed interaction masking only** — flat ESM-C `fc2
 
 ### Seed 41 (In Progress)
 
-> **Best Checkpoint — Epoch 19 (Training Ongoing)**
+> **Best Checkpoint — Epoch 20 (Training Ongoing)**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.3233 |
-> | Valid MSE | **0.3406** |
-> | Valid CI | **0.8593** |
-> | Valid r2m | **0.5500** |
+> | Train MSE | 0.3164 |
+> | Valid MSE | **0.3350** |
+> | Valid CI | **0.8545** |
+> | Valid r2m | **0.5645** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
 | 10 | 0.3936 | 0.4141 | 0.8356 | 0.4612 |
-| **19 (best, latest)** | **0.3233** | **0.3406** | **0.8593** | **0.5500** |
+| **20 (best, latest)** | **0.3164** | **0.3350** | **0.8545** | **0.5645** |
 
 > **Final Test Result**
 > | Metric | Value |
