@@ -352,7 +352,7 @@ Changes over v1: **fixed interaction-attention masking only** (`generate_masks` 
 
 | Model | Split Seed | Test MSE | Test CI | Test r2m |
 |-------|------------|----------|---------|----------|
-| v4 — seed 41 | 41 | running | - | - |
+| v4 — seed 41 | 41 | **0.1973** | 0.8843 | 0.7103 |
 | v4 — seed 42 | 42 | - | - | - |
 | v4 — seed 43 | 43 | - | - | - |
 | v4 — seed 32 | 32 | - | - | - |
@@ -487,15 +487,22 @@ Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
 
 v4 (current config): v1 + **fixed interaction masking only** — flat ESM-C `fc2` (v1) and mean pooling restored, full KAN [512,1024,512,1], KANPM-faithful optimizer (Adam lr 1e-4, **no weight decay**, **flat LR**), dropout 0.2. Output tag `_new`. Isolates the mask fix as the only delta from v1, after v3 (mask fix + nonlinear ESM-C) underperformed (~0.246; see "What We Tried").
 
-### Seed 41 (In Progress)
+### Seed 41 (Complete)
 
-> **Best Checkpoint — Epoch 55 (Training Ongoing)**
+> **Best Checkpoint — Epoch 83**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.1411 |
-> | Valid MSE | **0.2387** |
-> | Valid CI | **0.8830** |
-> | Valid r2m | **0.6710** |
+> | Train MSE | 0.0769 |
+> | Valid MSE | **0.2311** |
+> | Valid CI | **0.8907** |
+> | Valid r2m | **0.6866** |
+
+> **Final Test Result**
+> | Metric | Value |
+> |--------|-------|
+> | Test MSE | **0.1973** |
+> | Test CI | **0.8843** |
+> | Test r2m | **0.7103** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
@@ -504,16 +511,12 @@ v4 (current config): v1 + **fixed interaction masking only** — flat ESM-C `fc2
 | 30 | 0.2518 | 0.2883 | 0.8683 | 0.6484 |
 | 40 | 0.2041 | 0.2633 | 0.8838 | 0.6289 |
 | 50 | 0.1576 | 0.2625 | 0.8840 | 0.6199 |
-| **55 (best)** | **0.1411** | **0.2387** | **0.8830** | **0.6710** |
 | 60 | 0.1267 | 0.2610 | 0.8864 | 0.6258 |
-| 66 (latest) | 0.1092 | 0.2518 | 0.8890 | 0.6179 |
-
-> **Final Test Result**
-> | Metric | Value |
-> |--------|-------|
-> | Test MSE | - |
-> | Test CI | - |
-> | Test r2m | - |
+| 70 | 0.0944 | 0.2355 | 0.8966 | 0.6533 |
+| 80 | 0.0830 | 0.2395 | 0.8863 | 0.6790 |
+| **83 (best)** | **0.0769** | **0.2311** | **0.8907** | **0.6866** |
+| 90 | 0.0710 | 0.2410 | 0.8883 | 0.6390 |
+| 100 | 0.0628 | 0.2415 | 0.8940 | 0.6563 |
 
 ### Seed 42 (Pending)
 
