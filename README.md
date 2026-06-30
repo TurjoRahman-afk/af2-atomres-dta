@@ -353,7 +353,7 @@ Changes over v1: **fixed interaction-attention masking only** (`generate_masks` 
 | Model | Split Seed | Test MSE | Test CI | Test r2m |
 |-------|------------|----------|---------|----------|
 | v4 — seed 41 | 41 | **0.1973** | 0.8843 | 0.7103 |
-| v4 — seed 42 | 42 | - | - | - |
+| v4 — seed 42 | 42 | running | - | - |
 | v4 — seed 43 | 43 | - | - | - |
 | v4 — seed 32 | 32 | - | - | - |
 | **v4 (Mean ± Std)** | — | - | - | - |
@@ -518,9 +518,23 @@ v4 (current config): v1 + **fixed interaction masking only** — flat ESM-C `fc2
 | 90 | 0.0710 | 0.2410 | 0.8883 | 0.6390 |
 | 100 | 0.0628 | 0.2415 | 0.8940 | 0.6563 |
 
-### Seed 42 (Pending)
+### Seed 42 (In Progress)
 
-_To be run._
+> **Best Checkpoint — Epoch 29 (Training Ongoing)**
+> | Metric | Value |
+> |--------|-------|
+> | Train MSE | 0.2573 |
+> | Valid MSE | **0.2953** |
+> | Valid CI | **0.8512** |
+> | Valid r2m | **0.6255** |
+
+| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
+|-------|-----------|-----------|----------|-----------|
+| 10 | 0.3942 | 0.4220 | 0.7988 | 0.4393 |
+| 20 | 0.3148 | 0.3370 | 0.8314 | 0.5673 |
+| **29 (best)** | **0.2573** | **0.2953** | **0.8512** | **0.6255** |
+| 30 | 0.2556 | 0.3007 | 0.8518 | 0.6077 |
+| 31 (latest) | 0.2524 | 0.3051 | 0.8433 | 0.5939 |
 
 ### Seed 43 (Pending)
 
