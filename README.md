@@ -353,7 +353,7 @@ Changes over v1: **fixed interaction-attention masking only** (`generate_masks` 
 | Model | Split Seed | Test MSE | Test CI | Test r2m |
 |-------|------------|----------|---------|----------|
 | v4 — seed 41 | 41 | **0.1973** | 0.8843 | 0.7103 |
-| v4 — seed 42 | 42 | **0.2350** | 0.8800 | 0.6525 |
+| v4 — seed 42 | 42 | running | - | - |
 | v4 — seed 43 | 43 | - | - | - |
 | v4 — seed 32 | 32 | - | - | - |
 | **v4 (Mean ± Std)** | — | - | - | - |
@@ -518,22 +518,22 @@ v4 (current config): v1 + **fixed interaction masking only** — flat ESM-C `fc2
 | 90 | 0.0710 | 0.2410 | 0.8883 | 0.6390 |
 | 100 | 0.0628 | 0.2415 | 0.8940 | 0.6563 |
 
-### Seed 42 (Complete)
+### Seed 42 (In Progress — resumed past ep138)
 
-> **Best Checkpoint — Epoch 133** (run stopped at ep138 before early-stop; test evaluated on the ep133 best checkpoint)
+> **Best Checkpoint — Epoch 141 (Training Ongoing)**
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.0531 |
-> | Valid MSE | **0.2045** |
-> | Valid CI | **0.8790** |
-> | Valid r2m | **0.7063** |
+> | Train MSE | 0.0483 |
+> | Valid MSE | **0.2014** |
+> | Valid CI | **0.8752** |
+> | Valid r2m | **0.7134** |
 
-> **Final Test Result**
+> **Final Test Result** (pending — the earlier ep133 test of 0.2350 was premature; run resumed and already found a better checkpoint at ep141)
 > | Metric | Value |
 > |--------|-------|
-> | Test MSE | **0.2350** |
-> | Test CI | **0.8800** |
-> | Test r2m | **0.6525** |
+> | Test MSE | - |
+> | Test CI | - |
+> | Test r2m | - |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
@@ -550,8 +550,9 @@ v4 (current config): v1 + **fixed interaction masking only** — flat ESM-C `fc2
 | 110 | 0.0615 | 0.2228 | 0.8793 | 0.6798 |
 | 120 | 0.0551 | 0.2089 | 0.8822 | 0.6734 |
 | 130 | 0.0532 | 0.2117 | 0.8810 | 0.6911 |
-| **133 (best)** | **0.0531** | **0.2045** | **0.8790** | **0.7063** |
-| 138 (latest) | 0.0516 | 0.2116 | 0.8785 | 0.7275 |
+| 140 | 0.0498 | 0.2057 | 0.8832 | 0.7184 |
+| **141 (best)** | **0.0483** | **0.2014** | **0.8752** | **0.7134** |
+| 146 (latest) | 0.0491 | 0.2092 | 0.8814 | 0.7019 |
 
 ### Seed 43 (Pending)
 
