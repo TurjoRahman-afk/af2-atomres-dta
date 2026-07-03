@@ -520,13 +520,13 @@ v4 (current config): v1 + **fixed interaction masking only** — flat ESM-C `fc2
 
 ### Seed 42 (In Progress)
 
-> **Best Checkpoint — Epoch 100 (Training Ongoing)**
+> **Best Checkpoint — Epoch 133** (run stopped at ep138, before early-stop)
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.0668 |
-> | Valid MSE | **0.2138** |
-> | Valid CI | **0.8797** |
-> | Valid r2m | **0.6876** |
+> | Train MSE | 0.0531 |
+> | Valid MSE | **0.2045** |
+> | Valid CI | **0.8790** |
+> | Valid r2m | **0.7063** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
@@ -539,7 +539,12 @@ v4 (current config): v1 + **fixed interaction masking only** — flat ESM-C `fc2
 | 70 | 0.1105 | 0.2339 | 0.8721 | 0.6875 |
 | 80 | 0.0871 | 0.2249 | 0.8717 | 0.6751 |
 | 90 | 0.0716 | 0.2285 | 0.8713 | 0.6574 |
-| **100 (best, latest)** | **0.0668** | **0.2138** | **0.8797** | **0.6876** |
+| 100 | 0.0668 | 0.2138 | 0.8797 | 0.6876 |
+| 110 | 0.0615 | 0.2228 | 0.8793 | 0.6798 |
+| 120 | 0.0551 | 0.2089 | 0.8822 | 0.6734 |
+| 130 | 0.0532 | 0.2117 | 0.8810 | 0.6911 |
+| **133 (best)** | **0.0531** | **0.2045** | **0.8790** | **0.7063** |
+| 138 (latest) | 0.0516 | 0.2116 | 0.8785 | 0.7275 |
 
 ### Seed 43 (Pending)
 
