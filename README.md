@@ -567,6 +567,34 @@ _To be run._
 
 ---
 
+## Training Progress Log — DAVIS Cold-Protein (`unseen_prot`, v4, `_new`)
+
+**Separate benchmark from warm split.** Here the 442 test proteins are **held out of training entirely** — the model must generalize to proteins it has never seen, so it cannot win by memorizing entity identities. This is the split where the AF2 contact map + ESM-C features are the *only* thing that can help. Same v4 model, `SPLIT_SEED = 42`.
+
+> ⚠️ **Reset the yardstick:** absolute MSE is expected to be **~2× the warm number** (roughly 0.3–0.5, not 0.20) — that is normal for cold-protein and is *not* a regression. Judge this split by **CI (ranking ability)** and by comparison to *cold-protein* baselines, not by the warm 0.20.
+
+### Seed 42 (In Progress — paused at epoch 18)
+
+_No test result yet — the run has not naturally early-stopped, so no `Test-davis-unseen_prot-split42_new.csv` exists. A resume checkpoint is saved at ep18; the best-valid checkpoint so far is ep16. The table below is a live training snapshot, **not** a final result._
+
+> **Best-valid checkpoint so far — Epoch 16** (not final)
+> | Metric | Value |
+> |--------|-------|
+> | Train MSE | 0.3261 |
+> | Valid MSE | **0.4040** |
+> | Valid CI | **0.8185** |
+> | Valid r2m | **0.5159** |
+
+| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
+|-------|-----------|-----------|----------|-----------|
+| 10 | 0.3940 | 0.5023 | 0.7987 | 0.4365 |
+| **16 (best so far)** | **0.3261** | **0.4040** | **0.8185** | **0.5159** |
+| 18 (paused) | 0.3207 | 0.4531 | 0.8138 | 0.4389 |
+
+_Early read (epoch 18): CI is holding at ~0.82 on proteins never seen in training, only modestly below the warm ~0.88 — encouraging evidence the structure/sequence features generalize. To be resumed to natural early-stop before any result is recorded._
+
+---
+
 ## Ablation Study (To Be Updated After Training)
 
 | Configuration | MSE | CI | r2m |

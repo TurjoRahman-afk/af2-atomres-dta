@@ -5,7 +5,7 @@ class HyperParameter:
     def __init__(self):
         self.data_root = './datasets'
         self.dataset = 'davis' #davis, kiba, metz, bindingDB
-        self.running_set = 'warm' #warm, novel-drug, novel-prot, novel-pair
+        self.running_set = 'unseen_prot' #warm, unseen_drug, unseen_prot, unseen_pair
 
         self.mol2vec_dir = f'./pretrained/{self.dataset}/{self.dataset}_chem_pretrained.pkl'
         self.protvec_dir = f'./pretrained/{self.dataset}/{self.dataset}_esmc_pretrain.pkl'
