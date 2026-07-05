@@ -573,26 +573,28 @@ _To be run._
 
 > ⚠️ **Reset the yardstick:** absolute MSE is expected to be **~2× the warm number** (roughly 0.3–0.5, not 0.20) — that is normal for cold-protein and is *not* a regression. Judge this split by **CI (ranking ability)** and by comparison to *cold-protein* baselines, not by the warm 0.20.
 
-### Seed 42 (In Progress — epoch 34)
+### Seed 42 (In Progress — epoch 51)
 
-_No test result yet — the run has not naturally early-stopped, so no `Test-davis-unseen_prot-split42_new.csv` exists. The best-valid checkpoint so far is ep34. The table below is a live training snapshot, **not** a final result._
+_No test result yet — the run has not naturally early-stopped, so no `Test-davis-unseen_prot-split42_new.csv` exists. The best-valid checkpoint so far is ep51. The table below is a live training snapshot, **not** a final result._
 
-> **Best-valid checkpoint so far — Epoch 34** (not final)
+> **Best-valid checkpoint so far — Epoch 51** (not final)
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.2237 |
-> | Valid MSE | **0.3584** |
-> | Valid CI | **0.8385** |
-> | Valid r2m | **0.5654** |
+> | Train MSE | 0.1564 |
+> | Valid MSE | **0.3538** |
+> | Valid CI | **0.8363** |
+> | Valid r2m | **0.5396** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
 | 10 | 0.3940 | 0.5023 | 0.7987 | 0.4365 |
 | 20 | 0.3007 | 0.3953 | 0.8329 | 0.5162 |
 | 30 | 0.2497 | 0.3824 | 0.8302 | 0.5193 |
-| **34 (best so far / latest)** | **0.2237** | **0.3584** | **0.8385** | **0.5654** |
+| 40 | 0.1997 | 0.4015 | 0.8380 | 0.4870 |
+| 50 | 0.1587 | 0.4234 | 0.8333 | 0.4526 |
+| **51 (best so far / latest)** | **0.1564** | **0.3538** | **0.8363** | **0.5396** |
 
-_Early read (epoch 34): valid MSE keeps dropping (best 0.3584 at ep34) and CI is steady at ~0.84 on proteins never seen in training — only modestly below the warm ~0.88. Encouraging evidence the AF2/ESM-C features generalize. Still training; result recorded only at natural early-stop._
+_Early read (epoch 51): best-valid keeps inching down (0.3584 → **0.3538**), CI holding ~0.84 on unseen proteins. But train MSE has now fallen to 0.156 while best-valid barely moved over the last ~17 epochs and valid is bouncing 0.36–0.42 — the model is entering the overfitting regime. Best is still improving marginally, so it keeps training; result recorded only at natural early-stop._
 
 ---
 
