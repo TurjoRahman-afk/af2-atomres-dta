@@ -573,25 +573,25 @@ _To be run._
 
 > ⚠️ **Reset the yardstick:** absolute MSE is expected to be **~2× the warm number** (roughly 0.3–0.5, not 0.20) — that is normal for cold-protein and is *not* a regression. Judge this split by **CI (ranking ability)** and by comparison to *cold-protein* baselines, not by the warm 0.20.
 
-### Seed 42 (In Progress — paused at epoch 18)
+### Seed 42 (In Progress — epoch 23)
 
-_No test result yet — the run has not naturally early-stopped, so no `Test-davis-unseen_prot-split42_new.csv` exists. A resume checkpoint is saved at ep18; the best-valid checkpoint so far is ep16. The table below is a live training snapshot, **not** a final result._
+_No test result yet — the run has not naturally early-stopped, so no `Test-davis-unseen_prot-split42_new.csv` exists. The best-valid checkpoint so far is ep20. The table below is a live training snapshot, **not** a final result._
 
-> **Best-valid checkpoint so far — Epoch 16** (not final)
+> **Best-valid checkpoint so far — Epoch 20** (not final)
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.3261 |
-> | Valid MSE | **0.4040** |
-> | Valid CI | **0.8185** |
-> | Valid r2m | **0.5159** |
+> | Train MSE | 0.3007 |
+> | Valid MSE | **0.3953** |
+> | Valid CI | **0.8329** |
+> | Valid r2m | **0.5162** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
 | 10 | 0.3940 | 0.5023 | 0.7987 | 0.4365 |
-| **16 (best so far)** | **0.3261** | **0.4040** | **0.8185** | **0.5159** |
-| 18 (paused) | 0.3207 | 0.4531 | 0.8138 | 0.4389 |
+| **20 (best so far)** | **0.3007** | **0.3953** | **0.8329** | **0.5162** |
+| 23 (latest) | 0.2838 | 0.4575 | 0.8271 | 0.4605 |
 
-_Early read (epoch 18): CI is holding at ~0.82 on proteins never seen in training, only modestly below the warm ~0.88 — encouraging evidence the structure/sequence features generalize. To be resumed to natural early-stop before any result is recorded._
+_Early read (epoch 23): valid MSE is dropping (best 0.3953 at ep20) and CI is climbing to ~0.83 on proteins never seen in training — only modestly below the warm ~0.88. Encouraging evidence the AF2/ESM-C features generalize. Still training; result recorded only at natural early-stop._
 
 ---
 
