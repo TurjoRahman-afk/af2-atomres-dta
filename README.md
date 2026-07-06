@@ -573,9 +573,9 @@ _To be run._
 
 > ⚠️ **Reset the yardstick:** absolute MSE is expected to be **~2× the warm number** (roughly 0.3–0.5, not 0.20) — that is normal for cold-protein and is *not* a regression. Judge this split by **CI (ranking ability)** and by comparison to *cold-protein* baselines, not by the warm 0.20.
 
-### Seed 42 (In Progress — paused at epoch 70)
+### Seed 42 (In Progress — epoch 80)
 
-_No test result yet — the run was interrupted at ep70 (**not** a natural early-stop; patience was ~10/20), so no `Test-davis-unseen_prot-split42_new.csv` exists. A resume checkpoint is saved at ep70; the best-valid checkpoint so far is ep60. Re-run `python code/train.py` to resume from ep71. The table below is a live training snapshot, **not** a final result._
+_No test result yet — the run has not naturally early-stopped, so no `Test-davis-unseen_prot-split42_new.csv` exists. The best-valid checkpoint is ep60; no improvement in the 20 epochs since (patience ~20/20), so **natural early-stop is imminent** (likely ~ep81). The table below is a live training snapshot, **not** a final result._
 
 > **Best-valid checkpoint so far — Epoch 60** (not final)
 > | Metric | Value |
@@ -593,9 +593,10 @@ _No test result yet — the run was interrupted at ep70 (**not** a natural early
 | 40 | 0.1997 | 0.4015 | 0.8380 | 0.4870 |
 | 50 | 0.1587 | 0.4234 | 0.8333 | 0.4526 |
 | **60 (best so far)** | **0.1277** | **0.3448** | **0.8360** | **0.5310** |
-| 70 (paused) | 0.1094 | 0.3573 | 0.8340 | 0.5026 |
+| 70 | 0.1094 | 0.3573 | 0.8340 | 0.5026 |
+| 80 (latest) | 0.0832 | 0.3699 | 0.8375 | 0.4988 |
 
-_Read (paused at epoch 70): best-valid is **0.3448** at ep60, with no improvement in the 10 epochs since (patience ~10/20). Train MSE has fallen to ~0.10 while valid keeps bouncing 0.35–0.43 — clear overfitting; the valid floor is flattening around ~0.345. CI on unseen proteins holds ~0.82–0.84. Run was interrupted before natural early-stop — resume from ep71 to finish, then the real test result gets recorded._
+_Read (epoch 80): best-valid is locked at **0.3448** (ep60) — 20 straight epochs with no improvement, so patience is effectively exhausted and early-stop should trigger next epoch. Train MSE has fallen to ~0.08 while valid sits at ~0.37 (floor ~0.345) — deep overfitting. CI on unseen proteins holds ~0.83–0.84. The final test result (evaluated on the ep60 best checkpoint) will be recorded once the run writes its `Test-...` CSV at natural early-stop._
 
 ---
 
