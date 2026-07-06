@@ -573,17 +573,22 @@ _To be run._
 
 > ⚠️ **Reset the yardstick:** absolute MSE is expected to be **~2× the warm number** (roughly 0.3–0.5, not 0.20) — that is normal for cold-protein and is *not* a regression. Judge this split by **CI (ranking ability)** and by comparison to *cold-protein* baselines, not by the warm 0.20.
 
-### Seed 42 (In Progress — epoch 80)
+### Seed 42 (Complete)
 
-_No test result yet — the run has not naturally early-stopped, so no `Test-davis-unseen_prot-split42_new.csv` exists. The best-valid checkpoint is ep60; no improvement in the 20 epochs since (patience ~20/20), so **natural early-stop is imminent** (likely ~ep81). The table below is a live training snapshot, **not** a final result._
-
-> **Best-valid checkpoint so far — Epoch 60** (not final)
+> **Best Checkpoint — Epoch 60**
 > | Metric | Value |
 > |--------|-------|
 > | Train MSE | 0.1277 |
 > | Valid MSE | **0.3448** |
 > | Valid CI | **0.8360** |
 > | Valid r2m | **0.5310** |
+
+> **Final Test Result** (natural early-stop at ep81; tested on the ep60 best checkpoint)
+> | Metric | Value |
+> |--------|-------|
+> | Test MSE | **0.4071** |
+> | Test CI | **0.8382** |
+> | Test r2m | **0.4112** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
@@ -592,11 +597,11 @@ _No test result yet — the run has not naturally early-stopped, so no `Test-dav
 | 30 | 0.2497 | 0.3824 | 0.8302 | 0.5193 |
 | 40 | 0.1997 | 0.4015 | 0.8380 | 0.4870 |
 | 50 | 0.1587 | 0.4234 | 0.8333 | 0.4526 |
-| **60 (best so far)** | **0.1277** | **0.3448** | **0.8360** | **0.5310** |
+| **60 (best)** | **0.1277** | **0.3448** | **0.8360** | **0.5310** |
 | 70 | 0.1094 | 0.3573 | 0.8340 | 0.5026 |
-| 80 (latest) | 0.0832 | 0.3699 | 0.8375 | 0.4988 |
+| 80 (final) | 0.0832 | 0.3699 | 0.8375 | 0.4988 |
 
-_Read (epoch 80): best-valid is locked at **0.3448** (ep60) — 20 straight epochs with no improvement, so patience is effectively exhausted and early-stop should trigger next epoch. Train MSE has fallen to ~0.08 while valid sits at ~0.37 (floor ~0.345) — deep overfitting. CI on unseen proteins holds ~0.83–0.84. The final test result (evaluated on the ep60 best checkpoint) will be recorded once the run writes its `Test-...` CSV at natural early-stop._
+_Result (Complete): cold-protein **test MSE 0.4071, CI 0.8382, r2m 0.4112** on 442 held-out proteins, evaluated on the ep60 best-valid checkpoint. As expected, absolute MSE is ~1.9× the warm number (0.211 → 0.407) — the cost of never seeing these proteins. The headline is the **CI: 0.838 on unseen proteins** vs 0.882 warm — ranking ability holds up far better than MSE, evidence the AF2/ESM-C features genuinely generalize rather than memorize. Note the low r2m (0.411): the pKd≈5 non-binder floor compresses the prediction range harder on cold proteins. No KANPM cold-protein baseline exists for a direct comparison — see "same-split ablation" note below._
 
 ---
 
