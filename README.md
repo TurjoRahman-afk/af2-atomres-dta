@@ -573,9 +573,9 @@ _To be run._
 
 > ⚠️ **Reset the yardstick:** absolute MSE is expected to be **~2× the warm number** (roughly 0.3–0.5, not 0.20) — that is normal for cold-protein and is *not* a regression. Judge this split by **CI (ranking ability)** and by comparison to *cold-protein* baselines, not by the warm 0.20.
 
-### Seed 42 (In Progress — epoch 69)
+### Seed 42 (In Progress — paused at epoch 70)
 
-_No test result yet — the run has not naturally early-stopped, so no `Test-davis-unseen_prot-split42_new.csv` exists. The best-valid checkpoint so far is ep60. The table below is a live training snapshot, **not** a final result._
+_No test result yet — the run was interrupted at ep70 (**not** a natural early-stop; patience was ~10/20), so no `Test-davis-unseen_prot-split42_new.csv` exists. A resume checkpoint is saved at ep70; the best-valid checkpoint so far is ep60. Re-run `python code/train.py` to resume from ep71. The table below is a live training snapshot, **not** a final result._
 
 > **Best-valid checkpoint so far — Epoch 60** (not final)
 > | Metric | Value |
@@ -593,9 +593,9 @@ _No test result yet — the run has not naturally early-stopped, so no `Test-dav
 | 40 | 0.1997 | 0.4015 | 0.8380 | 0.4870 |
 | 50 | 0.1587 | 0.4234 | 0.8333 | 0.4526 |
 | **60 (best so far)** | **0.1277** | **0.3448** | **0.8360** | **0.5310** |
-| 69 (latest) | 0.1037 | 0.3597 | 0.8201 | 0.5363 |
+| 70 (paused) | 0.1094 | 0.3573 | 0.8340 | 0.5026 |
 
-_Early read (epoch 69): best-valid nudged to **0.3448** at ep60, but no improvement in the 9 epochs since (patience ~9/20), while train MSE has fallen to 0.104 and valid keeps bouncing 0.35–0.43. Clear overfitting regime — the valid floor is flattening around ~0.345. CI on unseen proteins holds ~0.82–0.84. Expect early-stop soon unless a new best appears; result recorded only at natural early-stop._
+_Read (paused at epoch 70): best-valid is **0.3448** at ep60, with no improvement in the 10 epochs since (patience ~10/20). Train MSE has fallen to ~0.10 while valid keeps bouncing 0.35–0.43 — clear overfitting; the valid floor is flattening around ~0.345. CI on unseen proteins holds ~0.82–0.84. Run was interrupted before natural early-stop — resume from ep71 to finish, then the real test result gets recorded._
 
 ---
 
