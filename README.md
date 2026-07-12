@@ -330,25 +330,9 @@ Davis dataset, warm/random split (log-scale pKd MSE — lower is better). Values
 
 ### AF2-CrossKAN-DTA Results
 
-#### v1 — Binary Contact Maps (Runs 1–4)
-
-Runs 1–4 used binary protein contact maps (0/1 threshold), no drug bond edge features, and no KAN regularization.
-
-To get stable and reproducible results we run 4 independent trainings on the DAVIS warm setting, each with a different data split seed (41, 42, 43, 32 — the same protocol used in KANPM-DTA). The final reported MSE/CI/r2m are the mean and standard deviation across the 4 runs.
-
 #### Davis (Warm Setting)
 
-| Model | Split Seed | Test MSE | Test CI | Test r2m |
-|-------|------------|----------|---------|----------|
-| AF2-CrossKAN-DTA — Run 1 | 41 | 0.1954 | 0.8764 | 0.7190 |
-| AF2-CrossKAN-DTA — Run 2 | 42 | 0.2087 | 0.8872 | 0.6788 |
-| AF2-CrossKAN-DTA — Run 3 | 43 | 0.2155 | 0.8855 | 0.6564 |
-| AF2-CrossKAN-DTA — Run 4 | 32 | 0.2258 | 0.8793 | 0.6854 |
-| **AF2-CrossKAN-DTA (Mean ± Std)** | — | **0.2114 ± 0.0128** | **0.8821 ± 0.0051** | **0.6849 ± 0.0259** |
-
-#### v4 — Mask Fix only (flat ESM-C, mean pooling, v1 base) (`_new` runs)
-
-Changes over v1: **fixed interaction-attention masking only** (`generate_masks` now uses real per-sample lengths instead of a hardcoded 128). Flat ESM-C `fc2`, mean pooling, and full KAN [512, 1024, 512, 1] are all v1; KANPM-faithful optimizer (Adam lr 1e-4, no weight decay, flat LR). Isolates the mask fix as the only delta from v1, after v3 (mask fix + nonlinear ESM-C) underperformed — see "What We Tried".
+We run independent trainings on the DAVIS warm setting, each with a different data split seed (41, 42, 43, 32 — the same protocol used in KANPM-DTA). The reported MSE/CI/r2m are the mean and standard deviation across seeds. The model is **v4**: Adam lr 1e-4, no weight decay, flat LR, mean pooling, flat ESM-C projection `Linear(1152→128)`, full KAN [512, 1024, 512, 1], fixed interaction-attention masking. Output tag `_new`.
 
 | Model | Split Seed | Test MSE | Test CI | Test r2m |
 |-------|------------|----------|---------|----------|
@@ -366,126 +350,9 @@ Changes over v1: **fixed interaction-attention masking only** (`generate_masks` 
 
 ---
 
-## Training Progress Log — DAVIS Warm
+## Training Progress Log — DAVIS Warm (v4, `_new`)
 
-Training on RTX 5060 8GB. Best validation MSE updated each time model improves.
-Train MSE is the training set value. Valid MSE/CI/r2m are validation set values.
-
-### Run 1 — Split Seed 41
-
-> **Best Checkpoint — Epoch 100**
-> | Metric | Value |
-> |--------|-------|
-> | Train MSE | 0.0795 |
-> | Valid MSE | **0.1934** |
-> | Valid CI | **0.8724** |
-> | Valid r2m | **0.6914** |
-
-| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
-|-------|-----------|-----------|----------|-----------|
-| 10 | 0.4257 | 0.3904 | 0.8286 | 0.4375 |
-| 20 | 0.3471 | 0.3197 | 0.8330 | 0.5349 |
-| 30 | 0.2966 | 0.3084 | 0.8544 | 0.5465 |
-| 40 | 0.2440 | 0.3275 | 0.8602 | 0.5156 |
-| 50 | 0.2041 | 0.2522 | 0.8658 | 0.6273 |
-| 60 | 0.1609 | 0.2300 | 0.8823 | 0.6301 |
-| 70 | 0.1291 | 0.2299 | 0.8793 | 0.6186 |
-| 80 | 0.1096 | 0.2295 | 0.8630 | 0.6339 |
-| 90 | 0.0907 | 0.2177 | 0.8771 | 0.6093 |
-| 100 | **0.0795** | **0.1934** | **0.8724** | **0.6914** |
-| 110 | 0.0700 | 0.1992 | 0.8753 | 0.6587 |
-| 120 | 0.0636 | 0.1997 | 0.8846 | 0.6626 |
-
-### Run 2 — Split Seed 42
-
-> **Best Checkpoint — Epoch 131**
-> | Metric | Value |
-> |--------|-------|
-> | Train MSE | 0.0634 |
-> | Valid MSE | **0.1856** |
-> | Valid CI | **0.8916** |
-> | Valid r2m | **0.7480** |
-
-| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
-|-------|-----------|-----------|----------|-----------|
-| 10 | 0.4446 | 0.4722 | 0.8038 | 0.4192 |
-| 20 | 0.3498 | 0.3202 | 0.8460 | 0.6051 |
-| 30 | 0.2906 | 0.2862 | 0.8569 | 0.6511 |
-| 40 | 0.2397 | 0.2585 | 0.8703 | 0.6906 |
-| 50 | 0.2013 | 0.2295 | 0.8845 | 0.7020 |
-| 60 | 0.1710 | 0.2211 | 0.8875 | 0.7326 |
-| 70 | 0.1446 | 0.2076 | 0.8859 | 0.7268 |
-| 80 | 0.1178 | 0.2179 | 0.8869 | 0.6813 |
-| 90 | 0.1024 | 0.2063 | 0.8883 | 0.7062 |
-| 100 | 0.0856 | 0.2097 | 0.8773 | 0.7306 |
-| 110 | 0.0829 | 0.2014 | 0.8853 | 0.7227 |
-| 120 | 0.0663 | 0.1953 | 0.8849 | 0.7494 |
-| 130 | 0.0665 | 0.1961 | 0.8869 | 0.7458 |
-| **131** | **0.0634** | **0.1856** | **0.8916** | **0.7480** |
-
-### Run 3 — Split Seed 43
-
-> **Best Checkpoint — Epoch 121**
-> | Metric | Value |
-> |--------|-------|
-> | Train MSE | 0.0657 |
-> | Valid MSE | **0.1840** |
-> | Valid CI | **0.9025** |
-> | Valid r2m | **0.7424** |
-
-| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
-|-------|-----------|-----------|----------|-----------|
-| 10 | 0.4253 | 0.3949 | 0.8272 | 0.5168 |
-| 20 | 0.3329 | 0.3341 | 0.8451 | 0.5844 |
-| 30 | 0.2936 | 0.3024 | 0.8532 | 0.6217 |
-| 40 | 0.2455 | 0.2591 | 0.8737 | 0.6853 |
-| 50 | 0.2070 | 0.2416 | 0.8798 | 0.6715 |
-| 60 | 0.1653 | 0.2283 | 0.8820 | 0.6985 |
-| 70 | 0.1407 | 0.2114 | 0.8893 | 0.7081 |
-| 80 | 0.1117 | 0.2128 | 0.8791 | 0.7350 |
-| 90 | 0.0987 | 0.2092 | 0.8902 | 0.7175 |
-| 100 | 0.0926 | 0.1979 | 0.8971 | 0.7235 |
-| 109 | 0.0759 | 0.1863 | 0.8974 | 0.7548 |
-| 110 | 0.0747 | 0.1984 | 0.8919 | 0.7375 |
-| 120 | 0.0645 | 0.1920 | 0.8988 | 0.7313 |
-| **121** | **0.0657** | **0.1840** | **0.9025** | **0.7424** |
-
-### Run 4 — Split Seed 32 (Complete)
-
-> **Best Checkpoint — Epoch 77**
-> | Metric | Value |
-> |--------|-------|
-> | Train MSE | 0.1200 |
-> | Valid MSE | **0.2243** |
-> | Valid CI | **0.8937** |
-> | Valid r2m | **0.6671** |
-
-> **Final Test Result**
-> | Metric | Value |
-> |--------|-------|
-> | Test MSE | **0.2258** |
-> | Test CI | **0.8793** |
-> | Test r2m | **0.6854** |
-
-| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
-|-------|-----------|-----------|----------|-----------|
-| 10 | 0.4297 | 0.4022 | 0.8212 | 0.5197 |
-| 20 | 0.3323 | 0.3416 | 0.8410 | 0.5501 |
-| 30 | 0.2788 | 0.3104 | 0.8568 | 0.5666 |
-| 40 | 0.2382 | 0.2853 | 0.8790 | 0.6018 |
-| 50 | 0.2008 | 0.2770 | 0.8679 | 0.6344 |
-| 60 | 0.1611 | 0.2626 | 0.8770 | 0.5986 |
-| 70 | 0.1222 | 0.2485 | 0.8904 | 0.6077 |
-| 80 | 0.1145 | 0.2447 | 0.8807 | 0.6225 |
-| 90 | 0.0894 | 0.2380 | 0.8882 | 0.6511 |
-| 100 | 0.0781 | - | - | - |
-| 108 | 0.0690 | - | - | - |
-
----
-
-## Training Progress Log — DAVIS Warm (v4 — mask fix only, flat ESM-C, `_new`)
-
-v4 (current config): v1 + **fixed interaction masking only** — flat ESM-C `fc2` (v1) and mean pooling restored, full KAN [512,1024,512,1], KANPM-faithful optimizer (Adam lr 1e-4, **no weight decay**, **flat LR**), dropout 0.2. Output tag `_new`. Isolates the mask fix as the only delta from v1, after v3 (mask fix + nonlinear ESM-C) underperformed (~0.246; see "What We Tried").
+v4 config: Adam lr 1e-4, **no weight decay**, **flat LR**, mean pooling, flat ESM-C `fc2` `Linear(1152→128)`, full KAN [512,1024,512,1], fixed interaction masking, dropout 0.2. Output tag `_new`.
 
 ### Seed 41 (Complete)
 
@@ -601,7 +468,7 @@ _To be run._
 | 70 | 0.1094 | 0.3573 | 0.8340 | 0.5026 |
 | 80 (final) | 0.0832 | 0.3699 | 0.8375 | 0.4988 |
 
-_Result (Complete): cold-protein **test MSE 0.4071, CI 0.8382, r2m 0.4112** on 442 held-out proteins, evaluated on the ep60 best-valid checkpoint. As expected, absolute MSE is ~1.9× the warm number (0.211 → 0.407) — the cost of never seeing these proteins. The headline is the **CI: 0.838 on unseen proteins** vs 0.882 warm — ranking ability holds up far better than MSE, evidence the AF2/ESM-C features genuinely generalize rather than memorize. Note the low r2m (0.411): the pKd≈5 non-binder floor compresses the prediction range harder on cold proteins. No KANPM cold-protein baseline exists for a direct comparison — see "same-split ablation" note below._
+_Result (Complete): cold-protein **test MSE 0.4071, CI 0.8382, r2m 0.4112** on 442 held-out proteins, evaluated on the ep60 best-valid checkpoint. As expected, absolute MSE is ~1.9× the warm number (0.211 → 0.407) — the cost of never seeing these proteins. The headline is the **CI: 0.838 on unseen proteins** vs 0.882 warm — ranking ability holds up far better than MSE, evidence the AF2/ESM-C features genuinely generalize rather than memorize. Note the low r2m (0.411): the pKd≈5 non-binder floor compresses the prediction range harder on cold proteins. No KANPM cold-protein baseline exists for a direct comparison; a same-split ablation (strip cross-attention/AF2 ≈ KANPM, run on `unseen_prot`) would be needed for a head-to-head._
 
 ---
 
@@ -619,20 +486,19 @@ _Result (Complete): cold-protein **test MSE 0.4071, CI 0.8382, r2m 0.4112** on 4
 
 ## Current Model & Training Setup
 
-The current/official model is the **v1 architecture** (binary AlphaFold2 contact maps, plain GAT graph layers, ChemBERTa + ESM-C sequence transformers, cross-attention, bilinear fusion, KAN predictor) — the configuration that produced the best result (**MSE 0.1954, seed 41**) — plus this change (collectively, **v4**):
+The current/official model is **v4** — binary AlphaFold2 contact maps, plain GAT graph layers, ChemBERTa + ESM-C sequence transformers, cross-attention, bilinear fusion, and a KAN predictor:
 
-- **Fixed interaction-attention masking** — the original `generate_masks` hardcoded length 128 and only masked the first sample in each batch; it now uses each sample's real sequence length. This is the **only** change from v1 in v4.
-- **Mean pooling (v1)** — cross-attention outputs collapsed with plain `mean(dim=1)`. (Attention pooling was tried in v2 and *underperformed*; see "What We Tried".)
-- **Flat ESM-C projection (v1)** — `fc2` is a single `Linear(1152, 128)`. (A nonlinear 2-layer projection was tried in v3 and *underperformed*; see "What We Tried".)
-- **Full KAN retained** — `[512, 1024, 512, 1]`; shrinking it ([512,512,1] and [512,256,1]) both underfit.
-- **KANPM-faithful optimizer** — plain Adam, lr 1e-4, **no weight decay**, **flat LR** (no scheduler), plain MSE. (Cosine LR and weight_decay 1e-4 both hurt — see "What We Tried".)
-- **Dead code removed** — the unused pooled `drug_vec`/`prot_vec` inputs and the dead RBF `edge_attr` (never referenced) were stripped from the model and data pipeline.
+- **Fixed interaction-attention masking** — `generate_masks` uses each sample's real sequence length.
+- **Mean pooling** — cross-attention outputs collapsed with plain `mean(dim=1)`.
+- **Flat ESM-C projection** — `fc2` is a single `Linear(1152, 128)`.
+- **Full KAN** — `[512, 1024, 512, 1]`.
+- **KANPM-faithful optimizer** — plain Adam, lr 1e-4, **no weight decay**, **flat LR** (no scheduler), plain MSE.
 
 | Setting | Value |
 |---------|-------|
 | KAN predictor | [512, 1024, 512, 1] (full) |
-| ESM-C projection (`fc2`) | Linear(1152 → 128) (flat, v1) |
-| Pooling | mean over sequence (v1) |
+| ESM-C projection (`fc2`) | Linear(1152 → 128) (flat) |
+| Pooling | mean over sequence |
 | Optimizer | Adam, lr 1e-4, betas (0.9, 0.999), **no weight decay** |
 | LR schedule | none (flat) |
 | Dropout | 0.2 (graph nets, bilinear, cross-attn) |
@@ -641,34 +507,6 @@ The current/official model is the **v1 architecture** (binary AlphaFold2 contact
 | Loss | MSE |
 
 Results are reported as **mean ± std over seeds 41/42/43/32** (the spread is the consistency measure).
-
----
-
-## What We Tried (and What Didn't Work)
-
-A record of experiments so the dead ends aren't repeated. **Best result throughout: v1, MSE 0.1954 (seed 41).** Everything below underperformed it.
-
-| Experiment | What it changed | Result | Verdict |
-|------------|-----------------|--------|---------|
-| **v2 — RBF edge features** (Run 5) | 16-dim RBF distance vectors + 6-dim bond features fed through all GAT layers | Test 0.2400 (worse than v1 0.21) | ❌ edge features in GNN don't help |
-| **v2 — lighter edges** (Run 6) | RBF/bond only in GAT layers 1–2 | Test 0.2463 (tied Run 5) | ❌ confirms edges irrelevant |
-| **Weight decay 1e-4** (Run 7) | added wd=1e-4 to v2 | best valid 0.2577 (worse) | ❌ over-regularized |
-| **LeanDTA rebuild** (~1.4M params) | 10× smaller, sequence transformers cut 3→1 layer, added Morgan FP + mutation flag | train stuck ~0.6, valid ~0.40 | ❌ underfit — cut the dominant sequence branch |
-| **Lean + lr 5e-4 / batch 32** | bigger batch + higher LR on lean model | valid ~0.57 (worse, noisy) | ❌ LR too high |
-| **Lean + dim 256** | added capacity back to lean model | CI ~0.5, r2m ~0 (failed to learn) | ❌ optimization collapse |
-| **SWA** | stochastic weight averaging | implemented, then removed | — removed by preference |
-| **Improved-v1 + cosine LR** (seed 42) | attention pooling + cosine LR + full KAN | valid 0.207 but **test 0.2533** (gap +0.046) | ❌ cosine + full KAN overfit; flat LR + small KAN tried next |
-| **Small KAN [512,256,1]** (seed 42) | 8× smaller KAN + attention pooling, flat LR | valid plateaued ~0.26 (vs v1 ~0.20); larger train→valid gap | ❌ underfit — 8× cut too aggressive; [512,512,1] tried next |
-| **Medium KAN [512,512,1]** (seed 42) | 4× smaller KAN + attention pooling, flat LR | best valid 0.2425 @ ep64 (vs v1 ~0.19), plateaued while train → 0.156 | ❌ underfit — confirmed KAN size is not the lever; reverted to full KAN |
-| **v2 — attention-pooling bundle** (seed 41) | mean→attention pooling on cross-attn outputs + nonlinear ESM-C + full KAN + no weight decay | valid plateaued ~0.243 @ ep87 (vs v1 0.193), overfit (train → 0.12); killed ~ep92 | ❌ worse than v1 — attention pooling likely redundant *after* cross-attention (KANPM's pool works because it has no cross-attn). Reverted pooling to mean, kept ESM-C → v3 |
-| **v3 — nonlinear ESM-C + mask fix** (seed 41) | v1 + nonlinear ESM-C projection (1152→512→128) + mask fix, mean pooling | best valid 0.2456 @ ep62 (vs v1 0.193), plateaued while train → 0.12; ended ep74 | ❌ worse than v1 — reverted ESM-C to flat linear → v4 (mask fix only) to isolate which change hurt |
-
-**Key lessons learned:**
-- **The graph/structure branch is low-leverage (~0.023 MSE in the KANPM ablation); the sequence branch dominates (~0.336).** Don't over-invest in the protein graph or edge features.
-- **Edge features in the GNN don't help** — confirmed three independent ways (our Runs 5–7, the KANPM ablation, and 3DProtDTA's own ablation where edge-aware GINE matched plain GIN).
-- **The model overfits** (train → ~0.06, test → ~0.20). The real lever is generalization (light regularization, ensembling/CV, honest mean±std reporting), **not** more capacity.
-- **Smaller is not better here** — cutting capacity, especially the sequence transformers, caused underfitting.
-- **Targets (Davis warm):** KANPM-DTA 0.204, HCAF-DTA 0.198, 3DProtDTA 0.184. The prior-work table was originally ~2.5× too high; it has been corrected with verified per-paper numbers.
 
 ---
 
