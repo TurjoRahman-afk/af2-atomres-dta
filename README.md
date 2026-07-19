@@ -472,6 +472,106 @@ _Result (Complete): cold-protein **test MSE 0.4071, CI 0.8382, r2m 0.4112** on 4
 
 ---
 
+# 🧬 AF2-PocketCross-DTA — Structure-Guided Atom↔Residue Interaction (New Model)
+
+> **Self-contained section for the new architecture.** Code: `code/model_pocketcross.py`, trained via `code/train_pocketcross.py`. If it outperforms the baseline, everything above this line can be removed and this becomes the main model.
+
+## Motivation
+
+Existing DTA models (KANPM, and the baseline above) **pool** the drug and protein each into a single vector, then combine them — discarding the actual binding event, which is specific **drug atoms** contacting specific **protein pocket residues**. AF2-PocketCross-DTA models that interaction **explicitly**, guided by 3D structure:
+
+1. A **pocket prior** derived from the AF2 contact map scores each residue's bindability (burial/contact degree).
+2. **Drug-atom ↔ protein-residue attention**, biased toward the structural pocket, produces an **interpretable interaction map** (which atom binds which residue).
+3. A **weighted loss** upweights strong binders to fix the measured binder-lowballing (low r²ₘ).
+
+## Architecture
+
+```
+ DRUG                                    PROTEIN                    AF2 3D structure
+ SMILES → ChemBERTa → Transformer×3      seq → ESM-C → Transformer×3   per-residue
+   → Hd [B,220,128] (per ATOM)             → Hp [B,1200,128] (per RES)  struct feats
+        │        │                           │        │                    │
+        │        │                           │        │              ┌───────────┐
+        │        │                           │        │              │PocketPrior│ NEW
+        │        │                           │        │              │  (MLP)    │
+        │        └──────────┐     ┌──────────┘        │              └─────┬─────┘
+        │                   ▼     ▼                    │              pocket score s
+        │      ┌──────────────────────────────────────────────┐          │
+        │      │ STRUCTURE-GUIDED ATOM↔RESIDUE ATTENTION       │◄─────────┘  NEW
+        │      │ score = Qd·Kp/√d + β·s   →  I [B,220,1200]     │──► interpretable map
+        │      │ f_int = Σ I·(Hd ⊙ Hp)   →  [B,128]            │
+        │      └───────────────────────┬──────────────────────┘
+        ▼ mean-pool        mean-pool ▼ │ f_int
+     gd [B,128]            gp [B,128]  │
+        │  DRUG graph ─┐  ┌─ PROT graph│      (KEPT: GNN branches
+        │  GNN→[B,128] ▼  ▼ GNN→[B,128]│       + gated fusion)
+        │          GatedFusion → g [B,128]
+        └──────┬──────────┴──────┬──────┘
+               ▼                  ▼
+        concat[ f_int, gd, gp, g ] = [B,512] → KAN[512→1024→512→1] → affinity
+        loss = weighted MSE (α=0.5, binders upweighted)
+```
+
+## What's Kept / New / Removed vs the baseline
+
+| | Component |
+|---|---|
+| **Kept** | ChemBERTa & ESM-C encoders, transformers, drug+protein GNNs (GCN+5×GAT), gated graph fusion, KAN predictor |
+| **New** | Pocket prior (AF2 contact-degree → MLP), structure-guided atom↔residue attention, interpretable interaction map, weighted loss |
+| **Removed** | Cross-attention (drug↔prot), bilinear fusion, separate interaction-attention branch |
+
+## Training Setup
+
+| Setting | Value |
+|---------|-------|
+| Model file | `code/model_pocketcross.py` |
+| Train script | `code/train_pocketcross.py` |
+| Params | ~13.5 M |
+| Structural features (`struct_dim`) | 4 (scaled/relative/z-scored contact degree + residue flag) |
+| Pocket-bias strength β | learnable (init 1.0) |
+| Loss | **weighted MSE**, `w = 1 + 0.5·(pKd − 5)` |
+| Optimizer | Adam, lr 1e-4, no weight decay, flat LR |
+| Batch size | 16 · Early stopping | patience 20 on valid MSE |
+| Split | DAVIS cold-protein (`unseen_prot`), seed 42 |
+
+---
+
+## Results — DAVIS Cold-Protein (`unseen_prot`, seed 42)
+
+| Model | Test MSE ↓ | Test CI ↑ | Test r²ₘ ↑ |
+|-------|-----------|-----------|-----------|
+| Baseline (old model, plain MSE) | 0.4071 | 0.8382 | 0.4112 |
+| KANPM-DTA (target) | 0.314 | 0.857 | 0.556 |
+| **AF2-PocketCross-DTA (weighted loss)** | _pending_ | _pending_ | _pending_ |
+
+### Seed 42 (In Progress / Pending)
+
+_No result yet — to be filled once the run naturally early-stops and writes `Test-davis-unseen_prot-split42_new_pocketcross_weighted.csv`._
+
+> **Best Checkpoint — Epoch _TBD_**
+> | Metric | Value |
+> |--------|-------|
+> | Train MSE | _ |
+> | Valid MSE | _ |
+> | Valid CI | _ |
+> | Valid r2m | _ |
+
+> **Final Test Result**
+> | Metric | Value |
+> |--------|-------|
+> | Test MSE | _ |
+> | Test CI | _ |
+> | Test r2m | _ |
+
+| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
+|-------|-----------|-----------|----------|-----------|
+| 10 | _ | _ | _ | _ |
+| 20 | _ | _ | _ | _ |
+| 30 | _ | _ | _ | _ |
+| _(every 10 epochs — updated during training)_ | | | | |
+
+---
+
 ## Ablation Study (To Be Updated After Training)
 
 | Configuration | MSE | CI | r2m |
