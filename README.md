@@ -544,17 +544,19 @@ Existing DTA models (KANPM, and the baseline above) **pool** the drug and protei
 | KANPM-DTA (target) | 0.314 | 0.857 | 0.556 |
 | **AF2-PocketCross-DTA (weighted loss)** | _pending_ | _pending_ | _pending_ |
 
-### Seed 42 (In Progress — epoch 21, NOT final)
+### Seed 42 (In Progress — epoch 31, NOT final)
 
 _Still training — no test result yet (writes `Test-davis-unseen_prot-split42_new_pocketcross_weighted.csv` only at natural early-stop). Table below is a live snapshot._
 
-> **Best-valid so far — Epoch 18** (not final)
+> **Best-valid so far — Epoch 27** (not final)
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.1796 |
-> | Valid MSE | **0.3649** |
-> | Valid CI | **0.8402** |
-> | Valid r2m | **0.5325** |
+> | Train MSE | 0.1139 |
+> | Valid MSE | **0.3460** |
+> | Valid CI | **0.8370** |
+> | Valid r2m | **0.5546** |
+
+_Note: best valid (0.3460) essentially ties the old model's best (0.3448) but reached at ep27 vs ep60, with higher r²ₘ (0.5546 vs 0.5310) — the weighted loss working as intended. Test number pending._
 
 > **Final Test Result** _(pending — recorded at natural early-stop)_
 > | Metric | Value |
@@ -566,8 +568,9 @@ _Still training — no test result yet (writes `Test-davis-unseen_prot-split42_n
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
 | 10 | 0.3052 | 0.4613 | 0.8272 | 0.4421 |
-| **18 (best so far)** | 0.1796 | **0.3649** | 0.8402 | 0.5325 |
 | 20 | 0.1625 | 0.3749 | 0.8338 | 0.5185 |
+| **27 (best so far)** | 0.1139 | **0.3460** | 0.8370 | 0.5546 |
+| 30 | 0.1035 | 0.3571 | 0.8360 | 0.5345 |
 
 ---
 
