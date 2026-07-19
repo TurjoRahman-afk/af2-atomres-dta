@@ -24,6 +24,9 @@ checkpoints/
 # In-progress training logs (`_new` runs) — README is the source of truth for results
 log/*_new*.csv
 
+# Stray stdout redirects from background training runs
+log/*.out
+
 # Jupyter
 .ipynb_checkpoints/
 

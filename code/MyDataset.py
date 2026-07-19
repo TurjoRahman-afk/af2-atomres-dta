@@ -73,6 +73,78 @@ def target2graph(distance_map, protein_features_esm):
 
     return target_size, target_feature, target_edge_index, edge_weight
 
+def target2struct(distance_map, protein_max, struct_dim=4):
+    """Per-residue structural features from the AF2 contact map, for the pocket prior.
+    Aligned to ESM-C sequence positions with a +1 offset (position 0 = BOS token), so the
+    features line up with the residues the interaction attention operates on.
+    Returns a [protein_max, struct_dim] tensor.
+    Features: [scaled degree, relative degree, z-scored degree, real-residue flag]."""
+    dmap = np.asarray(distance_map)
+    L = dmap.shape[0]
+    deg = (dmap > 0).sum(axis=1).astype(np.float32)          # contact degree = burial
+    max_deg = deg.max() + 1e-6
+    mean_deg = float(deg.mean())
+    std_deg = float(deg.std()) + 1e-6
+    feats = np.zeros((protein_max, struct_dim), dtype=np.float32)
+    end = min(L, protein_max - 1)
+    if end > 0:
+        feats[1:1 + end, 0] = deg[:end] / 20.0
+        feats[1:1 + end, 1] = deg[:end] / max_deg
+        feats[1:1 + end, 2] = (deg[:end] - mean_deg) / std_deg
+        feats[1:1 + end, 3] = 1.0
+    return torch.from_numpy(feats)
+
+
+def pocketcross_collate_fn(batch_data, device, hp, drug_df, prot_df, mol2vec_dict, protvec_dict, contact_map,
+                           drug_graph_cache=None, protein_graph_cache=None, struct_dim=4):
+    """Like my_collate_fn but also returns per-residue AF2 structural features (prot_struct)."""
+    batch_size = len(batch_data)
+    drug_max = hp.drug_max_len
+    protein_max = hp.prot_max_len
+    b_drug_mask = torch.zeros((batch_size, drug_max), dtype=torch.float32)
+    b_prot_mask = torch.zeros((batch_size, protein_max), dtype=torch.float32)
+    b_drug_mat = torch.zeros((batch_size, drug_max, hp.mol2vec_dim), dtype=torch.float32)
+    b_prot_mat = torch.zeros((batch_size, protein_max, hp.protvec_dim), dtype=torch.float32)
+    b_prot_struct = torch.zeros((batch_size, protein_max, struct_dim), dtype=torch.float32)
+    b_label = torch.zeros(batch_size, dtype=torch.float32)
+    b_drug_graph, b_protein_graph = [], []
+
+    for i, pair in enumerate(batch_data):
+        drug_id, prot_id, label = pair[0], pair[2], pair[4]
+        drug_id, prot_id = str(drug_id), str(prot_id)
+        drug_mat = mol2vec_dict["mat_dict"][drug_id]
+        prot_mat = protvec_dict["mat_dict"][prot_id]
+        prot_contact_map = contact_map['contact_map'][prot_id]
+        drug_mat_pad, drug_mask = matrix_pad_drug(drug_mat, drug_max)
+        prot_mat_pad, prot_mask = matrix_pad_prot(prot_mat, protein_max)
+
+        if drug_graph_cache is not None and drug_id in drug_graph_cache:
+            drug_graph = drug_graph_cache[drug_id]
+        else:
+            _, node_attr, edge_index, edge_attr = smile2graph(
+                drug_df.loc[drug_df['drug_key'] == pair[0], 'compound_iso_smiles'].iloc[0])
+            drug_graph = Data(x=node_attr, edge_index=edge_index, edge_weight=edge_attr)
+        b_drug_graph.append(drug_graph)
+
+        if protein_graph_cache is not None and prot_id in protein_graph_cache:
+            protein_graph = protein_graph_cache[prot_id]
+        else:
+            _, tf, tei, ew = target2graph(prot_contact_map, prot_mat)
+            protein_graph = Data(x=tf, edge_index=tei, edge_weight=ew)
+        b_protein_graph.append(protein_graph)
+
+        b_drug_mat[i] = drug_mat_pad
+        b_drug_mask[i] = drug_mask
+        b_prot_mat[i] = prot_mat_pad
+        b_prot_mask[i] = prot_mask
+        b_prot_struct[i] = target2struct(prot_contact_map, protein_max, struct_dim)
+        b_label[i] = label
+
+    b_drug_graph = Batch.from_data_list(b_drug_graph)
+    b_protein_graph = Batch.from_data_list(b_protein_graph)
+    return b_drug_mat, b_drug_mask, b_prot_mat, b_prot_mask, b_prot_struct, b_drug_graph, b_protein_graph, b_label
+
+
 def get_nodes(g):
     feat = []
     for n, d in g.nodes(data=True):

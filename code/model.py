@@ -154,8 +154,13 @@ class MODEL(nn.Module):
         self.feedforward_dim = 1024
         self.dropout = 0.2
 
-        self.drug_graph_model = DrugGraphNet(n_output=128)
-        self.protein_graph_model = ProteinGraphNet(n_output=128)
+        # Optionally drop graph branches entirely (structure simplification)
+        self.use_drug_graph = not getattr(hp, 'ablate_drug_graph', False)
+        self.use_prot_graph = not getattr(hp, 'ablate_prot_graph', False)
+        if self.use_drug_graph:
+            self.drug_graph_model = DrugGraphNet(n_output=128)
+        if self.use_prot_graph:
+            self.protein_graph_model = ProteinGraphNet(n_output=128)
 
         # Drug and Protein sequence encoders: separate transformer encoders for each modality
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=128, dim_feedforward=self.feedforward_dim, nhead=self.encoder_heads)
@@ -179,8 +184,10 @@ class MODEL(nn.Module):
         self.fc2 = nn.Linear(self.protvec_dim, 128)
         self.fc3 = nn.Linear(self.mol2vec_dim, 128)
 
-        # Bilinear fusion: drug-side (seq+graph) x protein-side (seq+graph)
-        self.bilinear = BilinearFusion(drug_dim=256, prot_dim=256, output_dim=256, rank=64)
+        # Bilinear fusion: drug-side x protein-side (each 256 with graph, 128 without)
+        drug_side_dim = 256 if self.use_drug_graph else 128
+        prot_side_dim = 256 if self.use_prot_graph else 128
+        self.bilinear = BilinearFusion(drug_dim=drug_side_dim, prot_dim=prot_side_dim, output_dim=256, rank=64)
 
         # Project cat_attn from 128 → 256 to match bilinear_out dimension
         self.cat_attn_proj = nn.Linear(128, 256)
@@ -202,8 +209,10 @@ class MODEL(nn.Module):
 
     def forward(self, drug_mat, drug_mask, prot_mat, prot_mask, drug_graph, protein_graph):
 
-        smiles_graph = self.drug_graph_model(drug_graph)        # [B, 128]
-        fasta_graph = self.protein_graph_model(protein_graph)   # [B, 128]
+        if self.use_drug_graph:
+            smiles_graph = self.drug_graph_model(drug_graph)        # [B, 128]
+        if self.use_prot_graph:
+            fasta_graph = self.protein_graph_model(protein_graph)   # [B, 128]
 
         # Drug sequence branch
         smiles_emb = self.transformer_encoder(self.fc3(drug_mat))   # [B, 220, 128]
@@ -236,8 +245,8 @@ class MODEL(nn.Module):
         cat_attn = self.cat_attn_proj(self.inter_attn_one(cat_f, cat_mask))  # [B, 256]
 
         # Bilinear fusion: pair drug-side and protein-side features
-        drug_side = torch.cat([xd_attn, smiles_graph], dim=-1)      # [B, 256]
-        prot_side = torch.cat([xp_attn, fasta_graph], dim=-1)       # [B, 256]
+        drug_side = torch.cat([xd_attn, smiles_graph], dim=-1) if self.use_drug_graph else xd_attn  # [B,256] or [B,128]
+        prot_side = torch.cat([xp_attn, fasta_graph], dim=-1) if self.use_prot_graph else xp_attn  # [B,256] or [B,128]
         bilinear_out = self.bilinear(drug_side, prot_side)           # [B, 256]
 
         # Final prediction

@@ -80,6 +80,9 @@ def test(model, dataloader):
 if __name__ == "__main__":
     SEED = 0          # weight init + batch shuffle seed (keep fixed across runs)
     SPLIT_SEED = 42   # data split seed — must match cold_split.py SEED
+    ABLATION = ""   # "" = full; "no_protgraph" = drop protein graph; "pure_seq" = drop BOTH graphs
+    USE_WEIGHTED_LOSS = True   # weighted MSE: upweight high-affinity (binder) pairs to fix binder under-prediction
+    WEIGHTED_ALPHA = 0.5       # weight = 1 + alpha*(pKd - 5.0); 0.0 reproduces plain MSE
     random.seed(SEED)
     torch.manual_seed(SEED)
     torch.cuda.manual_seed_all(SEED)
@@ -87,6 +90,8 @@ if __name__ == "__main__":
     torch.backends.cudnn.benchmark = True   # lets cuDNN find fastest conv algorithm
 
     hp = HyperParameter()
+    hp.ablate_prot_graph = ABLATION in ("no_protgraph", "pure_seq")
+    hp.ablate_drug_graph = ABLATION == "pure_seq"
     os.environ["CUDA_VISIBLE_DEVICES"] = hp.cuda
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")    
     print(f"Dataset-{hp.dataset}-{hp.running_set}") 
@@ -124,8 +129,11 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(model.parameters(), lr=hp.Learning_rate, betas=(0.9, 0.999))
     criterion = F.mse_loss
 
-    model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new.pth'
-    checkpoint_path = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new_checkpoint.pth'
+    tag = f'_{ABLATION}' if ABLATION else ''
+    if USE_WEIGHTED_LOSS:
+        tag += '_weighted'
+    model_fromTrain = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new{tag}.pth'
+    checkpoint_path = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new{tag}_checkpoint.pth'
 
     train_log = []
     valid_log = []
@@ -172,7 +180,11 @@ if __name__ == "__main__":
             affinity = affinity.to(device)
 
             predictions = model(mol_mat, mol_mat_mask, prot_mat, prot_mat_mask, drugh_graph, protein_graph)
-            loss = criterion(predictions.squeeze(), affinity)
+            if USE_WEIGHTED_LOSS:
+                w = 1.0 + WEIGHTED_ALPHA * (affinity - 5.0)   # binders (high pKd) weighted more
+                loss = (w * (predictions.squeeze() - affinity) ** 2).mean()
+            else:
+                loss = criterion(predictions.squeeze(), affinity)
 
             pred = pred + predictions.cpu().detach().numpy().reshape(-1).tolist()
             label = label + affinity.cpu().detach().numpy().reshape(-1).tolist()
@@ -226,7 +238,7 @@ if __name__ == "__main__":
         }, checkpoint_path)
 
         # Write log CSV after every epoch so results are never lost on interruption
-        log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new.csv"
+        log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new{tag}.csv"
         with open(log_dir, "w+", newline='') as f:
             writer = csv.writer(f)
             writer.writerow(["epoch", "train_mse", "train_ci", "train_r2m", "valid_mse", "valid_ci", "valid_r2m"])
@@ -238,7 +250,7 @@ if __name__ == "__main__":
 
     # NOTE: the per-epoch 7-column log above is the canonical log.
     # (Removed the old post-training 3-column overwrite that destroyed valid columns.)
-    log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new.csv"
+    log_dir = f"./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new{tag}.csv"
     print(f'Save log over at {log_dir}')
 
     # Test
@@ -253,5 +265,5 @@ if __name__ == "__main__":
 
     # Save summary metrics
     test_metrics = pd.DataFrame(save_metrics)
-    test_metrics.to_csv(f'./log/Test-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new.csv', index=False)
+    test_metrics.to_csv(f'./log/Test-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new{tag}.csv', index=False)
     print(f"Dataset-{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new")
