@@ -542,13 +542,13 @@ Existing DTA models (KANPM, and the baseline above) **pool** the drug and protei
 |-------|-----------|-----------|-----------|
 | Baseline (old model, plain MSE) | 0.4071 | 0.8382 | 0.4112 |
 | KANPM-DTA (target) | 0.314 | 0.857 | 0.556 |
-| **AF2-PocketCross-DTA (weighted loss)** | _pending_ | _pending_ | _pending_ |
+| **AF2-PocketCross-DTA (weighted loss)** | **0.3781** | **0.8450** | **0.4542** |
 
-### Seed 42 (In Progress — epoch 42, early-stop imminent, NOT final)
+### Seed 42 (Complete — natural early-stop ep47)
 
-_Still training — no test result yet (writes `Test-davis-unseen_prot-split42_new_pocketcross_weighted.csv` only at natural early-stop). Table below is a live snapshot._
+_Trained to natural early-stop (best valid at ep27, patience 20 exhausted at ep47). Tested on the ep27 best-valid checkpoint._
 
-> **Best-valid so far — Epoch 27** (not final)
+> **Best Checkpoint — Epoch 27**
 > | Metric | Value |
 > |--------|-------|
 > | Train MSE | 0.1139 |
@@ -556,22 +556,23 @@ _Still training — no test result yet (writes `Test-davis-unseen_prot-split42_n
 > | Valid CI | **0.8370** |
 > | Valid r2m | **0.5546** |
 
-_Note: best valid (0.3460) essentially ties the old model's best (0.3448) but reached at ep27 vs ep60, with higher r²ₘ (0.5546 vs 0.5310) — the weighted loss working as intended. Best is locked at ep27 with no improvement since (patience ~15/20), train MSE down to ~0.07 — early-stop expected ~ep47. Test number pending._
-
-> **Final Test Result** _(pending — recorded at natural early-stop)_
+> **Final Test Result** (natural early-stop ep47; tested on ep27 checkpoint)
 > | Metric | Value |
 > |--------|-------|
-> | Test MSE | _ |
-> | Test CI | _ |
-> | Test r2m | _ |
+> | Test MSE | **0.3781** |
+> | Test CI | **0.8450** |
+> | Test r2m | **0.4542** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
 | 10 | 0.3052 | 0.4613 | 0.8272 | 0.4421 |
 | 20 | 0.1625 | 0.3749 | 0.8338 | 0.5185 |
-| **27 (best so far)** | 0.1139 | **0.3460** | 0.8370 | 0.5546 |
+| **27 (best)** | 0.1139 | **0.3460** | 0.8370 | 0.5546 |
 | 30 | 0.1035 | 0.3571 | 0.8360 | 0.5345 |
 | 40 | 0.0755 | 0.3595 | 0.8318 | 0.5166 |
+| 47 (final) | 0.0656 | 0.3882 | 0.8401 | 0.4776 |
+
+_**Result (Complete):** AF2-PocketCross-DTA (weighted loss) test **MSE 0.3781 / CI 0.8450 / r²ₘ 0.4542** on cold-protein seed 42. **Beats the old baseline on all three metrics** (MSE 0.4071→0.3781, −0.029; CI 0.8382→0.8450; r²ₘ 0.4112→0.4542) — the structure-guided interaction + weighted loss both help. Still short of KANPM (0.314 / 0.857 / 0.556). Note: this bundles two changes (new architecture + weighted loss); a plain-MSE run of the same model is needed to attribute how much each contributes. Also the valid→test gap is smaller than the baseline's (0.346→0.378 = +0.032 vs baseline 0.345→0.407 = +0.062), a sign of better generalization._
 
 ---
 
