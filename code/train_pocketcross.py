@@ -11,14 +11,15 @@ from tqdm import tqdm
 
 from model_pocketcross import MODEL as Model
 from hyperparameter import HyperParameter
-from MyDataset import CustomDataSet, pocketcross_collate_fn, smile2graph, target2graph
+from MyDataset import CustomDataSet, pocketcross_collate_fn, smile2graph, target2graph, target2struct
 from torch_geometric.data import Data
 from metrics import calculate_metrics
 
 import warnings; warnings.filterwarnings("ignore")
 
-STRUCT_DIM = 4
-USE_WEIGHTED_LOSS = True
+RICH_STRUCT_FEATURES = True   # real-distance pocket features (shells + decay-weighted density) vs plain contact-degree
+STRUCT_DIM = 8 if RICH_STRUCT_FEATURES else 4
+USE_WEIGHTED_LOSS = False   # plain MSE — for architecture-vs-loss attribution + fair KANPM-comparable number
 WEIGHTED_ALPHA = 0.5
 
 
@@ -43,6 +44,18 @@ def build_graph_cache(drug_df, prot_df, mol2vec_dict, protvec_dict, contact_map)
         prot_cache[pid] = Data(x=tf, edge_index=tei, edge_weight=ew)
     print(f"Cache ready: {len(drug_cache)} drug, {len(prot_cache)} protein graphs")
     return drug_cache, prot_cache
+
+
+def build_struct_cache(prot_df, contact_map, protein_max, struct_dim):
+    print("Pre-building protein pocket-structure cache...")
+    cache = {}
+    for _, row in tqdm(prot_df.iterrows(), total=len(prot_df), desc="Pocket features"):
+        pid = str(row['target_key'])
+        if pid not in contact_map['contact_map']:
+            continue
+        cache[pid] = target2struct(contact_map['contact_map'][pid], protein_max, struct_dim)
+    print(f"Cache ready: {len(cache)} proteins")
+    return cache
 
 
 def test(model, dataloader):
@@ -81,9 +94,10 @@ if __name__ == "__main__":
     print("load dataset finished")
 
     dcache, pcache = build_graph_cache(drug_df, prot_df, mol2vec_dict, protvec_dict, contact_map)
+    scache = build_struct_cache(prot_df, contact_map, hp.prot_max_len, STRUCT_DIM)
     collate = lambda x: pocketcross_collate_fn(x, device, hp, drug_df, prot_df, mol2vec_dict, protvec_dict,
                                                contact_map, drug_graph_cache=dcache, protein_graph_cache=pcache,
-                                               struct_dim=STRUCT_DIM)
+                                               struct_dim=STRUCT_DIM, struct_cache=scache)
     tl = DataLoader(train_set, batch_size=hp.Batch_size, shuffle=True, drop_last=True, collate_fn=collate, pin_memory=True)
     vl = DataLoader(valid_set, batch_size=hp.Batch_size, shuffle=False, drop_last=True, collate_fn=collate, pin_memory=True)
     testl = DataLoader(test_set, batch_size=hp.Batch_size, shuffle=False, drop_last=True, collate_fn=collate, pin_memory=True)
@@ -92,7 +106,7 @@ if __name__ == "__main__":
     model = nn.DataParallel(Model(hp, device)).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=hp.Learning_rate, betas=(0.9, 0.999))
 
-    tag = '_pocketcross' + ('_weighted' if USE_WEIGHTED_LOSS else '')
+    tag = '_pocketcross' + ('_richstruct' if RICH_STRUCT_FEATURES else '') + ('_weighted' if USE_WEIGHTED_LOSS else '')
     best_model = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new{tag}.pth'
     ckpt_path = f'./savemodel/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new{tag}_checkpoint.pth'
     log_dir = f'./log/{hp.dataset}-{hp.running_set}-split{SPLIT_SEED}_new{tag}.csv'
