@@ -542,14 +542,15 @@ Existing DTA models (KANPM, and the baseline above) **pool** the drug and protei
 |-------|-----------|-----------|-----------|
 | Baseline (old model, plain MSE) | 0.4071 | 0.8382 | 0.4112 |
 | KANPM-DTA (target) | 0.314 | 0.857 | 0.556 |
-| **AF2-PocketCross-DTA (weighted loss)** | **0.3781** | **0.8450** | **0.4542** |
+| AF2-PocketCross-DTA (weighted loss) | 0.3781 | 0.8450 | 0.4542 |
+| **AF2-PocketCross-DTA (plain MSE) — best result** | **0.3715** | **0.8453** | **0.4628** |
 | **AF2-PocketCross-DTA (plain MSE)** | _pending (in progress)_ | _pending_ | _pending_ |
 
-### Seed 42 — Plain MSE ablation (In Progress — epoch 78, early-stop imminent, NOT final)
+### Seed 42 — Plain MSE ablation (Complete — natural early-stop ep82)
 
-_Same model/split/seed as above — **only the loss changed** (plain MSE instead of weighted), to attribute how much of the weighted-loss result came from the architecture vs the loss. No test result yet; writes `Test-davis-unseen_prot-split42_new_pocketcross.csv` at natural early-stop._
+_Same model/split/seed as the weighted run above — **only the loss changed** (plain MSE instead of weighted) — isolating how much of the result comes from the architecture vs the loss. Trained to natural early-stop (best valid at ep62, patience 20 exhausted at ep82). Tested on the ep62 checkpoint._
 
-> **Best-valid so far — Epoch 62** (not final)
+> **Best Checkpoint — Epoch 62**
 > | Metric | Value |
 > |--------|-------|
 > | Train MSE | 0.0458 |
@@ -557,7 +558,12 @@ _Same model/split/seed as above — **only the loss changed** (plain MSE instead
 > | Valid CI | **0.8446** |
 > | Valid r2m | **0.5585** |
 
-_Note: this best now **beats the weighted run's best on every metric** (valid MSE 0.3397 vs 0.3460; CI 0.8446 vs 0.8370; r²ₘ 0.5585 vs 0.5546) — undercutting the prediction that weighted loss would win on r²ₘ. So far plain MSE looks at least as good, possibly better, for this architecture. Patience ~16/20 at epoch 78 — early-stop expected within a few epochs. Test number pending._
+> **Final Test Result** (natural early-stop ep82; tested on ep62 checkpoint)
+> | Metric | Value |
+> |--------|-------|
+> | Test MSE | **0.3715** |
+> | Test CI | **0.8453** |
+> | Test r2m | **0.4628** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
@@ -565,9 +571,11 @@ _Note: this best now **beats the weighted run's best on every metric** (valid MS
 | 27 | 0.1003 | 0.3520 | 0.8440 | 0.5384 |
 | 44 | 0.0611 | 0.3448 | 0.8404 | 0.5557 |
 | 48 | 0.0555 | 0.3439 | 0.8428 | 0.5390 |
-| **62 (best so far)** | 0.0458 | **0.3397** | 0.8446 | 0.5585 |
+| **62 (best)** | 0.0458 | **0.3397** | 0.8446 | 0.5585 |
 | 70 | 0.0461 | 0.3496 | 0.8382 | 0.5294 |
-| 78 (latest) | 0.0455 | 0.3604 | 0.8382 | 0.5186 |
+| 82 (final) | 0.0436 | 0.3616 | 0.8325 | 0.5156 |
+
+_**Result (Complete):** plain-MSE AF2-PocketCross test **MSE 0.3715 / CI 0.8453 / r²ₘ 0.4628** — **beats the weighted-loss run on all three metrics** (0.3781→0.3715 MSE, 0.8450→0.8453 CI, 0.4542→0.4628 r²ₘ). This contradicts the pre-registered prediction that weighted loss would help r²ₘ; at least at α=0.5 on this seed, plain MSE is simply better. **Attribution conclusion: the gain over the old baseline (0.4071→0.3715, −0.036) is driven by the architecture (structure-guided atom↔residue interaction), not the weighted loss.** This plain-MSE number is also the fair, KANPM-comparable headline result (field convention = plain MSE)._
 
 ### Seed 42 — Weighted loss (Complete — natural early-stop ep47)
 
