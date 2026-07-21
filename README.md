@@ -545,28 +545,29 @@ Existing DTA models (KANPM, and the baseline above) **pool** the drug and protei
 | **AF2-PocketCross-DTA (weighted loss)** | **0.3781** | **0.8450** | **0.4542** |
 | **AF2-PocketCross-DTA (plain MSE)** | _pending (in progress)_ | _pending_ | _pending_ |
 
-### Seed 42 — Plain MSE ablation (In Progress — epoch 49, NOT final)
+### Seed 42 — Plain MSE ablation (In Progress — epoch 78, early-stop imminent, NOT final)
 
 _Same model/split/seed as above — **only the loss changed** (plain MSE instead of weighted), to attribute how much of the weighted-loss result came from the architecture vs the loss. No test result yet; writes `Test-davis-unseen_prot-split42_new_pocketcross.csv` at natural early-stop._
 
-> **Best-valid so far — Epoch 48** (not final)
+> **Best-valid so far — Epoch 62** (not final)
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.0555 |
-> | Valid MSE | **0.3439** |
-> | Valid CI | **0.8428** |
-> | Valid r2m | **0.5390** |
+> | Train MSE | 0.0458 |
+> | Valid MSE | **0.3397** |
+> | Valid CI | **0.8446** |
+> | Valid r2m | **0.5585** |
 
-_Note: valid MSE has essentially plateaued in the 0.344–0.352 band since ep27 (ep44: 0.3448, ep48: 0.3439 — a noise-level difference), while train MSE keeps falling (now 0.056) — classic overfitting-past-the-plateau pattern. Still roughly tied with the weighted run's best (0.3460). Patience reset at ep48, training continues. Test number pending._
+_Note: this best now **beats the weighted run's best on every metric** (valid MSE 0.3397 vs 0.3460; CI 0.8446 vs 0.8370; r²ₘ 0.5585 vs 0.5546) — undercutting the prediction that weighted loss would win on r²ₘ. So far plain MSE looks at least as good, possibly better, for this architecture. Patience ~16/20 at epoch 78 — early-stop expected within a few epochs. Test number pending._
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
 | 10 | 0.2808 | 0.4001 | 0.8319 | 0.4918 |
-| 20 | 0.1439 | 0.3753 | 0.8270 | 0.5189 |
 | 27 | 0.1003 | 0.3520 | 0.8440 | 0.5384 |
-| 40 | 0.0659 | 0.3706 | 0.8285 | 0.5134 |
 | 44 | 0.0611 | 0.3448 | 0.8404 | 0.5557 |
-| **48 (best so far)** | 0.0555 | **0.3439** | 0.8428 | 0.5390 |
+| 48 | 0.0555 | 0.3439 | 0.8428 | 0.5390 |
+| **62 (best so far)** | 0.0458 | **0.3397** | 0.8446 | 0.5585 |
+| 70 | 0.0461 | 0.3496 | 0.8382 | 0.5294 |
+| 78 (latest) | 0.0455 | 0.3604 | 0.8382 | 0.5186 |
 
 ### Seed 42 — Weighted loss (Complete — natural early-stop ep47)
 
