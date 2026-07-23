@@ -607,7 +607,7 @@ _Trained to natural early-stop (best valid at ep27, patience 20 exhausted at ep4
 
 _**Result (Complete):** AF2-PocketCross-DTA (weighted loss) test **MSE 0.3781 / CI 0.8450 / r²ₘ 0.4542** on cold-protein seed 42. **Beats the old baseline on all three metrics** (MSE 0.4071→0.3781, −0.029; CI 0.8382→0.8450; r²ₘ 0.4112→0.4542) — the structure-guided interaction + weighted loss both help. Still short of KANPM (0.314 / 0.857 / 0.556). Note: this bundles two changes (new architecture + weighted loss); a plain-MSE run of the same model is needed to attribute how much each contributes. Also the valid→test gap is smaller than the baseline's (0.346→0.378 = +0.032 vs baseline 0.345→0.407 = +0.062), a sign of better generalization._
 
-### Seed 42 — Rich distance-based pocket features (In Progress — epoch 17, NOT final)
+### Seed 42 — Rich distance-based pocket features (In Progress — epoch 20, NOT final)
 
 _Same model/split/seed/plain-MSE loss as the 0.3715 result above — **only the pocket-prior's input features changed**: 8 features derived from real AF2 Cα distances (tight/mid/loose shells at 5.5/6.5/8A, decay-weighted density, mean contact distance, z-scored degree, flag) instead of plain contact-degree, with sequence-adjacent pairs excluded so nothing reflects trivial backbone bonding. Isolates whether richer geometric detail in the pocket prior beats simple degree-counting. No test result yet; writes `Test-davis-unseen_prot-split42_new_pocketcross_richstruct.csv` at natural early-stop._
 
@@ -625,7 +625,7 @@ _Note: best-valid (0.3756) is already close to the existing best result's test M
 |-------|-----------|-----------|----------|-----------|
 | 6 | 0.3591 | 0.4152 | 0.8230 | 0.5061 |
 | **12 (best so far)** | 0.2393 | **0.3756** | 0.8286 | 0.5243 |
-| 17 (latest) | 0.1732 | 0.3814 | 0.8247 | 0.5459 |
+| 20 (latest) | 0.1554 | 0.4060 | 0.8222 | 0.5009 |
 
 ---
 
