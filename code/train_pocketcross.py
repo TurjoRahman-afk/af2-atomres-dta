@@ -17,7 +17,7 @@ from metrics import calculate_metrics
 
 import warnings; warnings.filterwarnings("ignore")
 
-RICH_STRUCT_FEATURES = True   # real-distance pocket features (shells + decay-weighted density) vs plain contact-degree
+RICH_STRUCT_FEATURES = False  # tested 2026-07-24: WORSE than plain degree-based features (test MSE 0.4287 vs 0.3715) — see README
 STRUCT_DIM = 8 if RICH_STRUCT_FEATURES else 4
 USE_WEIGHTED_LOSS = False   # plain MSE — for architecture-vs-loss attribution + fair KANPM-comparable number
 WEIGHTED_ALPHA = 0.5
