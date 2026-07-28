@@ -637,26 +637,27 @@ _Same model/split/seed/plain-MSE loss as the 0.3715 result above — **only the 
 
 _**Result (Complete) — negative finding:** test **MSE 0.4287 / CI 0.8180 / r²ₘ 0.4206** is WORSE than every other pocket-cross variant, and worse than even the pre-pocket-cross baseline (0.4071). Both valid AND test are worse than the winning plain-MSE run (best-valid 0.3650 vs that run's 0.3397; test 0.4287 vs that run's 0.3715) — this richer-feature version underperformed at every stage, not just at test time. The valid→test gap here (+0.064, 0.365→0.429) is also the largest seen across any run in this project. **Honest takeaway: enriching the pocket-prior from 4 simple degree-based features to 8 real-distance features did not help — it hurt, on both validation and test.** Plausibly the extra features gave the tiny pocket MLP more room to fit noise without adding real signal beyond what plain degree already captured. The simpler degree-only features (used in the 0.3715 best result) remain the better choice for this architecture. Reverting `RICH_STRUCT_FEATURES` to `False` (plain 4-feature pocket prior) is recommended going forward unless revisited with stronger regularization._
 
-### Seed 42 — GNN-derived pocket prior (In Progress — epoch 22, NOT final)
+### Seed 42 — GNN-derived pocket prior (In Progress — epoch 35, NOT final)
 
 _Same backbone/split/seed/plain-MSE loss as the 0.3715 result — **only the source of the pocket score changed**: instead of hand-counted contact-degree features (`target2struct`), the pocket score now comes from `ProteinGraphNet`'s own per-residue embeddings (already learned via real message-passing over the AF2 contact graph), densified via `to_dense_batch` instead of being discarded after pooling. No separate feature-engineering pipeline — `code/model_pocketcross_gnnprior.py` / `code/train_pocketcross_gnnprior.py`. No test result yet; writes `Test-davis-unseen_prot-split42_new_gnnprior.csv` at natural early-stop._
 
-> **Best-valid so far — Epoch 22** (not final)
+> **Best-valid so far — Epoch 28** (not final)
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.1477 |
-> | Valid MSE | **0.3618** |
-> | Valid CI | **0.8353** |
-> | Valid r2m | **0.5945** |
+> | Train MSE | 0.1137 |
+> | Valid MSE | **0.3345** |
+> | Valid CI | **0.8506** |
+> | Valid r2m | **0.5558** |
 
-_Note: best-valid (0.3618) is close to the current best result's TEST MSE (0.3715), and r²ₘ (0.5945) is notably higher than any prior pocket-cross variant's valid r²ₘ seen so far. Still early (patience just reset at ep22). Test number pending._
+_Note: best-valid (0.3345) is now clearly BELOW the current champion's test MSE (0.3715) and even below that champion's own best-valid (0.3397) — the most promising sign yet for this variant. Patience ~7/20 at epoch 35, still room to move. Test number pending — remember every cold-protein run here has shown a real valid→test gap (+0.03 to +0.06), so don't extrapolate yet._
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
-| 5 | 0.3823 | 0.4246 | 0.8049 | 0.5052 |
 | 10 | 0.2871 | 0.3926 | 0.8340 | 0.5281 |
 | 17 | 0.1882 | 0.3633 | 0.8399 | 0.5275 |
-| **22 (best so far)** | 0.1477 | **0.3618** | 0.8353 | 0.5945 |
+| 22 | 0.1477 | 0.3618 | 0.8353 | 0.5945 |
+| **28 (best so far)** | 0.1137 | **0.3345** | 0.8506 | 0.5558 |
+| 35 (latest) | 0.0853 | 0.3454 | 0.8419 | 0.5279 |
 
 ---
 
