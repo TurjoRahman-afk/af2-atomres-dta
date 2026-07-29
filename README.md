@@ -637,7 +637,7 @@ _Same model/split/seed/plain-MSE loss as the 0.3715 result above — **only the 
 
 _**Result (Complete) — negative finding:** test **MSE 0.4287 / CI 0.8180 / r²ₘ 0.4206** is WORSE than every other pocket-cross variant, and worse than even the pre-pocket-cross baseline (0.4071). Both valid AND test are worse than the winning plain-MSE run (best-valid 0.3650 vs that run's 0.3397; test 0.4287 vs that run's 0.3715) — this richer-feature version underperformed at every stage, not just at test time. The valid→test gap here (+0.064, 0.365→0.429) is also the largest seen across any run in this project. **Honest takeaway: enriching the pocket-prior from 4 simple degree-based features to 8 real-distance features did not help — it hurt, on both validation and test.** Plausibly the extra features gave the tiny pocket MLP more room to fit noise without adding real signal beyond what plain degree already captured. The simpler degree-only features (used in the 0.3715 best result) remain the better choice for this architecture. Reverting `RICH_STRUCT_FEATURES` to `False` (plain 4-feature pocket prior) is recommended going forward unless revisited with stronger regularization._
 
-### Seed 42 — GNN-derived pocket prior (In Progress — epoch 49, NOT final)
+### Seed 42 — GNN-derived pocket prior (Paused at epoch 51 — interrupted, NOT final)
 
 _Same backbone/split/seed/plain-MSE loss as the 0.3715 result — **only the source of the pocket score changed**: instead of hand-counted contact-degree features (`target2struct`), the pocket score now comes from `ProteinGraphNet`'s own per-residue embeddings (already learned via real message-passing over the AF2 contact graph), densified via `to_dense_batch` instead of being discarded after pooling. No separate feature-engineering pipeline — `code/model_pocketcross_gnnprior.py` / `code/train_pocketcross_gnnprior.py`. No test result yet; writes `Test-davis-unseen_prot-split42_new_gnnprior.csv` at natural early-stop._
 
@@ -649,14 +649,14 @@ _Same backbone/split/seed/plain-MSE loss as the 0.3715 result — **only the sou
 > | Valid CI | **0.8486** |
 > | Valid r2m | **0.5687** |
 
-_Note: valid has plateaued in a tight 0.334–0.345 band since ep28 (ep28: 0.3345, ep39: 0.3340 — barely different) while train keeps falling (now 0.079 at ep39, 0.063 by ep48) — the classic overfitting-past-plateau shape. Still, the plateau itself sits BELOW the current champion's test MSE (0.3715) and its best-valid (0.3397). Patience ~10/20 at epoch 49. Test number pending — every cold-protein run here has shown a real valid→test gap (+0.03 to +0.06)._
+_Note: valid has plateaued in a tight 0.334–0.345 band since ep28 (ep28: 0.3345, ep39: 0.3340 — barely different) while train keeps falling (now 0.062 by ep51) — the classic overfitting-past-plateau shape. Still, the plateau itself sits BELOW the current champion's test MSE (0.3715) and its best-valid (0.3397). Run was interrupted at ep51 (patience ~12/20, not a natural early-stop) — no test result exists. Resume checkpoint saved; re-run `python code/train_pocketcross_gnnprior.py` to continue from ep52._
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
 | 17 | 0.1882 | 0.3633 | 0.8399 | 0.5275 |
 | 28 | 0.1137 | 0.3345 | 0.8506 | 0.5558 |
 | **39 (best so far)** | 0.0785 | **0.3340** | 0.8486 | 0.5687 |
-| 49 (latest) | 0.0665 | 0.3429 | 0.8402 | 0.5345 |
+| 51 (paused) | 0.0617 | 0.3390 | 0.8390 | 0.5518 |
 
 ---
 
