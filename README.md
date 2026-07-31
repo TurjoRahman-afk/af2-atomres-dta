@@ -543,8 +543,9 @@ Existing DTA models (KANPM, and the baseline above) **pool** the drug and protei
 | Baseline (old model, plain MSE) | 0.4071 | 0.8382 | 0.4112 |
 | KANPM-DTA (target) | 0.314 | 0.857 | 0.556 |
 | AF2-PocketCross-DTA (weighted loss) | 0.3781 | 0.8450 | 0.4542 |
-| **AF2-PocketCross-DTA (plain MSE) — best result** | **0.3715** | **0.8453** | **0.4628** |
+| AF2-PocketCross-DTA (plain MSE, hand-counted pocket features) | 0.3715 | 0.8453 | 0.4628 |
 | AF2-PocketCross-DTA (plain MSE, rich distance-features) — worse, not adopted | 0.4287 | 0.8180 | 0.4206 |
+| **AF2-PocketCross-DTA (plain MSE, GNN-derived pocket prior) — best result** | **0.3519** | **0.8547** | **0.4928** |
 
 ### Seed 42 — Plain MSE ablation (Complete — natural early-stop ep82)
 
@@ -637,11 +638,11 @@ _Same model/split/seed/plain-MSE loss as the 0.3715 result above — **only the 
 
 _**Result (Complete) — negative finding:** test **MSE 0.4287 / CI 0.8180 / r²ₘ 0.4206** is WORSE than every other pocket-cross variant, and worse than even the pre-pocket-cross baseline (0.4071). Both valid AND test are worse than the winning plain-MSE run (best-valid 0.3650 vs that run's 0.3397; test 0.4287 vs that run's 0.3715) — this richer-feature version underperformed at every stage, not just at test time. The valid→test gap here (+0.064, 0.365→0.429) is also the largest seen across any run in this project. **Honest takeaway: enriching the pocket-prior from 4 simple degree-based features to 8 real-distance features did not help — it hurt, on both validation and test.** Plausibly the extra features gave the tiny pocket MLP more room to fit noise without adding real signal beyond what plain degree already captured. The simpler degree-only features (used in the 0.3715 best result) remain the better choice for this architecture. Reverting `RICH_STRUCT_FEATURES` to `False` (plain 4-feature pocket prior) is recommended going forward unless revisited with stronger regularization._
 
-### Seed 42 — GNN-derived pocket prior (In Progress — epoch 75, NOT final)
+### Seed 42 — GNN-derived pocket prior (Complete — natural early-stop ep84) — 🏆 NEW BEST
 
-_Same backbone/split/seed/plain-MSE loss as the 0.3715 result — **only the source of the pocket score changed**: instead of hand-counted contact-degree features (`target2struct`), the pocket score now comes from `ProteinGraphNet`'s own per-residue embeddings (already learned via real message-passing over the AF2 contact graph), densified via `to_dense_batch` instead of being discarded after pooling. No separate feature-engineering pipeline — `code/model_pocketcross_gnnprior.py` / `code/train_pocketcross_gnnprior.py`. No test result yet; writes `Test-davis-unseen_prot-split42_new_gnnprior.csv` at natural early-stop._
+_Same backbone/split/seed/plain-MSE loss as the 0.3715 result — **only the source of the pocket score changed**: instead of hand-counted contact-degree features (`target2struct`), the pocket score now comes from `ProteinGraphNet`'s own per-residue embeddings (already learned via real message-passing over the AF2 contact graph), densified via `to_dense_batch` instead of being discarded after pooling. No separate feature-engineering pipeline — `code/model_pocketcross_gnnprior.py` / `code/train_pocketcross_gnnprior.py`. Trained to natural early-stop (best valid at ep64, patience 20 exhausted at ep84). Tested on the ep64 checkpoint._
 
-> **Best-valid so far — Epoch 64** (not final)
+> **Best Checkpoint — Epoch 64**
 > | Metric | Value |
 > |--------|-------|
 > | Train MSE | 0.0526 |
@@ -649,14 +650,22 @@ _Same backbone/split/seed/plain-MSE loss as the 0.3715 result — **only the sou
 > | Valid CI | **0.8504** |
 > | Valid r2m | **0.5891** |
 
-_Note: resumed cleanly past ep69 and kept training, but no improvement since ep64 (0.3185) — patience ~11/20 at epoch 75. **0.3185 remains the lowest valid MSE seen from any pocket-cross variant in this project**, clearly below the current champion's test MSE (0.3715) and its own best-valid (0.3397). Still no test result — every cold-protein run here has shown a real valid→test gap (+0.03 to +0.06), so this is promising but not yet proven._
+> **Final Test Result** (natural early-stop ep84; tested on ep64 checkpoint)
+> | Metric | Value |
+> |--------|-------|
+> | Test MSE | **0.3519** |
+> | Test CI | **0.8547** |
+> | Test r2m | **0.4928** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
 | 39 | 0.0785 | 0.3340 | 0.8486 | 0.5687 |
 | 59 | 0.0550 | 0.3264 | 0.8398 | 0.5737 |
-| **64 (best so far)** | 0.0526 | **0.3185** | 0.8504 | 0.5891 |
-| 75 (latest) | 0.0480 | 0.3386 | 0.8466 | 0.5330 |
+| **64 (best)** | 0.0526 | **0.3185** | 0.8504 | 0.5891 |
+| 75 | 0.0480 | 0.3386 | 0.8466 | 0.5330 |
+| 84 (final) | 0.0465 | 0.3390 | 0.8507 | 0.5391 |
+
+_**Result (Complete) — new best:** test **MSE 0.3519 / CI 0.8547 / r²ₘ 0.4928** — **beats the previous champion (hand-counted pocket features) on all three metrics** (0.3715→0.3519 MSE, −0.0196; 0.8453→0.8547 CI; 0.4628→0.4928 r²ₘ). Reusing the protein GNN's own learned per-residue embeddings — instead of hand-counted contact-degree features — genuinely helps. The gap to KANPM narrows further: MSE gap 0.093 (baseline) → 0.058 (previous champion) → **0.038** (this result); CI gap is now only 0.002 (0.8547 vs 0.857) — essentially matched. r²ₘ gap remains the largest weak point (0.493 vs 0.556). This is now the standing best result for AF2-PocketCross-DTA on cold-protein seed 42._
 
 ---
 
