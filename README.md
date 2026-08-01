@@ -667,6 +667,27 @@ _Same backbone/split/seed/plain-MSE loss as the 0.3715 result — **only the sou
 
 _**Result (Complete) — new best:** test **MSE 0.3519 / CI 0.8547 / r²ₘ 0.4928** — **beats the previous champion (hand-counted pocket features) on all three metrics** (0.3715→0.3519 MSE, −0.0196; 0.8453→0.8547 CI; 0.4628→0.4928 r²ₘ). Reusing the protein GNN's own learned per-residue embeddings — instead of hand-counted contact-degree features — genuinely helps. The gap to KANPM narrows further: MSE gap 0.093 (baseline) → 0.058 (previous champion) → **0.038** (this result); CI gap is now only 0.002 (0.8547 vs 0.857) — essentially matched. r²ₘ gap remains the largest weak point (0.493 vs 0.556). This is now the standing best result for AF2-PocketCross-DTA on cold-protein seed 42._
 
+### Seed 42 — Attention pooling (In Progress — epoch 17, NOT final)
+
+_Same model/split/seed/plain-MSE loss as the 0.3519 champion — **only the sequence-summary pooling changed**: the two summary vectors (`gd`, `gp`) are now produced by KANPM's learned `LinearAttention(128, 64, 8)` instead of a plain masked mean. Motivation: KANPM's ablation prices `W/O Linear Attention` at **+0.054 MSE** on unseen-protein — second only to the sequence branch and ~4× the graph branch (+0.014) — and KANPM has this component while the champion does not. Averaging 1200 residues equally dilutes the ~10–30 binding-site residues by ~40×. Cost: **+17,552 params (+0.13%)**, the cheapest change tried in this project; smoke test confirmed the param delta is exactly the two pooling modules. `code/model_pocketcross_attnpool.py` / `code/train_pocketcross_attnpool.py`. No test result yet; writes `Test-davis-unseen_prot-split42_new_attnpool.csv` at natural early-stop._
+
+> **Best-valid so far — Epoch 14** (not final)
+> | Metric | Value |
+> |--------|-------|
+> | Train MSE | 0.2166 |
+> | Valid MSE | **0.3440** |
+> | Valid CI | **0.8442** |
+> | Valid r2m | **0.5882** |
+
+_Note: tracking slightly ahead of the champion at comparable epochs (ep10: 0.3727 vs champion's 0.3926; ep17: 0.3564 vs 0.3633), and reached 0.3440 by ep14 where the champion needed ~ep28 for 0.3345. Encouraging but very early — patience only ~3/20, and the champion kept improving all the way to ep64 (0.3185). Far too soon to draw a conclusion._
+
+| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
+|-------|-----------|-----------|----------|-----------|
+| 5 | 0.3880 | 0.4359 | 0.8107 | 0.4939 |
+| 10 | 0.2812 | 0.3727 | 0.8409 | 0.5166 |
+| **14 (best so far)** | 0.2166 | **0.3440** | 0.8442 | 0.5882 |
+| 17 (latest) | 0.1794 | 0.3564 | 0.8504 | 0.5559 |
+
 ---
 
 ## Ablation Study (To Be Updated After Training)
