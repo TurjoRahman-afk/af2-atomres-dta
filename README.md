@@ -667,7 +667,7 @@ _Same backbone/split/seed/plain-MSE loss as the 0.3715 result — **only the sou
 
 _**Result (Complete) — new best:** test **MSE 0.3519 / CI 0.8547 / r²ₘ 0.4928** — **beats the previous champion (hand-counted pocket features) on all three metrics** (0.3715→0.3519 MSE, −0.0196; 0.8453→0.8547 CI; 0.4628→0.4928 r²ₘ). Reusing the protein GNN's own learned per-residue embeddings — instead of hand-counted contact-degree features — genuinely helps. The gap to KANPM narrows further: MSE gap 0.093 (baseline) → 0.058 (previous champion) → **0.038** (this result); CI gap is now only 0.002 (0.8547 vs 0.857) — essentially matched. r²ₘ gap remains the largest weak point (0.493 vs 0.556). This is now the standing best result for AF2-PocketCross-DTA on cold-protein seed 42._
 
-### Seed 42 — Attention pooling (In Progress — epoch 25, NOT final)
+### Seed 42 — Attention pooling (In Progress — epoch 44, early-stop imminent, NOT final)
 
 _Same model/split/seed/plain-MSE loss as the 0.3519 champion — **only the sequence-summary pooling changed**: the two summary vectors (`gd`, `gp`) are now produced by KANPM's learned `LinearAttention(128, 64, 8)` instead of a plain masked mean. Motivation: KANPM's ablation prices `W/O Linear Attention` at **+0.054 MSE** on unseen-protein — second only to the sequence branch and ~4× the graph branch (+0.014) — and KANPM has this component while the champion does not. Averaging 1200 residues equally dilutes the ~10–30 binding-site residues by ~40×. Cost: **+17,552 params (+0.13%)**, the cheapest change tried in this project; smoke test confirmed the param delta is exactly the two pooling modules. `code/model_pocketcross_attnpool.py` / `code/train_pocketcross_attnpool.py`. No test result yet; writes `Test-davis-unseen_prot-split42_new_attnpool.csv` at natural early-stop._
 
@@ -679,14 +679,15 @@ _Same model/split/seed/plain-MSE loss as the 0.3519 champion — **only the sequ
 > | Valid CI | **0.8496** |
 > | Valid r2m | **0.5949** |
 
-_Note: broke the ep14–24 plateau with a sharp drop at ep25 (0.3440 → **0.3256**). This is well ahead of the champion's pace — the champion needed until ~ep59 to reach 0.3264, and its all-run best was 0.3185 (ep64). r²ₘ (0.5949) is also the strongest valid r²ₘ of any variant at this stage, which matters since r²ₘ is the largest remaining gap to KANPM (0.556). Patience just reset. Still validation, not test — every cold-protein run here has shown a +0.03 to +0.06 valid→test gap._
+_Note: ep25's 0.3256 has held as the best through 19 further epochs — valid has plateaued in a 0.338–0.402 band while train fell to 0.066, the familiar overfitting-past-plateau shape. **Patience ~19/20, so natural early-stop is expected around ep46.** Reaching 0.3256 at ep25 was well ahead of the champion's pace (it needed ~ep59 for 0.3264), but the champion kept grinding down to 0.3185 by ep64 whereas this run stalled earlier — so the two end up close on validation. The test number is what will separate them; every cold-protein run here has shown a +0.03 to +0.06 valid→test gap._
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
 | 10 | 0.2812 | 0.3727 | 0.8409 | 0.5166 |
 | 14 | 0.2166 | 0.3440 | 0.8442 | 0.5882 |
-| 21 | 0.1442 | 0.3461 | 0.8502 | 0.5321 |
 | **25 (best so far)** | 0.1196 | **0.3256** | 0.8496 | 0.5949 |
+| 33 | 0.0906 | 0.3385 | 0.8445 | 0.5634 |
+| 44 (latest) | 0.0660 | 0.3609 | 0.8438 | 0.5270 |
 
 ---
 
