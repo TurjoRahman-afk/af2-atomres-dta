@@ -545,6 +545,7 @@ Existing DTA models (KANPM, and the baseline above) **pool** the drug and protei
 | AF2-PocketCross-DTA (weighted loss) | 0.3781 | 0.8450 | 0.4542 |
 | AF2-PocketCross-DTA (plain MSE, hand-counted pocket features) | 0.3715 | 0.8453 | 0.4628 |
 | AF2-PocketCross-DTA (plain MSE, rich distance-features) — worse, not adopted | 0.4287 | 0.8180 | 0.4206 |
+| AF2-PocketCross-DTA (plain MSE, attention pooling) — worse, not adopted | 0.3759 | 0.8420 | 0.4699 |
 | **AF2-PocketCross-DTA (plain MSE, GNN-derived pocket prior) — best result** | **0.3519** | **0.8547** | **0.4928** |
 
 ### Seed 42 — Plain MSE ablation (Complete — natural early-stop ep82)
@@ -667,11 +668,11 @@ _Same backbone/split/seed/plain-MSE loss as the 0.3715 result — **only the sou
 
 _**Result (Complete) — new best:** test **MSE 0.3519 / CI 0.8547 / r²ₘ 0.4928** — **beats the previous champion (hand-counted pocket features) on all three metrics** (0.3715→0.3519 MSE, −0.0196; 0.8453→0.8547 CI; 0.4628→0.4928 r²ₘ). Reusing the protein GNN's own learned per-residue embeddings — instead of hand-counted contact-degree features — genuinely helps. The gap to KANPM narrows further: MSE gap 0.093 (baseline) → 0.058 (previous champion) → **0.038** (this result); CI gap is now only 0.002 (0.8547 vs 0.857) — essentially matched. r²ₘ gap remains the largest weak point (0.493 vs 0.556). This is now the standing best result for AF2-PocketCross-DTA on cold-protein seed 42._
 
-### Seed 42 — Attention pooling (In Progress — epoch 44, early-stop imminent, NOT final)
+### Seed 42 — Attention pooling (Complete — natural early-stop ep46) — ❌ WORSE, not adopted
 
 _Same model/split/seed/plain-MSE loss as the 0.3519 champion — **only the sequence-summary pooling changed**: the two summary vectors (`gd`, `gp`) are now produced by KANPM's learned `LinearAttention(128, 64, 8)` instead of a plain masked mean. Motivation: KANPM's ablation prices `W/O Linear Attention` at **+0.054 MSE** on unseen-protein — second only to the sequence branch and ~4× the graph branch (+0.014) — and KANPM has this component while the champion does not. Averaging 1200 residues equally dilutes the ~10–30 binding-site residues by ~40×. Cost: **+17,552 params (+0.13%)**, the cheapest change tried in this project; smoke test confirmed the param delta is exactly the two pooling modules. `code/model_pocketcross_attnpool.py` / `code/train_pocketcross_attnpool.py`. No test result yet; writes `Test-davis-unseen_prot-split42_new_attnpool.csv` at natural early-stop._
 
-> **Best-valid so far — Epoch 25** (not final)
+> **Best Checkpoint — Epoch 25**
 > | Metric | Value |
 > |--------|-------|
 > | Train MSE | 0.1196 |
@@ -679,15 +680,26 @@ _Same model/split/seed/plain-MSE loss as the 0.3519 champion — **only the sequ
 > | Valid CI | **0.8496** |
 > | Valid r2m | **0.5949** |
 
-_Note: ep25's 0.3256 has held as the best through 19 further epochs — valid has plateaued in a 0.338–0.402 band while train fell to 0.066, the familiar overfitting-past-plateau shape. **Patience ~19/20, so natural early-stop is expected around ep46.** Reaching 0.3256 at ep25 was well ahead of the champion's pace (it needed ~ep59 for 0.3264), but the champion kept grinding down to 0.3185 by ep64 whereas this run stalled earlier — so the two end up close on validation. The test number is what will separate them; every cold-protein run here has shown a +0.03 to +0.06 valid→test gap._
+> **Final Test Result** (natural early-stop ep46; tested on ep25 checkpoint)
+> | Metric | Value |
+> |--------|-------|
+> | Test MSE | **0.3759** |
+> | Test CI | **0.8420** |
+> | Test r2m | **0.4699** |
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
 | 10 | 0.2812 | 0.3727 | 0.8409 | 0.5166 |
 | 14 | 0.2166 | 0.3440 | 0.8442 | 0.5882 |
-| **25 (best so far)** | 0.1196 | **0.3256** | 0.8496 | 0.5949 |
+| **25 (best)** | 0.1196 | **0.3256** | 0.8496 | 0.5949 |
 | 33 | 0.0906 | 0.3385 | 0.8445 | 0.5634 |
-| 44 (latest) | 0.0660 | 0.3609 | 0.8438 | 0.5270 |
+| 45 (final) | 0.0638 | 0.3522 | 0.8336 | 0.5347 |
+
+_**Result (Complete) — negative finding:** test **MSE 0.3759 / CI 0.8420 / r²ₘ 0.4699** — **worse than the champion on all three metrics** (MSE +0.0240, CI −0.0127, r²ₘ −0.0230). Attention pooling is **not adopted**; the champion's plain-mean pooling stays._
+
+_**Why the prediction failed.** The change was motivated by KANPM's ablation pricing `W/O Linear Attention` at +0.054 on unseen-protein. That evidence did not transfer, and in hindsight the reason is identifiable: **that ablation was measured on KANPM's architecture, which has no cross-attention** — there, `LinearAttention` is the *only* mechanism that can focus on relevant residues, so removing it is devastating. This model already has `StructGuidedInteraction`, a pocket-biased attention over residues. The summary vectors `gd`/`gp` are supplementary context, so a learned pool there is largely **redundant with focusing the model already does** — and the extra parameters cost more than the redundant focusing gained._
+
+_Also notable: this run had a **larger valid→test gap** than the champion (+0.050 vs +0.034), i.e. it generalized worse despite an early validation lead — it reached 0.3256 by ep25 (champion needed ~ep59 for 0.3264) but then stalled, while the champion kept improving to 0.3185 by ep64. **Fast early validation progress was not predictive of final test quality.**_
 
 ---
 
