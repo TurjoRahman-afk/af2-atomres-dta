@@ -59,7 +59,7 @@ def test(model, dataloader):
 
 if __name__ == "__main__":
     SEED = 0
-    SPLIT_SEED = 42
+    SPLIT_SEED = 41
     random.seed(SEED); torch.manual_seed(SEED); torch.cuda.manual_seed_all(SEED)
     torch.set_num_threads(4); torch.backends.cudnn.benchmark = True
 
