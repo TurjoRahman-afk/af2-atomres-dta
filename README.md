@@ -668,19 +668,21 @@ _Same backbone/split/seed/plain-MSE loss as the 0.3715 result — **only the sou
 
 _**Result (Complete) — new best:** test **MSE 0.3519 / CI 0.8547 / r²ₘ 0.4928** — **beats the previous champion (hand-counted pocket features) on all three metrics** (0.3715→0.3519 MSE, −0.0196; 0.8453→0.8547 CI; 0.4628→0.4928 r²ₘ). Reusing the protein GNN's own learned per-residue embeddings — instead of hand-counted contact-degree features — genuinely helps. The gap to KANPM narrows further: MSE gap 0.093 (baseline) → 0.058 (previous champion) → **0.038** (this result); CI gap is now only 0.002 (0.8547 vs 0.857) — essentially matched. r²ₘ gap remains the largest weak point (0.493 vs 0.556). This is now the standing best result for AF2-PocketCross-DTA on cold-protein seed 42._
 
-### Seed 41 — GNN-derived pocket prior (In Progress — epoch 28, NOT final) — seed validation
+### Seed 41 — GNN-derived pocket prior (Paused at epoch 29 — interrupted, NOT final) — seed validation
 
 _**Purpose: validation, not a new idea.** Identical model and config to the seed-42 champion — **only the data split changed** (`cold_split.py` SEED 41, `SPLIT_SEED = 41`). Every result in this project so far comes from seed 42 alone, and the champion's margin over the runner-up (0.0196) is **smaller than the 0.037 seed swing already observed on the warm split** (seed 41: 0.1973 vs seed 42: 0.2340). So a single-seed result cannot distinguish a real improvement from split luck. Verified this is a genuinely independent evaluation: **only 2 of 44 test proteins overlap with the seed-42 test set.**_
 
-> **Best-valid so far — Epoch 28** (not final)
+> **Best-valid so far — Epoch 29** (not final)
 > | Metric | Value |
 > |--------|-------|
-> | Train MSE | 0.1022 |
-> | Valid MSE | **0.2694** |
-> | Valid CI | **0.8678** |
-> | Valid r2m | **0.5548** |
+> | Train MSE | 0.0995 |
+> | Valid MSE | **0.2578** |
+> | Valid CI | **0.8719** |
+> | Valid r2m | **0.5855** |
 
-_Note: seed 41 is running **far ahead of seed 42's pace** — at ep10 it was at 0.3253 vs seed 42's 0.3926, and its best is now **0.2694**, far below seed 42's all-run best (0.3185, which took until ep64). Valid CI has also reached **0.8678**, above seed 42's best. **This is itself the finding:** seed 41 is a substantially easier split, which is exactly the seed-to-seed variance that motivated this run. Absolute numbers across seeds are therefore **not** comparable as "better model" — only the mean ± std across several seeds is meaningful. The curve plateaued ~0.283–0.30 from ep14–27 before dropping to 0.2694 at ep28; patience just reset, so training continues. Test number pending._
+_Note: seed 41 is running **far ahead of seed 42's pace** — at ep10 it was at 0.3253 vs seed 42's 0.3926, and its best is now **0.2578**, far below seed 42's all-run best (0.3185, which took until ep64). Valid CI (**0.8719**) and r²ₘ (**0.5855**) are also both above anything seed 42 reached. **This is itself the finding:** seed 41 is a substantially easier split, which is exactly the seed-to-seed variance that motivated this run. Absolute numbers across seeds are therefore **not** comparable as "better model" — only the mean ± std across several seeds is meaningful._
+
+_**Run status:** interrupted at ep29 — **not** a natural early-stop (ep29 set a new best, so patience was 0). No test result exists. Resume checkpoint saved; re-run `python code/train_pocketcross_gnnprior.py` to continue from ep30. Still improving when stopped, so the final number is likely lower still._
 
 | Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
 |-------|-----------|-----------|----------|-----------|
@@ -688,7 +690,8 @@ _Note: seed 41 is running **far ahead of seed 42's pace** — at ep10 it was at 
 | 12 | 0.2287 | 0.2878 | 0.8517 | 0.5665 |
 | 14 | 0.1991 | 0.2809 | 0.8616 | 0.5778 |
 | 20 | 0.1485 | 0.2852 | 0.8668 | 0.5427 |
-| **28 (best so far)** | 0.1022 | **0.2694** | 0.8678 | 0.5548 |
+| 28 | 0.1022 | 0.2694 | 0.8678 | 0.5548 |
+| **29 (best so far, paused)** | 0.0995 | **0.2578** | 0.8719 | 0.5855 |
 
 ---
 
