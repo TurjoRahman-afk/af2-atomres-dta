@@ -668,6 +668,29 @@ _Same backbone/split/seed/plain-MSE loss as the 0.3715 result — **only the sou
 
 _**Result (Complete) — new best:** test **MSE 0.3519 / CI 0.8547 / r²ₘ 0.4928** — **beats the previous champion (hand-counted pocket features) on all three metrics** (0.3715→0.3519 MSE, −0.0196; 0.8453→0.8547 CI; 0.4628→0.4928 r²ₘ). Reusing the protein GNN's own learned per-residue embeddings — instead of hand-counted contact-degree features — genuinely helps. The gap to KANPM narrows further: MSE gap 0.093 (baseline) → 0.058 (previous champion) → **0.038** (this result); CI gap is now only 0.002 (0.8547 vs 0.857) — essentially matched. r²ₘ gap remains the largest weak point (0.493 vs 0.556). This is now the standing best result for AF2-PocketCross-DTA on cold-protein seed 42._
 
+### Seed 41 — GNN-derived pocket prior (In Progress — epoch 11, NOT final) — seed validation
+
+_**Purpose: validation, not a new idea.** Identical model and config to the seed-42 champion — **only the data split changed** (`cold_split.py` SEED 41, `SPLIT_SEED = 41`). Every result in this project so far comes from seed 42 alone, and the champion's margin over the runner-up (0.0196) is **smaller than the 0.037 seed swing already observed on the warm split** (seed 41: 0.1973 vs seed 42: 0.2340). So a single-seed result cannot distinguish a real improvement from split luck. Verified this is a genuinely independent evaluation: **only 2 of 44 test proteins overlap with the seed-42 test set.**_
+
+> **Best-valid so far — Epoch 11** (not final)
+> | Metric | Value |
+> |--------|-------|
+> | Train MSE | 0.2442 |
+> | Valid MSE | **0.3072** |
+> | Valid CI | **0.8427** |
+> | Valid r2m | **0.5610** |
+
+_Note: seed 41 is running **far ahead of seed 42's pace** — at ep10 it was at 0.3253 vs seed 42's 0.3926, and by ep11 it reached **0.3072**, already lower than seed 42's all-run best (0.3185, reached at ep64). **This is itself the finding:** it indicates seed 41 is a substantially easier split, which is exactly the seed-to-seed variance that motivated this run. Absolute numbers across seeds are therefore **not** directly comparable as "better model" — only the mean ± std across several seeds is meaningful. Test number pending._
+
+| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
+|-------|-----------|-----------|----------|-----------|
+| 5 | 0.3860 | 0.3998 | 0.8047 | 0.4162 |
+| 9 | 0.2864 | 0.3201 | 0.8434 | 0.5032 |
+| 10 | 0.2622 | 0.3253 | 0.8416 | 0.4955 |
+| **11 (best so far)** | 0.2442 | **0.3072** | 0.8427 | 0.5610 |
+
+---
+
 ### Seed 42 — Attention pooling (Complete — natural early-stop ep46) — ❌ WORSE, not adopted
 
 _Same model/split/seed/plain-MSE loss as the 0.3519 champion — **only the sequence-summary pooling changed**: the two summary vectors (`gd`, `gp`) are now produced by KANPM's learned `LinearAttention(128, 64, 8)` instead of a plain masked mean. Motivation: KANPM's ablation prices `W/O Linear Attention` at **+0.054 MSE** on unseen-protein — second only to the sequence branch and ~4× the graph branch (+0.014) — and KANPM has this component while the champion does not. Averaging 1200 residues equally dilutes the ~10–30 binding-site residues by ~40×. Cost: **+17,552 params (+0.13%)**, the cheapest change tried in this project; smoke test confirmed the param delta is exactly the two pooling modules. **Code and checkpoints were deleted after the negative result** — recoverable from git commit `3e0138b` if this is ever revisited._
