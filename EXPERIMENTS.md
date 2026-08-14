@@ -38,7 +38,11 @@
 
 ---
 
-# AF2-CrossKAN-DTA: Drug-Target Affinity Prediction with AlphaFold2 Structures, Cross-Attention, and Kolmogorov-Arnold Networks
+## Superseded architecture — v4 (cross-attention + bilinear fusion)
+
+> ⚠️ **This section describes the OLD model, kept for the record.** Cross-attention and bilinear
+> fusion were both **removed** when PocketCross replaced them. For the current architecture see
+> [README.md](README.md).
 
 ---
 
@@ -512,7 +516,7 @@ _Result (Complete): cold-protein **test MSE 0.4071, CI 0.8382, r2m 0.4112** on 4
 
 ---
 
-# 🧬 AF2-PocketCross-DTA — Structure-Guided Atom↔Residue Interaction (New Model)
+## AF2-PocketCross-DTA — development log
 
 > **Self-contained section for the new architecture.** Code: `code/model_pocketcross.py`, trained via `code/train_pocketcross.py`. If it outperforms the baseline, everything above this line can be removed and this becomes the main model.
 
