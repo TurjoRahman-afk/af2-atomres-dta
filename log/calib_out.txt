@@ -1,0 +1,14 @@
+C:\Users\uskha\AppData\Local\Programs\Python\Python311\Lib\site-packages\torch_geometric\__init__.py:4: UserWarning: An issue occurred while importing 'pyg-lib'. Disabling its usage. Stacktrace: Could not load this library: C:\Users\uskha\AppData\Local\Programs\Python\Python311\Lib\site-packages\libpyg.pyd
+  import torch_geometric.typing
+C:\Users\uskha\AppData\Local\Programs\Python\Python311\Lib\site-packages\torch_geometric\__init__.py:4: UserWarning: An issue occurred while importing 'torch-spline-conv'. Disabling its usage. Stacktrace: Could not load this library: C:\Users\uskha\AppData\Local\Programs\Python\Python311\Lib\site-packages\torch_spline_conv\_version_cuda.pyd
+  import torch_geometric.typing
+C:\Users\uskha\AppData\Local\Programs\Python\Python311\Lib\site-packages\torch_geometric\__init__.py:4: UserWarning: An issue occurred while importing 'torch-sparse'. Disabling its usage. Stacktrace: Could not load this library: C:\Users\uskha\AppData\Local\Programs\Python\Python311\Lib\site-packages\libpyg.pyd
+  import torch_geometric.typing
+CALIBRATION fit on VALID only:  y = 0.9121*pred + +0.5172
+
+                              MSE       CI      r2m
+test  raw                  0.3601   0.8590   0.5460
+test  recalibrated         0.3525   0.8590   0.5993
+CHANGE                    -0.0075  +0.0000  +0.0533
+
+pred-vs-truth slope on test: raw 0.666 -> recal 0.608  (1.0 = ideal)

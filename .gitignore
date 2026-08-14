@@ -33,3 +33,6 @@ log/*.out
 # OS
 .DS_Store
 Thumbs.db
+
+# Intermediate analysis arrays (regenerable from the scripts)
+log/*.npz

@@ -1,0 +1,16 @@
+C:\Users\uskha\AppData\Local\Programs\Python\Python311\Lib\site-packages\torch_geometric\__init__.py:4: UserWarning: An issue occurred while importing 'pyg-lib'. Disabling its usage. Stacktrace: Could not load this library: C:\Users\uskha\AppData\Local\Programs\Python\Python311\Lib\site-packages\libpyg.pyd
+  import torch_geometric.typing
+C:\Users\uskha\AppData\Local\Programs\Python\Python311\Lib\site-packages\torch_geometric\__init__.py:4: UserWarning: An issue occurred while importing 'torch-spline-conv'. Disabling its usage. Stacktrace: Could not load this library: C:\Users\uskha\AppData\Local\Programs\Python\Python311\Lib\site-packages\torch_spline_conv\_version_cuda.pyd
+  import torch_geometric.typing
+C:\Users\uskha\AppData\Local\Programs\Python\Python311\Lib\site-packages\torch_geometric\__init__.py:4: UserWarning: An issue occurred while importing 'torch-sparse'. Disabling its usage. Stacktrace: Could not load this library: C:\Users\uskha\AppData\Local\Programs\Python\Python311\Lib\site-packages\libpyg.pyd
+  import torch_geometric.typing
+proteins with unambiguous HRD...DFG catalytic motif: 60
+
+mean pocket_logit at ATP-site region : +0.0672
+mean pocket_logit elsewhere          : +0.0923
+mean difference (site - elsewhere)   : -0.0251
+mean z-score (in units of protein-wise std): +0.046
+proteins where site scored HIGHER    : 31 / 60  (52%)   [50% = chance]
+paired t-test: t=-0.911, p=3.66e-01
+
+verdict: NO reliable relation to the ATP site
