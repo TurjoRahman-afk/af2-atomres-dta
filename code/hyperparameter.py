@@ -10,6 +10,7 @@ class HyperParameter:
         self.mol2vec_dir = f'./pretrained/{self.dataset}/{self.dataset}_chem_pretrained.pkl'
         self.protvec_dir = f'./pretrained/{self.dataset}/{self.dataset}_esmc_pretrain.pkl'
         self.contact_map = f'./pretrained/{self.dataset}/{self.dataset}_af2_contact_map.pkl'
+        self.plddt_dir = f'./pretrained/{self.dataset}/{self.dataset}_af2_plddt.pkl'
         self.drugs_dir = f'{self.data_root}/{self.dataset}/{self.dataset}_drugs.csv'
         self.prots_dir = f'{self.data_root}/{self.dataset}/{self.dataset}_prots.csv'
 
@@ -26,10 +27,16 @@ class HyperParameter:
         self.cuda = '0'
         self.dropout = 0.2
 
+        # Append AF2 per-residue confidence (pLDDT) as an extra protein node feature.
+        # False -> 1152-dim ESM-C nodes (champion config, unchanged).
+        # True  -> 1153-dim (ESM-C + pLDDT/100), requires {dataset}_af2_plddt.pkl.
+        self.use_plddt = False
+
     def set_dataset(self, data_name):
         self.dataset = data_name
         self.mol2vec_dir = f'./pretrained/{self.dataset}/{self.dataset}_chem_pretrained.pkl'
         self.protvec_dir = f'./pretrained/{self.dataset}/{self.dataset}_esmc_pretrain.pkl'
         self.contact_map = f'./pretrained/{self.dataset}/{self.dataset}_af2_contact_map.pkl'
+        self.plddt_dir = f'./pretrained/{self.dataset}/{self.dataset}_af2_plddt.pkl'
         self.drugs_dir = f'{self.data_root}/{self.dataset}/{self.dataset}_drugs.csv'
         self.prots_dir = f'{self.data_root}/{self.dataset}/{self.dataset}_prots.csv'

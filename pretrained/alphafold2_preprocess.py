@@ -125,20 +125,23 @@ def download_alphafold_pdb(uniprot_id: str) -> Optional[str]:
     return None
 
 
-def extract_ca_coords(pdb_string: str) -> Optional[np.ndarray]:
-    """Parse PDB string and extract Cα atom coordinates."""
+def extract_ca_coords(pdb_string: str):
+    """Parse PDB string and extract Cα coordinates plus per-residue pLDDT.
+    AlphaFold2 writes its pLDDT confidence (0-100) into the B-factor column."""
     parser = PDBParser(QUIET=True)
     structure = parser.get_structure("protein", io.StringIO(pdb_string))
     ca_coords = []
+    plddt = []
     for model in structure:
         for chain in model:
             for residue in chain:
                 if "CA" in residue:
                     ca_coords.append(residue["CA"].get_coord())
+                    plddt.append(residue["CA"].get_bfactor())
         break  # only first model
     if len(ca_coords) == 0:
-        return None
-    return np.array(ca_coords)  # [L, 3]
+        return None, None
+    return np.array(ca_coords), np.array(plddt, dtype=np.float32)  # [L, 3], [L]
 
 
 def coords_to_contact_map(ca_coords: np.ndarray, threshold: float = CONTACT_THRESHOLD_ANGSTROM) -> np.ndarray:
@@ -148,6 +151,14 @@ def coords_to_contact_map(ca_coords: np.ndarray, threshold: float = CONTACT_THRE
     contact_mask = dist_matrix < threshold
     dist_matrix[~contact_mask] = 0.0                        # zero out non-contacts
     return dist_matrix.astype(np.float32)                   # actual distances, 0 = no contact
+
+
+def neutral_plddt(seq_len: int) -> np.ndarray:
+    """pLDDT stand-in for proteins with no AlphaFold2 entry (backbone fallback).
+    50.0 sits on the low/confident boundary — deliberately neutral, so these few
+    proteins neither claim reliability they don't have nor inject an extreme value
+    the model has too few examples of to interpret."""
+    return np.full(seq_len, 50.0, dtype=np.float32)
 
 
 def backbone_fallback_map(seq_len: int) -> np.ndarray:
@@ -170,29 +181,29 @@ def extract_base_gene(prot_id: str) -> Optional[str]:
     return base if base != prot_id else None
 
 
-def _fetch_af2(gene_key: str, cache: dict) -> Optional[np.ndarray]:
-    """Download AF2 for gene_key, cache result. Returns full contact map or None."""
+def _fetch_af2(gene_key: str, cache: dict):
+    """Download AF2 for gene_key, cache result. Returns (contact_map, plddt) or (None, None)."""
     if gene_key in cache:
         return cache[gene_key]
     # Resolve alias → official gene name if needed
     lookup_name = GENE_ALIASES.get(gene_key, gene_key)
     uniprot_id = gene_name_to_uniprot(lookup_name)
     if not uniprot_id:
-        cache[gene_key] = None
-        return None
+        cache[gene_key] = (None, None)
+        return None, None
     pdb_string = download_alphafold_pdb(uniprot_id)
     if not pdb_string:
         time.sleep(0.3)
-        cache[gene_key] = None
-        return None
-    ca_coords = extract_ca_coords(pdb_string)
+        cache[gene_key] = (None, None)
+        return None, None
+    ca_coords, plddt = extract_ca_coords(pdb_string)
     if ca_coords is None or len(ca_coords) == 0:
-        cache[gene_key] = None
-        return None
+        cache[gene_key] = (None, None)
+        return None, None
     cmap = coords_to_contact_map(ca_coords)
-    cache[gene_key] = cmap
+    cache[gene_key] = (cmap, plddt)
     time.sleep(0.2)
-    return cmap
+    return cmap, plddt
 
 
 def parse_organism_suffix(prot_id: str) -> Optional[str]:
@@ -204,64 +215,65 @@ def parse_organism_suffix(prot_id: str) -> Optional[str]:
     return None
 
 
-def _fetch_af2_organism(gene_key: str, organism: str, cache: dict) -> Optional[np.ndarray]:
-    """Download AF2 for gene_key in a specific organism."""
+def _fetch_af2_organism(gene_key: str, organism: str, cache: dict):
+    """Download AF2 for gene_key in a specific organism. Returns (contact_map, plddt)."""
     cache_key = f"{gene_key}|{organism}"
     if cache_key in cache:
         return cache[cache_key]
     lookup_name = GENE_ALIASES.get(gene_key, gene_key)
     uniprot_id = gene_name_to_uniprot(lookup_name, organism)
     if not uniprot_id:
-        cache[cache_key] = None
-        return None
+        cache[cache_key] = (None, None)
+        return None, None
     pdb_string = download_alphafold_pdb(uniprot_id)
     if not pdb_string:
         time.sleep(0.3)
-        cache[cache_key] = None
-        return None
-    ca_coords = extract_ca_coords(pdb_string)
+        cache[cache_key] = (None, None)
+        return None, None
+    ca_coords, plddt = extract_ca_coords(pdb_string)
     if ca_coords is None or len(ca_coords) == 0:
-        cache[cache_key] = None
-        return None
+        cache[cache_key] = (None, None)
+        return None, None
     cmap = coords_to_contact_map(ca_coords)
-    cache[cache_key] = cmap
+    cache[cache_key] = (cmap, plddt)
     time.sleep(0.2)
-    return cmap
+    return cmap, plddt
 
 
 def try_get_contact_map(prot_id: str, seq_len: int, cache: dict) -> tuple:
-    """Try AlphaFold2 download with alias and organism resolution. Returns (contact_map, source_label).
+    """Try AlphaFold2 download with alias and organism resolution.
+    Returns (contact_map, plddt, source_label).
     Every protein gets a contact map — backbone fallback is the guaranteed last resort."""
     base = extract_base_gene(prot_id) or prot_id  # strips mutation/domain suffix
     organism_from_suffix = parse_organism_suffix(prot_id)
 
     # 1. Try exact protein name with human AF2 first
-    cmap = _fetch_af2(prot_id, cache)
+    cmap, plddt = _fetch_af2(prot_id, cache)
     if cmap is not None:
         min_len = min(cmap.shape[0], seq_len)
-        return cmap[:min_len, :min_len], "af2"
+        return cmap[:min_len, :min_len], plddt[:min_len], "af2"
 
     # 2. Try base gene (strip mutation/domain suffix) with human AF2
     if base != prot_id:
-        cmap = _fetch_af2(base, cache)
+        cmap, plddt = _fetch_af2(base, cache)
         if cmap is not None:
             min_len = min(cmap.shape[0], seq_len)
-            return cmap[:min_len, :min_len], f"af2-wildtype({base})"
+            return cmap[:min_len, :min_len], plddt[:min_len], f"af2-wildtype({base})"
 
     # 3. Try organism-specific AF2 if protein ID contains organism suffix
     if organism_from_suffix and organism_from_suffix != "Homo sapiens":
-        cmap = _fetch_af2_organism(base, organism_from_suffix, cache)
+        cmap, plddt = _fetch_af2_organism(base, organism_from_suffix, cache)
         if cmap is not None:
             min_len = min(cmap.shape[0], seq_len)
-            return cmap[:min_len, :min_len], f"af2-{organism_from_suffix}"
+            return cmap[:min_len, :min_len], plddt[:min_len], f"af2-{organism_from_suffix}"
         # Also try with full prot_id as gene name
-        cmap = _fetch_af2_organism(prot_id, organism_from_suffix, cache)
+        cmap, plddt = _fetch_af2_organism(prot_id, organism_from_suffix, cache)
         if cmap is not None:
             min_len = min(cmap.shape[0], seq_len)
-            return cmap[:min_len, :min_len], f"af2-{organism_from_suffix}"
+            return cmap[:min_len, :min_len], plddt[:min_len], f"af2-{organism_from_suffix}"
 
     # 4. Guaranteed fallback — backbone sequential connectivity (all proteins included)
-    return backbone_fallback_map(seq_len), "backbone-fallback"
+    return backbone_fallback_map(seq_len), neutral_plddt(seq_len), "backbone-fallback"
 
 
 def process_dataset(dataset: str, data_root: str = "./datasets", output_root: str = "./pretrained"):
@@ -275,6 +287,7 @@ def process_dataset(dataset: str, data_root: str = "./datasets", output_root: st
     print(f"Processing {len(prot_ids)} proteins for dataset: {dataset}")
 
     contact_map_dict = {}
+    plddt_dict = {}
     stats = {"af2": 0, "wildtype": 0, "fallback": 0}
     base_gene_cache = {}  # avoid re-downloading wildtype for multiple mutants
 
@@ -282,9 +295,10 @@ def process_dataset(dataset: str, data_root: str = "./datasets", output_root: st
         print(f"[{i+1}/{len(prot_ids)}] {prot_id}")
         seq_len = seq_len_map.get(str(prot_id), 1200)
 
-        cmap, source = try_get_contact_map(str(prot_id), seq_len, base_gene_cache)
+        cmap, plddt, source = try_get_contact_map(str(prot_id), seq_len, base_gene_cache)
         contact_map_dict[str(prot_id)] = cmap
-        print(f"  → {source} ({cmap.shape[0]} residues)")
+        plddt_dict[str(prot_id)] = plddt
+        print(f"  → {source} ({cmap.shape[0]} residues, mean pLDDT {plddt.mean():.1f})")
 
         if source == "af2":
             stats["af2"] += 1
@@ -302,7 +316,14 @@ def process_dataset(dataset: str, data_root: str = "./datasets", output_root: st
     with open(out_path, "wb") as f:
         pickle.dump({"contact_map": contact_map_dict}, f)
 
+    # pLDDT goes in its own file so the contact-map pkl stays byte-compatible with
+    # every existing run — nothing that doesn't ask for pLDDT is affected.
+    plddt_path = os.path.join(out_dir, f"{dataset}_af2_plddt.pkl")
+    with open(plddt_path, "wb") as f:
+        pickle.dump({"plddt": plddt_dict}, f)
+
     print(f"\nSaved {len(contact_map_dict)}/{len(prot_ids)} contact maps to: {out_path}")
+    print(f"Saved {len(plddt_dict)} pLDDT arrays to: {plddt_path}")
     print(f"  Real AF2 structures : {stats['af2']}")
     print(f"  Wildtype fallback   : {stats['wildtype']}")
     print(f"  Backbone fallback   : {stats['fallback']}")
