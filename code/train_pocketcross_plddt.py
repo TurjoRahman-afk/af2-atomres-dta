@@ -126,6 +126,17 @@ if __name__ == "__main__":
     print("load dataset finished")
 
     dcache, pcache = build_graph_cache(drug_df, prot_df, protvec_dict, contact_map, plddt_map)
+
+    # my_collate_fn falls back to target2graph(cmap, esm) WITHOUT pLDDT on a cache miss,
+    # which would emit 1152-dim nodes into a 1153-dim batch. Guarantee that can't happen.
+    needed = set()
+    for s in ('train', 'valid', 'test'):
+        needed |= set(pd.read_csv(os.path.join(root, f'{s}.csv')).target_key.astype(str))
+    uncached = needed - set(pcache)
+    if uncached:
+        raise SystemExit(f"{len(uncached)} proteins in the split are not in the graph cache "
+                         f"(e.g. {sorted(uncached)[:5]}) — collate would build them without pLDDT.")
+    print(f"cache covers all {len(needed)} proteins in the split — no 1152/1153 mismatch possible")
     collate = lambda x: my_collate_fn(x, device, hp, drug_df, prot_df, mol2vec_dict, protvec_dict,
                                       contact_map, drug_graph_cache=dcache, protein_graph_cache=pcache)
     tl = DataLoader(train_set, batch_size=hp.Batch_size, shuffle=True, drop_last=True, collate_fn=collate, pin_memory=True)
