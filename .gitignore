@@ -36,3 +36,6 @@ Thumbs.db
 
 # Intermediate analysis arrays (regenerable from the scripts)
 log/*.npz
+
+# Local backups of large pickles (kept on disk, never committed)
+*.pkl.bak
