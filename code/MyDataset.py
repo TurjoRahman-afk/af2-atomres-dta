@@ -41,14 +41,7 @@ def matrix_pad_prot(arr, max_len):
         return new_arr, vec_mask
 
 # convert protein into a graph structure
-def target2graph(distance_map, protein_features_esm, plddt=None):
-    """Build the protein residue graph from the AF2 contact map.
-
-    plddt: optional [L] array of AlphaFold2 per-residue confidence (0-100). When given,
-    it is appended to each residue's ESM-C vector as one extra channel scaled to [0, 1],
-    so node features go 1152 -> 1153. Because it rides on the NODE features it propagates
-    through every message-passing layer, unlike edge weights which only reach conv0.
-    """
+def target2graph(distance_map, protein_features_esm):
     target_edge_index = []
     target_edge_distance = []
     protein_features_esm = protein_features_esm[1:-1, :]
@@ -74,12 +67,6 @@ def target2graph(distance_map, protein_features_esm, plddt=None):
         target_edge_distance.append(distance_map[i, j])
 
     target_feature = torch.FloatTensor(protein_features_esm)
-    if plddt is not None:
-        p = np.asarray(plddt, dtype=np.float32).reshape(-1)[:target_size]
-        if len(p) < target_size:   # AF2 model shorter than the sequence — pad neutral
-            p = np.pad(p, (0, target_size - len(p)), constant_values=50.0)
-        target_feature = torch.cat(
-            [target_feature, torch.from_numpy(p / 100.0).unsqueeze(1)], dim=1)
     target_edge_index = torch.LongTensor(target_edge_index).transpose(1, 0)
     # v1: binary contact map — uniform edge weight 1.0 (not distance-scaled), to match the 0.19 setup
     edge_weight = torch.ones(len(target_edge_distance), dtype=torch.float32)

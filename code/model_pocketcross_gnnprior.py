@@ -148,10 +148,7 @@ class MODEL(nn.Module):
         self.target_ln = nn.LayerNorm(d)
 
         self.drug_graph_model = DrugGraphNet()
-        # +1 node channel when AF2 pLDDT confidence is appended (hp.use_plddt); 1152 otherwise
-        self.protein_graph_model = ProteinGraphNet(
-            num_features_xd=hp.protvec_dim + (1 if getattr(hp, 'use_plddt', False) else 0),
-            protein_max=hp.prot_max_len)
+        self.protein_graph_model = ProteinGraphNet(protein_max=hp.prot_max_len)
         self.graph_fusion = GatedFusionLayer(d, d, d)
 
         self.pocket = PocketPrior(in_dim=self.protein_graph_model.node_dim)
