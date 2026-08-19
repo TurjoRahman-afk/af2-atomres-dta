@@ -18,6 +18,12 @@
 | PocketCross + attention pooling (KANPM LinearAttention) | 0.3759 | 0.8420 | 0.4699 | ❌ worse |
 | **PocketCross + GNN-derived residue prior** | **0.3519** | **0.8547** | **0.4928** | ✅ **adopted — current model** |
 
+Run on seed 41 (compare against the seed-41 champion, **0.3601 / 0.8590 / 0.5460**, not the seed-42 row above):
+
+| Variant | Test MSE | Test CI | Test r2m | Verdict |
+|---------|----------|---------|----------|---------|
+| PocketCross + AF2 pLDDT confidence as protein node feature | 0.3868 | 0.8299 | 0.5214 | ❌ worse on all three |
+
 ### Cross-cutting lessons
 
 1. **Capacity changes fail in both directions.** Adding parameters (nonlinear ESM-C projection,
@@ -27,14 +33,30 @@
 2. **The only changes that ever worked reused computation the model already performed.**
    The structure-guided interaction and the GNN-derived residue prior both re-routed existing
    internal representations rather than adding new inputs or capacity.
-3. **Hand-engineered input features consistently failed.** RBF edge features and the 8-dim
-   distance-shell pocket features both hurt, despite being better-motivated on paper.
+3. **Added input features consistently failed — now 0 for 3.** RBF edge features, the 8-dim
+   distance-shell pocket features, and AF2 pLDDT confidence all hurt, despite each being
+   better-motivated on paper than the thing it replaced. The pLDDT case is the strongest
+   version of the test: it is genuinely *orthogonal* information (nothing else in the inputs
+   can express "this contact is unreliable"), it cost only 256 parameters, and it still lost
+   by +0.027 MSE. Treat "add a new input channel" as a red flag in this architecture.
 4. **An ablation number is only valid inside the architecture it was measured on.** KANPM's
    ablation prices `W/O Linear Attention` at +0.054, but adding LinearAttention to this model
    made it worse — because this model already focuses attention via the interaction module,
    making the pooled attention redundant.
-5. **Validation ranking does not predict test ranking.** The attention-pooling run led on
-   validation at matched epochs and still lost on test.
+5. **Validation ranking does not predict test ranking — observed twice.** The attention-pooling
+   run led on validation at matched epochs and still lost on test. The pLDDT run repeated it
+   exactly: better validation than the champion (0.2550 vs 0.2578) and **worse** test
+   (0.3868 vs 0.3601). With only 44 validation proteins, a validation edge under ~0.01 is noise.
+6. **Output-side work is capped at 0.339 — it cannot reach KANPM.** A perfect rank-preserving
+   rescale, fitted directly on the test labels (an oracle), reaches only 0.3389 versus KANPM's
+   0.3140. **94% of the error survives any output transform**, so it is missing information,
+   not miscalibration. No loss reshaping, clamping, or calibration closes the MSE gap.
+7. **The training signal is exhausted.** Observed train MSE 0.0598 against an irreducible floor
+   of 0.0348 — only 0.025 of headroom. This is why every regularizer failed: they reduce
+   fitting, and there is almost nothing left to un-fit.
+8. **The model genuinely learns; it does not memorize.** On 44 unseen proteins it beats a pure
+   drug-identity lookup table by 48% (0.6950 → 0.3601). The cold-protein gap is a data-scale
+   limit (354 training proteins), not a memorization artifact.
 
 ---
 
@@ -795,6 +817,175 @@ _**Result (Complete) — negative finding:** test **MSE 0.3759 / CI 0.8420 / r²
 _**Why the prediction failed.** The change was motivated by KANPM's ablation pricing `W/O Linear Attention` at +0.054 on unseen-protein. That evidence did not transfer, and in hindsight the reason is identifiable: **that ablation was measured on KANPM's architecture, which has no cross-attention** — there, `LinearAttention` is the *only* mechanism that can focus on relevant residues, so removing it is devastating. This model already has `StructGuidedInteraction`, a pocket-biased attention over residues. The summary vectors `gd`/`gp` are supplementary context, so a learned pool there is largely **redundant with focusing the model already does** — and the extra parameters cost more than the redundant focusing gained._
 
 _Also notable: this run had a **larger valid→test gap** than the champion (+0.050 vs +0.034), i.e. it generalized worse despite an early validation lead — it reached 0.3256 by ep25 (champion needed ~ep59 for 0.3264) but then stalled, while the champion kept improving to 0.3185 by ep64. **Fast early validation progress was not predictive of final test quality.**_
+
+---
+
+### Seed 41 — AF2 pLDDT as a protein node feature (Complete — natural early-stop ep57) — ❌ WORSE, not adopted
+
+_Same model/split/seed/plain-MSE loss as the seed-41 champion — **only the protein node features changed**: AlphaFold2's per-residue confidence (pLDDT, 0–100) is appended to each residue's ESM-C vector, scaled to [0,1], so `ProteinGraphNet` sees **1153** features instead of 1152. Code: `code/train_pocketcross_plddt.py`, `hp.use_plddt = True`. Cost: **+256 params (13,550,530 → 13,550,786)**._
+
+_**Why a node feature and not an edge weight.** `edge_weight` reaches only `conv0` — the five GAT layers are constructed as `GATConv(dim, dim)` with no `edge_dim` and ignore edge information entirely. Node features propagate through all six message-passing layers. Adding `edge_dim` to the GATs would have added parameters to five layers, which is the pattern that has failed every previous time._
+
+_**Motivation (measured, not assumed).** ~20% of residues in the DAVIS AF2 graphs sit at contact degree ≤ 4 — the signature of extended/disordered conformation — and their contacts are largely fictional. Nothing in the existing inputs can express "this contact is unreliable": the binary contact map cannot, and ESM-C cannot. Confirmed on real structures: **25.3% of all residues across 442 proteins are pLDDT < 50**, and low-confidence residues are **2.2× less connected** than high-confidence ones (mean contact degree 4.58 vs 10.22)._
+
+> **Best Checkpoint — Epoch 37**
+> | Metric | Value |
+> |--------|-------|
+> | Train MSE | 0.0833 |
+> | Valid MSE | **0.2550** |
+> | Valid CI | **0.8461** |
+> | Valid r2m | **0.5869** |
+
+> **Final Test Result** (natural early-stop ep57, patience 20 exhausted; tested on the ep37 checkpoint)
+> | Metric | Value |
+> |--------|-------|
+> | Test MSE | **0.3868** |
+> | Test CI | **0.8299** |
+> | Test r2m | **0.5214** |
+
+| Epoch | Train MSE | Valid MSE | Valid CI | Valid r2m |
+|-------|-----------|-----------|----------|-----------|
+| 10 | 0.2808 | 0.3149 | 0.8349 | 0.5257 |
+| 20 | 0.1565 | 0.2611 | 0.8600 | 0.5787 |
+| 30 | 0.1044 | 0.2818 | 0.8510 | 0.5293 |
+| **37 (best)** | 0.0833 | **0.2550** | 0.8461 | 0.5869 |
+| 45 | 0.0687 | 0.2637 | 0.8423 | 0.5748 |
+| 50 | 0.0646 | 0.2721 | 0.8538 | 0.5457 |
+| 57 (final) | 0.0634 | 0.2580 | 0.8527 | 0.5759 |
+
+_**Result (Complete) — negative finding:** test **MSE 0.3868 / CI 0.8299 / r²ₘ 0.5214** — **worse than the seed-41 champion on all three metrics** (MSE +0.0267, CI −0.0291, r²ₘ −0.0246). The MSE penalty is **4.6× the observed cold-split seed spread (0.0058)**, so this is not seed noise. pLDDT is **not adopted**._
+
+_**The validation trap fired again.** pLDDT had the *better* validation curve (best 0.2550 vs the champion's 0.2578) and the *worse* test score. Its valid→test gap is **+0.1318** versus the champion's +0.1023. This is the second time in this project that a validation lead inverted at test — see cross-cutting lesson 5._
+
+_**Why the prediction failed.** The argument for pLDDT was that previous failed features (RBF edges, distance shells) were **redundant** — re-encoding distance information the graph topology already implied — whereas pLDDT is **orthogonal**, expressing something no other input can. That distinction did not save it. The more likely reading is cross-cutting lesson 2: this architecture only ever improved when a change **re-routed computation it already performed** (structure-guided interaction, GNN-derived residue prior). Every change that fed it a new input has lost, regardless of how orthogonal the information was._
+
+_**Data quality was not the problem.** pLDDT coverage was **437/442 (98.9%)** real values, better than the contact maps' own 436/442. The 5 neutral-filled proteins (`ABL1p`, `IKK-epsilon`, `PFCDPK1(Pfalciparum)`, `PFPK5(Pfalciparum)`, `PFTAIRE2`) are genuine AlphaFold DB misses, not fetch failures. Verified: 0 length mismatches vs the contact maps, 0 NaN/Inf, range 16.8–98.9, and EGFR cross-checked against a direct download (mean 75.9, 22.8% < 50 — identical by both paths). Fetched with `pretrained/af2_plddt_only.py`, which is **read-only on the contact maps**, so the graphs stayed bit-identical to the champion's and pLDDT was genuinely the single changed variable._
+
+---
+
+## Diagnostics — what the remaining error actually is (2026-08)
+
+> These are measurements on the trained seed-41 champion and on the DAVIS data itself, not new
+> model variants. They exist because they **bound** what future work can achieve, and several of
+> them close off directions that look attractive on paper.
+
+### 1. The model learns; it does not memorize
+
+Test-set comparison on the 44 held-out seed-41 proteins:
+
+| Predictor | Test MSE | CI | r²ₘ |
+|-----------|----------|----|-----|
+| Global mean (knows nothing) | 0.8897 | 0.5000 | 0.0000 |
+| **Drug-identity lookup table** (per-drug train mean, ignores the protein) | 0.6950 | 0.7489 | 0.2180 |
+| **Champion** | **0.3601** | **0.8590** | **0.5460** |
+
+The champion cuts error **48% below a pure drug lookup** on proteins it has never seen. The protein branch does real, transferable work — the cold-protein gap is a **data-scale limit (354 training proteins)**, not memorization.
+
+### 2. The training signal is exhausted
+
+Because 18.9% of training pairs are mutually contradictory (see §3), there is a hard floor on train MSE:
+
+```
+irreducible train floor (within-group variance)  : 0.0348
+observed train MSE at ep49                       : 0.0598
+remaining headroom                               : 0.0250
+```
+
+The model has extracted nearly everything extractable. **This explains why every regularizer failed** — weight decay, cosine LR, KAN shrink, the lean rebuild — they all reduce fitting, and there is almost nothing left to un-fit. It also means "train longer" is counterproductive: from ep29 (best) to ep49, train improved **40%** while validation got **21% worse**.
+
+### 3. ⚠️ DAVIS itself is partly broken — 442 target keys, only 379 unique sequences
+
+**The mutations were never applied to the sequences.** Mutant variants carry the *wildtype* sequence string; the mutation exists only in the target key's name. 81 keys collapse into 18 identical-sequence groups:
+
+```
+ABL1    15 keys   EGFR   12 keys   PIK3CA 10 keys   KIT   8 keys   FLT3  7 keys
+RET      4 keys   MET     3 keys   BRAF    2 keys   ...
+plus 7 DOMAIN-variant groups (RSK1/3/4, RPS6KA4/5, JAK1, TYK2 — KinDom.1 vs KinDom.2,
+JH1-catalytic vs JH2-pseudokinase) and CDK4-cyclinD1 vs CDK4-cyclinD3 (differs only by a
+partner protein that is not in the dataset at all)
+```
+
+**62 of 63 colliding key-pairs also share a byte-identical AF2 contact map** (the wildtype-for-mutant fallback). So the model receives **identical input** for e.g. `BRAF` and `BRAF(V600E)` and is asked to predict different affinities. Measured label disagreement between wildtype/mutant pairs: **mean MSE 0.3564** — the size of the entire test error.
+
+Consequences, measured:
+
+| | |
+|---|---|
+| Contradictory **training** pairs | **4,556 / 24,072 = 18.9%** |
+| **Test** pairs with an identical (sequence, drug) in training | **340 / 2,992 = 11.4%** |
+| Best possible MSE on those 340 (copy the train label) | 0.2259 |
+| Their contribution to test MSE | **0.0257 of 0.3601 (≈7%) — provably unfixable by any architecture** |
+| Colliding test proteins | `KIT(V559D-V654A)`, `ABL1(Q252H)p`, `RET`, `FLT3(D835H)`, `BRAF(V600E)` |
+
+**This affects every paper on this benchmark, KANPM included.** It partly explains why the field plateaus around 0.31–0.36.
+
+> **Repairing it is possible but changes the benchmark.** A mutation parser resolves the point/deletion
+> mutations, but sequences are not canonically numbered — each protein needs its own offset (EGFR 0,
+> PIK3CA +1, ABL1 +37) and some stored sequences are fragments. Only 5 families are well-constrained
+> enough to trust (EGFR 17 muts, ABL1 13, PIK3CA 9, KIT 9, FLT3 5); BRAF/RET/MET/FGFR3/LRRK2 have 1–3
+> mutations each and the offset search produces **spurious** matches (BRAF "resolves" at −553 when V600E
+> should sit at position 600 exactly). Fixable share: ~60% of colliding test pairs.
+> **Any fix makes results non-comparable to published numbers** — report it as a benchmark finding, or
+> as a clearly-labelled secondary result, never as the headline.
+
+### 4. Where the test error lives
+
+| Region | n | share | MSE | mean pred vs true | **% of total error** |
+|--------|---|-------|-----|-------------------|----------------------|
+| Censored floor (y = 5.0) | 2,086 | 69.7% | 0.1212 | 5.119 vs 5.000 (**+0.119**) | **23.5%** |
+| Real measurements (y > 5) | 906 | 30.3% | 0.9101 | 6.188 vs 6.600 (**−0.412**) | **76.5%** |
+
+```
+y = 5.0      MSE 0.121   bias +0.119
+5 < y < 6    MSE 0.351   bias -0.012
+6 < y < 7    MSE 0.817   bias -0.471
+7 < y < 8    MSE 1.176   bias -0.601
+8 < y < 12   MSE 2.355   bias -1.104   <- strong binders underpredicted by a full log unit
+```
+
+Three quarters of the error comes from 30% of the data, and underprediction grows monotonically with affinity. Predicted std is 0.809 vs true 0.943 — the model compresses its range to **86%** of truth.
+
+### 5. Output-side transforms are capped at 0.339 — below KANPM is unreachable this way
+
+| Transform | Test MSE | CI | r²ₘ |
+|-----------|----------|----|-----|
+| As-is | 0.3601 | 0.8590 | 0.5460 |
+| Clamp at the pKd = 5.0 floor | 0.3593 (**−0.0008**) | 0.8585 | 0.5490 |
+| Std-matched (expand to true range) | **0.3968** ❌ | 0.8590 | 0.4605 |
+| *Oracle* linear (fitted **on test** — cheating) | 0.3525 | 0.8590 | 0.6034 |
+| ***Oracle* monotone (best possible, cheating)** | **0.3389** | 0.8609 | 0.6186 |
+| Honest monotone (fit on half, apply to other half) | 0.3564 (−0.0037) | — | — |
+
+- **Clamping is worthless.** 30.9% of predictions fall below 5.0 but only by **0.022 on average** (worst 0.122) — the model already learned the floor.
+- **Expanding the range hurts** (+0.037). The compression is correct shrinkage under uncertainty, not a defect.
+- **94% of the error survives a perfect rank-preserving rescale.** It is missing information, not miscalibration.
+- **But r²ₘ has real headroom** — the oracle reaches 0.6186 vs KANPM's 0.556, so a range-fidelity intervention (e.g. censored/Tobit likelihood for the 69.4% of labels that are `>` bounds, not measurements) is the one output-side idea still worth testing. It will not move MSE.
+
+### 6. ⚠️ Correction — "3D not 2D" is not a defensible claim
+
+The pipeline extracts real Cα coordinates and computes true distances, **but the distances are discarded**:
+
+```python
+# MyDataset.target2graph
+target_edge_distance.append(distance_map[i, j])   # distances collected...
+edge_weight = torch.ones(len(target_edge_distance), dtype=torch.float32)  # ...then overwritten
+```
+
+What the network receives is an **L×L binary adjacency matrix** — the same *type* of object as KANPM's ESM-2 contact map. No distances, coordinates, angles, or orientations reach any layer. (And `edge_weight` would only reach `conv0` anyway.)
+
+AF2 is still doing most of the structural work — it supplies the **edge list**, and **52.4% of edges are impossible to derive from sequence order alone** (47.6% are \|i−j\| ≤ 2 sequential, 25.3% local fold, **27.1% long-range \|i−j\| > 10**). But the correct wording is **"structure-derived contact topology from AlphaFold2"**, contrasted with KANPM's **sequence-predicted, probability-weighted** topology — a claim about edge *provenance*, not dimensionality. Note KANPM's soft edges carry more information *per edge* than this model's binary ones; that difference is currently **confounded** with the topology-source difference in any head-to-head.
+
+### 7. Literature position — the AF2 premise is contradicted, including by our own numbers
+
+| Work | Finding |
+|------|---------|
+| **3DProtDTA** (2023, RSC Advances) | Residue-level protein graphs from **AlphaFold** structures on Davis/KIBA — the core idea here, published three years earlier |
+| **CASTER-DTA** (2024, bioRxiv) | **Equivariant** GNNs over AlphaFold structures for DTA |
+| **"When Does Structure Help?"** (2026, arXiv:2606.04228) | For binding affinity: ESM-2 Pearson r **0.449** vs AF2-single **0.307** vs AF2 pair-diagonal **0.278**. **Information bonus of AF2 over ESM-2 = −0.141 (negative.)** Structure helps other protein-property tasks, not affinity |
+
+**Our own result agrees**: AF2-derived contacts give 0.356, KANPM's ESM-2-predicted contacts give 0.314. Swapping predicted contacts for real structure made it **worse** — independently reproducing the negative information bonus.
+
+**Still uncontested:** nobody has run the controlled **contact-map-source swap** (AF2 edges vs ESM-2 edges, same architecture, same ESM-C nodes) on DAVIS **cold-protein**. That is a narrow but genuine gap — and the literature now predicts the outcome.
 
 ---
 
