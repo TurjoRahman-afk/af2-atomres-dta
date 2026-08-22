@@ -17,8 +17,24 @@ from hyperparameter import HyperParameter
 from MyDataset import CustomDataSet, my_collate_fn, smile2graph, target2graph
 from torch_geometric.data import Data
 from metrics import calculate_metrics
+from cold_split import create_fold_setting_cold
 
 import warnings; warnings.filterwarnings("ignore")
+
+
+def assert_split_matches(hp, root, split_seed):
+    """SPLIT_SEED only names output files — it does not select data. Fail loudly if the
+    CSVs on disk were generated with a different cold_split.py SEED, instead of silently
+    training on one split and labelling the results with another."""
+    df = pd.read_csv(os.path.join(hp.data_root, hp.dataset, 'data.csv'))
+    expect = set(create_fold_setting_cold(df, split_seed, [0.8, 0.1, 0.1], ['target_key'])['test'].target_key)
+    actual = set(pd.read_csv(os.path.join(root, 'test.csv')).target_key)
+    if expect != actual:
+        raise SystemExit(
+            f"Splits in {root} do NOT match SPLIT_SEED={split_seed} "
+            f"({len(expect & actual)}/{len(expect)} test proteins agree). "
+            f"Run: python code/cold_split.py --SEED {split_seed}")
+    print(f"split check OK — data on disk is seed {split_seed} ({len(actual)} test proteins)")
 
 
 def load_pickle(d):
@@ -59,7 +75,7 @@ def test(model, dataloader):
 
 if __name__ == "__main__":
     SEED = 0
-    SPLIT_SEED = 41
+    SPLIT_SEED = 43
     random.seed(SEED); torch.manual_seed(SEED); torch.cuda.manual_seed_all(SEED)
     torch.set_num_threads(4); torch.backends.cudnn.benchmark = True
 
@@ -73,6 +89,7 @@ if __name__ == "__main__":
     contact_map = load_pickle(hp.contact_map)
 
     root = os.path.join(hp.data_root, hp.dataset, hp.running_set)
+    assert_split_matches(hp, root, SPLIT_SEED)
     train_set = CustomDataSet(pd.read_csv(os.path.join(root, 'train.csv')), hp)
     valid_set = CustomDataSet(pd.read_csv(os.path.join(root, 'valid.csv')), hp)
     test_set = CustomDataSet(pd.read_csv(os.path.join(root, 'test.csv')), hp)
