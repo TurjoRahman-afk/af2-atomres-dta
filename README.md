@@ -125,7 +125,7 @@ Same benchmark and split protocol (KANPM's `cold_split.py`), DAVIS unseen-protei
 
 ## Honest findings and limitations
 
-Three results that constrain what can be claimed:
+Five results that constrain what can be claimed:
 
 **1. The residue prior does not identify binding sites.**
 DAVIS is 100% kinases, whose ATP pockets are anchored by conserved HRD…DFG catalytic motifs.
@@ -138,7 +138,10 @@ No interpretability claim is made. *(`code/validate_pocket.py`)*
 **2. The MSE gap is an information deficit, not a calibration artifact.**
 Decomposing test error: **99.5% is shape error** (wrong values on individual pairs), only 0.5% is
 systematic offset. Post-hoc linear calibration fitted on validation recovers just −0.0075 MSE.
-No output-level transform can close the remaining gap. *(`code/calib_check.py`)*
+Stronger still: a **perfect rank-preserving rescale fitted directly on the test labels** (an oracle
+that cannot be achieved in practice) reaches only **0.3389** — still above KANPM's 0.314. So
+**94% of the error survives any output transform**, and clamping predictions at the pKd = 5.0 floor
+buys just −0.0008. No loss reshaping or calibration closes the MSE gap. *(`code/calib_check.py`)*
 
 **3. Validation systematically overstates performance.**
 The valid→test gap is always positive (mean +0.059) with three separable causes: selection bias
@@ -146,6 +149,22 @@ from picking the single best epoch (+0.014 to +0.046), differing label variance 
 test sets (±0.06), and intrinsic difficulty differences between two small 44-protein samples
 (~+0.05). **Validation ranking does not reliably predict test ranking** — a variant leading on
 validation still lost on test.
+
+**4. The DAVIS benchmark is partly self-contradictory.**
+DAVIS has **442 target keys but only 379 unique sequences** — the mutations were never applied to
+the sequence strings, so `BRAF` and `BRAF(V600E)` carry identical sequences, and 62 of 63 colliding
+key-pairs also share a byte-identical contact map. The model therefore receives **identical input**
+for pairs with different labels. Consequences: **18.9% of training pairs are mutually contradictory**
+(putting a hard floor of 0.0348 on train MSE), and **11.4% of cold-protein test pairs are unlearnable
+by construction**, contributing **0.0257 of the 0.3601 test MSE (~7%)**. This affects every published
+result on this benchmark, and partly explains why the field plateaus at 0.31–0.36.
+
+**5. Adding input features has failed every time (0 for 3).**
+RBF edge features, 8-dim distance-shell pocket features, and AlphaFold2 pLDDT confidence as a protein
+node channel all hurt. pLDDT was the strongest test — genuinely orthogonal information at a cost of
+256 parameters — and still lost by +0.027 MSE. The only changes that ever helped **re-routed
+computation the model already performed** rather than feeding it new inputs. Full write-ups in
+[EXPERIMENTS.md](EXPERIMENTS.md).
 
 **Other limitations:** 2 seeds only; only the cold-protein split evaluated (unseen-drug and
 unseen-pair untested); trained on 442 proteins, which is the binding constraint on generalization.
