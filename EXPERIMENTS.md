@@ -6,6 +6,14 @@
 > variant here was a controlled, single-variable test with a natural early-stop and a real
 > test number. Together they define what does and does not work for cold-start DTA on this
 > dataset, and they exist so the same dead ends are not re-explored.
+>
+> **Note on code availability.** The working tree now carries only the champion
+> (`code/model_pocketcross_gnnprior.py` + `code/train_pocketcross_gnnprior.py`) and its
+> analysis tooling. The superseded implementations cited below — `model.py`/`train.py` (v4
+> baseline) and `model_pocketcross.py`/`train_pocketcross.py` (hand-counted pocket prior,
+> weighted loss, rich distance features) — were removed once their results were recorded here,
+> the same way the attention-pooling variant was. **All are recoverable from git commit
+> `a0937c8`:** `git checkout a0937c8 -- code/model.py code/train.py code/model_pocketcross.py code/train_pocketcross.py`
 
 ## Summary of every variant tried (DAVIS cold-protein, `unseen_prot`, seed 42)
 
