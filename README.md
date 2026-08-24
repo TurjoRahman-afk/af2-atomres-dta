@@ -10,17 +10,48 @@ A DTA model built on AlphaFold2 protein structures, evaluated on the harder **co
 
 ---
 
+## What this project found
+
+The project set out to test whether protein graphs built from **real AlphaFold2 structure**
+beat graphs built from **sequence-predicted contacts** for affinity prediction on unseen
+targets. Six measured results, in order of how much they constrain the conclusion:
+
+| # | Finding | Evidence |
+|---|---------|----------|
+| 1 | **Real structure did not help.** AF2-derived contacts score 0.3560; the reference method's ESM-2 *predicted* contacts score 0.314. Substituting real structure made results slightly worse. | this work + [arXiv:2606.04228](https://arxiv.org/abs/2606.04228), which independently measures a **−0.141 information bonus** for AF2 over ESM-2 on binding affinity |
+| 2 | **Ranking is at state of the art; absolute accuracy is not.** CI 0.8569 ± 0.0030 vs the best published 0.857 — a gap of 0.0001, and 2nd of 9 overall. MSE is 4th of 9. | results table below |
+| 3 | **DAVIS is partly self-contradictory — previously unreported.** 442 target keys, 379 unique sequences. 18.9% of training pairs are mutually contradictory; 11.4% of cold-protein test pairs are unlearnable by construction. | finding 4 below |
+| 4 | **The remaining error is missing information, not miscalibration.** An oracle rank-preserving rescale fitted *on the test labels* reaches only 0.3389 — still above 0.314. 94% of error survives any output transform. | finding 2 below |
+| 5 | **Capacity is not the bottleneck.** Training MSE 0.0598 against an irreducible floor of 0.0348; a 144× predictor-capacity sweep degrades test accuracy. | finding 5 below |
+| 6 | **Every added input feature failed (0 for 3).** RBF edge features, distance-shell pocket features, and AF2 pLDDT confidence all hurt. Only changes that *re-routed existing computation* ever helped. | [EXPERIMENTS.md](EXPERIMENTS.md) |
+
+**Conclusion.** For cold-protein affinity prediction on this benchmark, the sequence already
+carries most of the usable signal; the fold adds little on top. Further gains are limited by
+**training-protein diversity** (354 proteins), not by architecture, capacity, or output
+calibration.
+
+### Related work
+
+AlphaFold-structure protein graphs for DTA were introduced by **3DProtDTA** (RSC Advances, 2023)
+and extended with equivariant GNNs by **CASTER-DTA** (2024); the structural grounding here is not
+novel in itself. What is contributed is the controlled cold-protein comparison, the error
+decomposition, and the benchmark-integrity finding.
+
+---
+
 ## What this model does
 
 Most DTA models pool the drug into one vector and the protein into another, then combine them —
 discarding the fact that binding is specific **drug atoms** contacting specific **protein residues**.
 This model keeps token-level representations and models that interaction directly, weighted by a
-residue score derived from the protein's real 3D contact graph.
+residue score derived from the protein's structure-derived contact topology.
 
 **Core components:**
 
-1. **Real AlphaFold2 contact maps** — protein graphs built from actual Cα coordinates
-   (edge if Cα distance < 8Å) rather than sequence-predicted contacts.
+1. **AlphaFold2 contact topology** — protein graphs built from actual Cα coordinates
+   (edge if Cα distance < 8Å) rather than sequence-predicted contacts. Note the graph is
+   **unweighted**: distances are discarded and none of the six graph layers use edge weights,
+   so what reaches the network is contact *topology*, not geometry.
 2. **Structure-guided atom↔residue attention** — every drug atom attends over every protein
    residue, with the attention biased by a learned per-residue structural score.
 3. **GNN-derived residue prior** — that score comes from `ProteinGraphNet`'s own per-residue
@@ -165,6 +196,13 @@ node channel all hurt. pLDDT was the strongest test — genuinely orthogonal inf
 256 parameters — and still lost by +0.027 MSE. The only changes that ever helped **re-routed
 computation the model already performed** rather than feeding it new inputs. Full write-ups in
 [EXPERIMENTS.md](EXPERIMENTS.md).
+
+**6. Capacity is not the bottleneck — the representation is.**
+Training MSE reaches 0.0598 against an irreducible floor of 0.0348, so the predictor already fits
+everything it is shown. Sweeping the predictor from 131 K to 18.9 M parameters (**144×**) makes
+test MSE *worse*, not better. A linear probe on the frozen 512-d representation scores 0.4435 and
+a small MLP 0.3808, versus the KAN's 0.3601 — the head contributes, but is deep in diminishing
+returns while the representation caps the result.
 
 **Other limitations:** 2 seeds only; only the cold-protein split evaluated (unseen-drug and
 unseen-pair untested); trained on 442 proteins, which is the binding constraint on generalization.
