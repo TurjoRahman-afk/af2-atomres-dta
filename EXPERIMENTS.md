@@ -145,10 +145,21 @@ The 8Å threshold is the standard cutoff in structural biology for defining resi
 |----------|-------------------------------|----------------------|
 | Source | ESM-2 probability matrix | Real Cα coordinates |
 | Edge criterion | Probability > 0.5 | Real Cα distance < 8Å |
-| Edge weight | Binary (0 / 1) | Binary (0 / 1) |
+| Edge weight | **Contact probability** `W_ij = M_ij` (weighted) | **None — unweighted graph** (see note) |
 | Geometric information | None | Edges set by true 3D distances |
 | Binding site accuracy | Statistical approximation | Real 3D topology |
 | False edges | Possible (co-evolution ≠ proximity) | None (distance is exact) |
+
+> ⚠️ **Correction — this model uses no edge weights at all.** `target2graph` sets
+> `edge_weight = torch.ones(...)`, and passing an all-ones weight to `GCNConv` is **bit-identical**
+> to passing none (degree normalisation cancels any constant). The five `GATConv` layers never
+> receive it — they are called `conv(x, ei)` and were built without `edge_dim`. So **0 of 6 graph
+> layers use edge weights**; only `edge_index` (which residue pairs are connected) is used.
+> Describing either model's edges as "binary (0/1)" was wrong: non-contacts are absent from
+> `edge_index` rather than present with weight 0, and KANPM's edges carry continuous contact
+> probabilities. The real contrast is **weighted (KANPM) vs unweighted (this model)**, which is a
+> larger difference and is currently **confounded** with the contact-source difference in any
+> head-to-head.
 
 **DAVIS coverage:**
 - 364 proteins → direct AlphaFold2 3D structure
@@ -790,6 +801,45 @@ _**1. Cold-split test variance is small — much smaller than feared.** The two 
 _**2. CI is statistically matched with KANPM.** 0.8569 ± 0.0030 vs their 0.857 ± 0.011 — a gap of 0.0001, far inside both error bars. On ranking ability for unseen proteins, this model is level with the target._
 
 _**3. r²ₘ has the widest spread (± 0.038)** — nearly 5× the MSE spread, and it is the metric that swings most between seeds (0.546 vs 0.493). Any future r²ₘ "improvement" smaller than ~0.04 cannot be distinguished from seed noise, which retrospectively explains why the weighted-loss experiment (aimed at r²ₘ) produced an ambiguous signal._
+
+#### ⚠️ Seed 43 — PROVISIONAL, run has NOT early-stopped
+
+> **Do not cite these numbers.** As of epoch 49 the seed-43 run is at patience 4/20 and is
+> still finding new best-validation epochs (0.3705 @ ep20 → 0.3656 @ ep45). No
+> `Test-davis-unseen_prot-split43_new_gnnprior.csv` has been written. The checkpoint — and
+> therefore every figure below — can still change. Recorded here only so the work is not lost.
+
+Interim test of the ep45 best-valid checkpoint: **MSE 0.3689 / CI 0.8556 / r²ₘ 0.5468**.
+
+| Metric | Seed 41 | Seed 42 | Seed 43 *(interim)* | 2-seed (official) | **3-seed if it holds** |
+|--------|---------|---------|---------------------|-------------------|------------------------|
+| Test MSE ↓ | 0.3601 | 0.3519 | *0.3689* | **0.3560 ± 0.0058** | *0.3603 ± 0.0085* |
+| Test CI ↑ | 0.8590 | 0.8547 | *0.8556* | **0.8569 ± 0.0030** | *0.8564 ± 0.0023* |
+| Test r²ₘ ↑ | 0.5460 | 0.4928 | *0.5468* | **0.5194 ± 0.0376** | *0.5285 ± 0.0310* |
+
+Provisional standing against the cold-protein leaderboard (KANPM split protocol):
+
+| Metric | 2-seed rank | 3-seed rank | Value | Leader |
+|--------|-------------|-------------|-------|--------|
+| MSE ↓ | 4th | **5th** ▼ | *0.3603* | KANPM 0.314 |
+| CI ↑ | 2nd | **2nd** | *0.8564* | KANPM 0.857 (−0.0006) |
+| r²ₘ ↑ | 2nd | **2nd** | *0.5285* | KANPM 0.556 |
+
+_**The MSE rank change is not meaningful.** 4th→5th is a slip behind MgraphDTA (0.3590) by
+**0.0013**, while staying ahead of MSGNN-DTA (0.3610) by **0.0007**. Both margins are far inside
+the 3-seed std of **±0.0085**. The honest statement for that region of the table is
+"statistically indistinguishable from MgraphDTA and MSGNN-DTA", not a rank._
+
+_**CI is the result that strengthens with more seeds.** The spread tightens from ±0.0030 to
+±0.0023 while the value holds at 0.8564 vs KANPM's 0.8570 — a gap of 0.0006, versus 0.0164 to
+the third-place model. The distance to first is **27× smaller** than the distance to third._
+
+_**r²ₘ improved and its spread narrowed** (0.5194 ± 0.0376 → 0.5285 ± 0.0310), cutting the gap to
+KANPM from 0.037 to 0.028 — still inside the spread, so no real difference can be claimed._
+
+_**Validation again failed to predict test — the fourth instance.** Seed 43 had by far the worst
+validation r²ₘ throughout (0.4002 at ep26 vs ~0.54 for the other seeds) and returned the **best
+test r²ₘ of all three** (0.5468). See cross-cutting lesson 5._
 
 ---
 
