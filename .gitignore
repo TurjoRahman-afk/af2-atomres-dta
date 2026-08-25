@@ -39,3 +39,6 @@ log/*.npz
 
 # Local backups of large pickles (kept on disk, never committed)
 *.pkl.bak
+
+# analysis feature caches (regenerable, large)
+code/analysis/.feats_*.npz

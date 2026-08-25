@@ -202,11 +202,14 @@ computation the model already performed** rather than feeding it new inputs. Ful
 [EXPERIMENTS.md](EXPERIMENTS.md).
 
 **6. Capacity is not the bottleneck — the representation is.**
-Training MSE reaches 0.0598 against an irreducible floor of 0.0348, so the predictor already fits
-everything it is shown. Sweeping the predictor from 131 K to 18.9 M parameters (**144×**) makes
-test MSE *worse*, not better. A linear probe on the frozen 512-d representation scores 0.4435 and
-a small MLP 0.3808, versus the KAN's 0.3601 — the head contributes, but is deep in diminishing
-returns while the representation caps the result.
+The selected checkpoint fits its training data to **0.0788** against an irreducible floor of
+**0.0348** (the training log reaches 0.0598 by the final epoch, measured mid-epoch with dropout
+active on a later, more-overfit model). So the predictor is not capacity-starved — and sweeping
+it from **131 K to 18.9 M parameters (144×)** makes test MSE *worse*, not better
+(0.3758 → 0.3886), with validation barely moving across the whole range. On the frozen 512-d
+representation a linear head scores **0.4435** and the best MLP at any width **0.3758**, versus
+the KAN's **0.3601** — the head contributes, but is deep in diminishing returns while the
+representation caps the result. *(`code/analysis/capacity_probe.py`)*
 
 ### Reproducing each finding
 
@@ -220,7 +223,7 @@ Every claim above is backed by a script. Commands are run from the repository ro
 | 3 | Validation overstates performance | `python code/analysis/valid_test_gap.py` | **no** |
 | 4 | **DAVIS is partly self-contradictory** | `python code/analysis/benchmark_integrity.py` | **no** |
 | 5 | Added input features failed (0 for 3) | see [EXPERIMENTS.md](EXPERIMENTS.md) — each run logged in full | — |
-| 6 | Capacity is not the bottleneck | `python code/analysis/capacity_probe.py` | yes *(pending)* |
+| 6 | Capacity is not the bottleneck | `python code/analysis/capacity_probe.py` | yes |
 
 Analysis scripts are read-only and regenerate their data split **in memory**, so they never
 touch `datasets/` and are safe to run while a training job is in progress. The CPU-only ones
