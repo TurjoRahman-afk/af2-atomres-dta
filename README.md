@@ -204,6 +204,24 @@ test MSE *worse*, not better. A linear probe on the frozen 512-d representation 
 a small MLP 0.3808, versus the KAN's 0.3601 — the head contributes, but is deep in diminishing
 returns while the representation caps the result.
 
+### Reproducing each finding
+
+Every claim above is backed by a script. Commands are run from the repository root.
+
+| # | Finding | Reproduce with | Needs GPU |
+|---|---------|----------------|-----------|
+| 1 | Residue prior does not identify binding sites | `python code/validate_pocket.py` | yes |
+| 2 | Information deficit — calibration recovers little | `python code/calib_check.py` | yes |
+| 2 | **Oracle bound 0.3389** | `python code/analysis/oracle_bound.py` | yes *(pending)* |
+| 3 | Validation overstates performance | `python code/analysis/valid_test_gap.py` | no *(pending)* |
+| 4 | **DAVIS is partly self-contradictory** | `python code/analysis/benchmark_integrity.py` | **no** |
+| 5 | Added input features failed (0 for 3) | see [EXPERIMENTS.md](EXPERIMENTS.md) — each run logged in full | — |
+| 6 | Capacity is not the bottleneck | `python code/analysis/capacity_probe.py` | yes *(pending)* |
+
+Analysis scripts are read-only and regenerate their data split **in memory**, so they never
+touch `datasets/` and are safe to run while a training job is in progress. The CPU-only ones
+can be run at any time; the GPU ones will contend with training for the card.
+
 **Other limitations:** 2 seeds only; only the cold-protein split evaluated (unseen-drug and
 unseen-pair untested); trained on 442 proteins, which is the binding constraint on generalization.
 
