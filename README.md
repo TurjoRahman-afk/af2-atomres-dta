@@ -216,7 +216,7 @@ Every claim above is backed by a script. Commands are run from the repository ro
 |---|---------|----------------|-----------|
 | 1 | Residue prior does not identify binding sites | `python code/validate_pocket.py` | yes |
 | 2 | Information deficit — calibration recovers little | `python code/calib_check.py` | yes |
-| 2 | **Oracle bound 0.3389** | `python code/analysis/oracle_bound.py` | yes *(pending)* |
+| 2 | **Oracle bound 0.3389** | `python code/analysis/oracle_bound.py` | yes |
 | 3 | Validation overstates performance | `python code/analysis/valid_test_gap.py` | **no** |
 | 4 | **DAVIS is partly self-contradictory** | `python code/analysis/benchmark_integrity.py` | **no** |
 | 5 | Added input features failed (0 for 3) | see [EXPERIMENTS.md](EXPERIMENTS.md) — each run logged in full | — |
