@@ -178,6 +178,10 @@ number in this summary is reproducible from it.
 Requests regarding collaboration, evaluation, or access may be directed to the contact
 address above.
 
+Released under the MIT License (see `LICENSE`). The license covers the code; the DAVIS
+benchmark data and the pretrained ChemBERTa / ESM-C / AlphaFold2 models each carry their own
+terms.
+
 **© 2026 Turjo Rahman.**
 
 ---
