@@ -1,0 +1,56 @@
+# AF2-PocketCross-DTA — pinned to the environment the reported results were produced on.
+#
+#   pip install -r requirements.txt
+#
+# ---------------------------------------------------------------------------
+# PyTorch — install FIRST, from the CUDA index matching your driver.
+# The pin below is the exact build used; CPU-only works but training is
+# impractically slow (~4 min/epoch on an RTX 5060 vs hours on CPU).
+#
+#   pip install torch==2.9.1 --index-url https://download.pytorch.org/whl/cu128
+#
+# ---------------------------------------------------------------------------
+torch==2.9.1
+torch-geometric==2.7.0
+
+# Pretrained encoders
+transformers==4.48.1        # ChemBERTa (DeepChem/ChemBERTa-77M-MTR)
+esm==3.2.1.post1            # ESM-C (esmc_600m) — EvolutionaryScale SDK
+
+# Cheminformatics / structures
+rdkit==2024.3.1             # SMILES -> molecular graph, 88 atom features
+biopython==1.86             # AlphaFold2 PDB parsing (Ca coordinates)
+requests==2.32.5            # UniProt + AlphaFold DB REST APIs
+
+# Numerics / data
+numpy==1.26.4
+pandas==2.1.4
+scipy==1.15.3               # metrics.py (Spearman)
+scikit-learn==1.4.0         # metrics.py, calibration analysis
+networkx==3.6.1             # MyDataset graph utilities
+tqdm==4.67.1
+
+# ---------------------------------------------------------------------------
+# KNOWN CONFLICT — ESM-C vs ESM-2
+#
+# Two different projects publish a package that imports as `esm`:
+#
+#   esm==3.2.1.post1  (EvolutionaryScale)  -> esm.models.esmc  — used by
+#                                             pretrained/esmC_pretraiend.py
+#   fair-esm          (Meta)               -> esm.pretrained.esm2_*  — used by
+#                                             pretrained/esm2_map.py
+#
+# They occupy the same import name and cannot be installed side by side.
+# With the pin above, `esm.pretrained.esm2_t36_3B_UR50D` does NOT exist, so
+# pretrained/esm2_map.py will fail. That script is only needed to generate
+# ESM-2 contact maps for the AF2-vs-ESM-2 comparison; run it in a separate
+# virtual environment:
+#
+#   python -m venv .venv-esm2
+#   .venv-esm2/Scripts/activate      # Windows
+#   pip install fair-esm torch pandas tqdm
+#   python pretrained/esm2_map.py
+#
+# Both scripts write pickles, so the outputs are interchangeable afterwards
+# and training runs in the main environment either way.
+# ---------------------------------------------------------------------------
