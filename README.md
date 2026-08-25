@@ -175,11 +175,15 @@ that cannot be achieved in practice) reaches only **0.3389** — still above KAN
 buys just −0.0008. No loss reshaping or calibration closes the MSE gap. *(`code/calib_check.py`)*
 
 **3. Validation systematically overstates performance.**
-The valid→test gap is always positive (mean +0.059) with three separable causes: selection bias
-from picking the single best epoch (+0.014 to +0.046), differing label variance between valid and
-test sets (±0.06), and intrinsic difficulty differences between two small 44-protein samples
-(~+0.05). **Validation ranking does not reliably predict test ranking** — a variant leading on
-validation still lost on test.
+Across all **7 completed cold-protein runs** the valid→test gap is positive **7/7 times**, mean
+**+0.065** (range +0.032 to +0.132). Two causes are separable. **Selection bias** — the single
+best-validation epoch sits **+0.014 to +0.046** below the mean of the epochs around it (mean
++0.025), which is winner's curse rather than real degradation. **Label variance** — valid and
+test are two different 44-protein samples, and MSE scales with label spread: on seed 41 the test
+labels are more spread than validation (+0.176 variance), on seed 42 less (−0.095). The remainder
+is intrinsic difficulty difference between the two samples. **Validation ranking does not reliably
+predict test ranking** — two same-split inversions are on record, and a variant leading on
+validation still lost on test. *(`code/analysis/valid_test_gap.py`)*
 
 **4. The DAVIS benchmark is partly self-contradictory.**
 DAVIS has **442 target keys but only 379 unique sequences** — the mutations were never applied to
@@ -213,7 +217,7 @@ Every claim above is backed by a script. Commands are run from the repository ro
 | 1 | Residue prior does not identify binding sites | `python code/validate_pocket.py` | yes |
 | 2 | Information deficit — calibration recovers little | `python code/calib_check.py` | yes |
 | 2 | **Oracle bound 0.3389** | `python code/analysis/oracle_bound.py` | yes *(pending)* |
-| 3 | Validation overstates performance | `python code/analysis/valid_test_gap.py` | no *(pending)* |
+| 3 | Validation overstates performance | `python code/analysis/valid_test_gap.py` | **no** |
 | 4 | **DAVIS is partly self-contradictory** | `python code/analysis/benchmark_integrity.py` | **no** |
 | 5 | Added input features failed (0 for 3) | see [EXPERIMENTS.md](EXPERIMENTS.md) — each run logged in full | — |
 | 6 | Capacity is not the bottleneck | `python code/analysis/capacity_probe.py` | yes *(pending)* |
