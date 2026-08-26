@@ -26,6 +26,8 @@
 | PocketCross + attention pooling (KANPM LinearAttention) | 0.3759 | 0.8420 | 0.4699 | ❌ worse |
 | **PocketCross + GNN-derived residue prior** | **0.3519** | **0.8547** | **0.4928** | ✅ **adopted — current model** |
 
+**Champion across 3 seeds (41/42/43): MSE 0.3618 ± 0.0109 · CI 0.8541 ± 0.0053 · r²ₘ 0.5360 ± 0.0392**
+
 Run on seed 41 (compare against the seed-41 champion, **0.3601 / 0.8590 / 0.5460**, not the seed-42 row above):
 
 | Variant | Test MSE | Test CI | Test r2m | Verdict |
@@ -788,6 +790,11 @@ _**⚠️ Correction — the "seed 41 is an easier split" read was wrong.** Thro
 
 #### 📊 Champion across seeds — mean ± std (the point of the validation)
 
+> ⚠️ **SUPERSEDED by the 3-seed table below.** The figures in this block are 2-seed and two of
+> its conclusions did not survive seed 43: "cold-split test variance is small" was an artefact of
+> having only two samples (MSE spread ±0.0058 → ±0.0109), and the CI gap of 0.0001 widened to
+> 0.0029. Kept for the record; cite the 3-seed table instead.
+
 | Metric | Seed 41 | Seed 42 | **Mean ± Std** | KANPM-DTA | Gap |
 |--------|---------|---------|----------------|-----------|-----|
 | Test MSE ↓ | 0.3601 | 0.3519 | **0.3560 ± 0.0058** | 0.314 ± 0.017 | +0.042 |
@@ -802,44 +809,55 @@ _**2. CI is statistically matched with KANPM.** 0.8569 ± 0.0030 vs their 0.857 
 
 _**3. r²ₘ has the widest spread (± 0.038)** — nearly 5× the MSE spread, and it is the metric that swings most between seeds (0.546 vs 0.493). Any future r²ₘ "improvement" smaller than ~0.04 cannot be distinguished from seed noise, which retrospectively explains why the weighted-loss experiment (aimed at r²ₘ) produced an ambiguous signal._
 
-#### ⚠️ Seed 43 — PROVISIONAL, run has NOT early-stopped
+#### Seed 43 — GNN-derived pocket prior (Complete — natural early-stop ep87)
 
-> **Do not cite these numbers.** As of epoch 49 the seed-43 run is at patience 4/20 and is
-> still finding new best-validation epochs (0.3705 @ ep20 → 0.3656 @ ep45). No
-> `Test-davis-unseen_prot-split43_new_gnnprior.csv` has been written. The checkpoint — and
-> therefore every figure below — can still change. Recorded here only so the work is not lost.
+_Third seed for the champion. Identical model and config; only the split changed
+(`cold_split.py --SEED 43`, `SPLIT_SEED = 43`). Independent evaluation: only 8/44 test proteins
+overlap seed 41's and 2/44 overlap seed 42's. First run to use the `assert_split_matches()`
+startup guard, which verified the data on disk was genuinely seed 43 before training began._
 
-Interim test of the ep45 best-valid checkpoint: **MSE 0.3689 / CI 0.8556 / r²ₘ 0.5468**.
+> **Best Checkpoint — Epoch 67**
+> | Metric | Value |
+> |--------|-------|
+> | Train MSE | 0.0571 |
+> | Valid MSE | **0.3513** |
 
-| Metric | Seed 41 | Seed 42 | Seed 43 *(interim)* | 2-seed (official) | **3-seed if it holds** |
-|--------|---------|---------|---------------------|-------------------|------------------------|
-| Test MSE ↓ | 0.3601 | 0.3519 | *0.3689* | **0.3560 ± 0.0058** | *0.3603 ± 0.0085* |
-| Test CI ↑ | 0.8590 | 0.8547 | *0.8556* | **0.8569 ± 0.0030** | *0.8564 ± 0.0023* |
-| Test r²ₘ ↑ | 0.5460 | 0.4928 | *0.5468* | **0.5194 ± 0.0376** | *0.5285 ± 0.0310* |
+> **Final Test Result** (natural early-stop ep87, patience 20/20; tested on the ep67 checkpoint)
+> | Metric | Value |
+> |--------|-------|
+> | Test MSE | **0.3735** |
+> | Test CI | **0.8485** |
+> | Test r2m | **0.5692** |
 
-Provisional standing against the cold-protein leaderboard (KANPM split protocol):
+#### 📊 Champion across three seeds
 
-| Metric | 2-seed rank | 3-seed rank | Value | Leader |
-|--------|-------------|-------------|-------|--------|
-| MSE ↓ | 4th | **5th** ▼ | *0.3603* | KANPM 0.314 |
-| CI ↑ | 2nd | **2nd** | *0.8564* | KANPM 0.857 (−0.0006) |
-| r²ₘ ↑ | 2nd | **2nd** | *0.5285* | KANPM 0.556 |
+| Metric | Seed 41 | Seed 42 | Seed 43 | **Mean ± Std** | 2-seed (superseded) | KANPM-DTA |
+|--------|---------|---------|---------|----------------|---------------------|-----------|
+| Test MSE ↓ | 0.3601 | 0.3519 | 0.3735 | **0.3618 ± 0.0109** | 0.3560 ± 0.0058 | 0.314 |
+| Test CI ↑ | 0.8590 | 0.8547 | 0.8485 | **0.8541 ± 0.0053** | 0.8569 ± 0.0030 | 0.857 |
+| Test r²ₘ ↑ | 0.5460 | 0.4928 | 0.5692 | **0.5360 ± 0.0392** | 0.5194 ± 0.0376 | 0.556 |
 
-_**The MSE rank change is not meaningful.** 4th→5th is a slip behind MgraphDTA (0.3590) by
-**0.0013**, while staying ahead of MSGNN-DTA (0.3610) by **0.0007**. Both margins are far inside
-the 3-seed std of **±0.0085**. The honest statement for that region of the table is
-"statistically indistinguishable from MgraphDTA and MSGNN-DTA", not a rank._
+_**1. Every spread widened — n=2 had understated the variance.** MSE nearly doubled (±0.0058 →
+±0.0109) and CI went ±0.0030 → ±0.0053. The earlier conclusion that "cold-split test variance is
+small" was an artefact of two samples. **Any margin below ~0.011 MSE in this project cannot be
+distinguished from split noise** — which still leaves the champion's 0.0196 win over the
+runner-up standing (~1.8× the spread), but rules out anything smaller._
 
-_**CI is the result that strengthens with more seeds.** The spread tightens from ±0.0030 to
-±0.0023 while the value holds at 0.8564 vs KANPM's 0.8570 — a gap of 0.0006, versus 0.0164 to
-the third-place model. The distance to first is **27× smaller** than the distance to third._
+_**2. MSE standing falls from 4th to 6th of 9 — and the rank is meaningless.** At 0.3618 the model
+sits 0.0008 behind MSGNN-DTA and 0.0022 ahead of FusionDTA, both an order of magnitude inside
+±0.0109. Rows 4–7 of the comparison table are a statistical tie, not an ordering._
 
-_**r²ₘ improved and its spread narrowed** (0.5194 ± 0.0376 → 0.5285 ± 0.0310), cutting the gap to
-KANPM from 0.037 to 0.028 — still inside the spread, so no real difference can be claimed._
+_**3. CI remains the durable result.** 0.8541 ± 0.0053 vs KANPM's 0.857 — a gap of 0.0029, against
+0.0141 to the third-place model. The distance to first is ~5× smaller than the distance to third._
 
-_**Validation again failed to predict test — the fourth instance.** Seed 43 had by far the worst
-validation r²ₘ throughout (0.4002 at ep26 vs ~0.54 for the other seeds) and returned the **best
-test r²ₘ of all three** (0.5468). See cross-cutting lesson 5._
+_**4. r²ₘ improved and is still the noisiest metric** (0.5194 → 0.5360, spread ±0.0392). The gap to
+KANPM narrowed from 0.037 to 0.020 but stays well inside the spread, so no difference can be
+claimed either way._
+
+_**5. Validation mispredicted test for the fourth time.** Seed 43 had the worst validation MSE of
+the three (0.3513 vs 0.2578 and 0.3185) and the worst validation r²ₘ throughout (0.4002 at ep26
+vs ~0.54), yet returned the **best test r²ₘ of all three** (0.5692). See cross-cutting lesson 5
+and `code/analysis/valid_test_gap.py`._
 
 ---
 

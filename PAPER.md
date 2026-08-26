@@ -4,7 +4,7 @@
 
 *Author: Turjo Rahman*
 *Contact: us.khan.2002@gmail.com*
-*Status: work in progress — not peer reviewed. Figures below are 2-seed means; a third seed is running.*
+*Status: work in progress — not peer reviewed. Figures below are 3-seed means; a fourth seed is pending.*
 
 ---
 
@@ -25,7 +25,8 @@ for sequence-predicted contacts did not improve accuracy, and independent work p
 since reports the same effect on other benchmarks.
 
 The model itself is competitive: on the unseen-protein split of the DAVIS kinase
-benchmark it **ranks candidate drugs as accurately as the best published method**. But
+benchmark it **ranks candidate drugs nearly as accurately as the best published method**
+(concordance 0.854 vs 0.857). But
 its remaining error is not something better modelling can fix — and part of it turns out
 to be caused by a flaw in the benchmark itself that, as far as I can determine, has not
 previously been reported.
@@ -83,9 +84,9 @@ A model combining:
 
 | | This work | Best published | Standing |
 |---|---|---|---|
-| Ordering compounds correctly (CI) | **0.857** | 0.857 | **tied 1st of 9** |
-| Range fidelity (r²ₘ) | 0.519 | 0.556 | 2nd of 9 |
-| Absolute accuracy (MSE) | 0.356 | 0.314 | 4th of 9 |
+| Ordering compounds correctly (CI) | **0.854** | 0.857 | **2nd of 9** |
+| Range fidelity (r²ₘ) | 0.536 | 0.556 | 2nd of 9 |
+| Absolute accuracy (MSE) | 0.362 | 0.314 | 6th of 9 |
 
 **What it means:** hand it a target and 3,000 compounds and it puts them in close to the
 right order — as well as anything published. Ask *how tightly* a particular compound
@@ -94,7 +95,7 @@ binds and it is less reliable. For screening, the ordering is what matters.
 ### Finding 2 — Real 3D structure did **not** help
 
 This was the central hypothesis, and it failed. The model using **real AlphaFold2
-structure** scores 0.356; the closest prior method, using contacts **guessed from
+structure** scores 0.362; the closest prior method, using contacts **guessed from
 sequence**, scores 0.314. Swapping in real structure made results slightly *worse*.
 
 Independent work published since (arXiv:2606.04228) measured the same effect on other
@@ -155,8 +156,9 @@ narrow band.
 
 ## 6. Limitations, stated plainly
 
-- **Two seeds** of the final model, with a third in progress. The r²ₘ spread (±0.038) is
-  wider than the gap to the leading method, so no r²ₘ claim is currently decisive.
+- **Three seeds** of the final model, with a fourth pending. Adding the third widened every
+  spread (MSE ±0.006 → ±0.011), so margins below ~0.011 MSE cannot be separated from split
+  noise. The r²ₘ spread (±0.039) still exceeds the gap to the leading method.
 - **One benchmark, one split setting.** Unseen-drug and unseen-pair are untested.
 - **The structure comparison is not yet fully controlled.** The reference method also
   weights its graph edges while this model does not, so contact *source* and edge

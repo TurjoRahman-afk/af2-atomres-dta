@@ -18,8 +18,8 @@ targets. Six measured results, in order of how much they constrain the conclusio
 
 | # | Finding | Evidence |
 |---|---------|----------|
-| 1 | **Real structure did not help.** AF2-derived contacts score 0.3560; the reference method's ESM-2 *predicted* contacts score 0.314. Substituting real structure made results slightly worse. | this work + [arXiv:2606.04228](https://arxiv.org/abs/2606.04228), which independently measures a **−0.141 information bonus** for AF2 over ESM-2 on binding affinity |
-| 2 | **Ranking is at state of the art; absolute accuracy is not.** CI 0.8569 ± 0.0030 vs the best published 0.857 — a gap of 0.0001, and 2nd of 9 overall. MSE is 4th of 9. | results table below |
+| 1 | **Real structure did not help.** AF2-derived contacts score 0.3618; the reference method's ESM-2 *predicted* contacts score 0.314. Substituting real structure made results slightly worse. | this work + [arXiv:2606.04228](https://arxiv.org/abs/2606.04228), which independently measures a **−0.141 information bonus** for AF2 over ESM-2 on binding affinity |
+| 2 | **Ranking is at state of the art; absolute accuracy is not.** CI 0.8541 ± 0.0053 vs the best published 0.857 — a gap of 0.0029, and 2nd of 9 overall. MSE is 6th of 9. | results table below |
 | 3 | **DAVIS is partly self-contradictory — previously unreported.** 442 target keys, 379 unique sequences. 18.9% of training pairs are mutually contradictory; 11.4% of cold-protein test pairs are unlearnable by construction. | finding 4 below |
 | 4 | **The remaining error is missing information, not miscalibration.** An oracle rank-preserving rescale fitted *on the test labels* reaches only 0.3389 — still above 0.314. 94% of error survives any output transform. | finding 2 below |
 | 5 | **Capacity is not the bottleneck.** Training MSE 0.0598 against an irreducible floor of 0.0348; a 144× predictor-capacity sweep degrades test accuracy. | finding 5 below |
@@ -121,13 +121,13 @@ Transformer×3    │              Transformer×3     │    _pool      (+1 BOS 
 Test proteins are **entirely held out of training** — the model must generalize to targets it
 has never seen. Results are the mean ± std over independent data-split seeds.
 
-| Metric | Seed 41 | Seed 42 | **Mean ± Std** |
-|--------|---------|---------|----------------|
-| Test MSE ↓ | 0.3601 | 0.3519 | **0.3560 ± 0.0058** |
-| Test CI ↑ | 0.8590 | 0.8547 | **0.8569 ± 0.0030** |
-| Test r²ₘ ↑ | 0.5460 | 0.4928 | **0.5194 ± 0.0376** |
+| Metric | Seed 41 | Seed 42 | Seed 43 | **Mean ± Std** |
+|--------|---------|---------|---------|----------------|
+| Test MSE ↓ | 0.3601 | 0.3519 | 0.3735 | **0.3618 ± 0.0109** |
+| Test CI ↑ | 0.8590 | 0.8547 | 0.8485 | **0.8541 ± 0.0053** |
+| Test r²ₘ ↑ | 0.5460 | 0.4928 | 0.5692 | **0.5360 ± 0.0392** |
 
-_Seeds 43 and 32 pending._
+_Seed 32 pending._
 
 ### Comparison with published methods
 
@@ -138,14 +138,19 @@ Same benchmark and split protocol (KANPM's `cold_split.py`), DAVIS unseen-protei
 | 1 | KANPM-DTA | **0.314** | **0.857** | **0.556** |
 | 2 | PMMR (2025) | 0.329 | 0.833 | 0.471 |
 | 3 | DMFF-DTA (2025) | 0.330 | 0.840 | 0.501 |
-| **4** | **AF2-PocketCross-DTA (this work)** | **0.3560** | **0.8569** | **0.5194** |
-| 5 | MgraphDTA (2022) | 0.359 | 0.813 | 0.425 |
-| 6 | MSGNN-DTA (2023) | 0.361 | 0.816 | 0.430 |
+| 4 | MgraphDTA (2022) | 0.359 | 0.813 | 0.425 |
+| 5 | MSGNN-DTA (2023) | 0.361 | 0.816 | 0.430 |
+| **6** | **AF2-PocketCross-DTA (this work)** | **0.3618** | **0.8541** | **0.5360** |
 | 7 | FusionDTA (2022) | 0.364 | 0.826 | 0.435 |
 | 8 | GRA-DTA (2024) | 0.376 | 0.827 | 0.453 |
 | 9 | GraphDTA (2021) | 0.510 | 0.729 | 0.154 |
 
-**Standing:** 2nd of 9 on CI (statistically tied with 1st — gap 0.0001), 2nd on r²ₘ, 4th on MSE.
+**Standing:** **2nd of 9 on CI** (gap to 1st is 0.0029, versus 0.0141 to 3rd), **2nd of 9 on r²ₘ**,
+6th on MSE.
+
+> ⚠️ **The MSE rank is not meaningful.** At 0.3618 ± 0.0109 this model sits 0.0008 behind
+> MSGNN-DTA and 0.0022 ahead of FusionDTA — both margins are an order of magnitude inside its own
+> seed spread. Rows 4–7 of that table are a statistical tie, not an ordering.
 
 > ⚠️ **Protocol matters.** Published "DAVIS unseen-protein" numbers are **not** mutually comparable —
 > LaPro-DTA (2026) reports baselines at MSE 0.55–0.88 for the same nominal task. The table above is
@@ -229,7 +234,7 @@ Analysis scripts are read-only and regenerate their data split **in memory**, so
 touch `datasets/` and are safe to run while a training job is in progress. The CPU-only ones
 can be run at any time; the GPU ones will contend with training for the card.
 
-**Other limitations:** 2 seeds only; only the cold-protein split evaluated (unseen-drug and
+**Other limitations:** 3 seeds only (seed 32 pending); only the cold-protein split evaluated (unseen-drug and
 unseen-pair untested); trained on 442 proteins, which is the binding constraint on generalization.
 
 ---
