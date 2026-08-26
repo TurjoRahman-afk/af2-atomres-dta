@@ -174,10 +174,23 @@ No interpretability claim is made. *(`code/validate_pocket.py`)*
 **2. The MSE gap is an information deficit, not a calibration artifact.**
 Decomposing test error: **99.5% is shape error** (wrong values on individual pairs), only 0.5% is
 systematic offset. Post-hoc linear calibration fitted on validation recovers just −0.0075 MSE.
-Stronger still: a **perfect rank-preserving rescale fitted directly on the test labels** (an oracle
-that cannot be achieved in practice) reaches only **0.3389** — still above KANPM's 0.314. So
-**94% of the error survives any output transform**, and clamping predictions at the pKd = 5.0 floor
-buys just −0.0008. No loss reshaping or calibration closes the MSE gap. *(`code/calib_check.py`)*
+Every output-side transform, measured on seed 41:
+
+| transform | test MSE | CI | r²ₘ |
+|---|---|---|---|
+| as-is | 0.3601 | 0.8590 | 0.5460 |
+| clamp at the pKd = 5.0 floor | 0.3593 *(−0.0008)* | 0.8585 | 0.5490 |
+| variance-matched (expand to true range) | **0.3968** ❌ | 0.8590 | 0.4605 |
+| *oracle* linear — fitted **on test labels** | 0.3525 | 0.8590 | 0.6034 |
+| ***oracle* monotone — best possible** | **0.3389** | 0.8609 | 0.6186 |
+| honest monotone (fit half, apply to other) | 0.3564 *(−0.0037)* | — | — |
+
+The best achievable by **any** rank-preserving transform — cheating by fitting on the answers — is
+**0.3389**, still above KANPM's 0.314. **94% of the error survives it.** Expanding the range
+actively hurts (+0.037): the compression is correct shrinkage under uncertainty, not a defect.
+Error is concentrated where it matters — the 30.3% of pairs that are real measurements (not the
+censored floor) carry **76.5%** of it, with underprediction growing to **−1.104** for the
+strongest binders. *(`code/analysis/oracle_bound.py`, `code/calib_check.py`)*
 
 **3. Validation systematically overstates performance.**
 Across all **7 completed cold-protein runs** the valid→test gap is positive **7/7 times**, mean
@@ -194,10 +207,20 @@ validation still lost on test. *(`code/analysis/valid_test_gap.py`)*
 DAVIS has **442 target keys but only 379 unique sequences** — the mutations were never applied to
 the sequence strings, so `BRAF` and `BRAF(V600E)` carry identical sequences, and 62 of 63 colliding
 key-pairs also share a byte-identical contact map. The model therefore receives **identical input**
-for pairs with different labels. Consequences: **18.9% of training pairs are mutually contradictory**
-(putting a hard floor of 0.0348 on train MSE), and **11.4% of cold-protein test pairs are unlearnable
-by construction**, contributing **0.0257 of the 0.3601 test MSE (~7%)**. This affects every published
-result on this benchmark, and partly explains why the field plateaus at 0.31–0.36.
+for pairs with different labels. Measured consequences:
+
+| | |
+|---|---|
+| target keys / unique sequences | **442 / 379** — 81 keys across 18 collision groups |
+| colliding keys sharing an identical AF2 contact map | **62 of 63** |
+| contradictory **training** pairs | **4,556 / 24,072 = 18.9%** |
+| irreducible train-MSE floor this imposes | **0.0348** |
+| **test** pairs with an identical (sequence, drug) in train | **340 / 2,992 = 11.4%** |
+| best possible MSE on those | 0.2259 |
+| their contribution to test MSE | **0.0257 of 0.3601 (~7%)** — unfixable by any architecture |
+
+This affects every published result on this benchmark, and partly explains why the field
+plateaus at 0.31–0.36. *(`code/analysis/benchmark_integrity.py`)*
 
 **5. Adding input features has failed every time (0 for 3).**
 RBF edge features, 8-dim distance-shell pocket features, and AlphaFold2 pLDDT confidence as a protein
@@ -209,11 +232,21 @@ computation the model already performed** rather than feeding it new inputs. Ful
 **6. Capacity is not the bottleneck — the representation is.**
 The selected checkpoint fits its training data to **0.0788** against an irreducible floor of
 **0.0348** (the training log reaches 0.0598 by the final epoch, measured mid-epoch with dropout
-active on a later, more-overfit model). So the predictor is not capacity-starved — and sweeping
-it from **131 K to 18.9 M parameters (144×)** makes test MSE *worse*, not better
-(0.3758 → 0.3886), with validation barely moving across the whole range. On the frozen 512-d
-representation a linear head scores **0.4435** and the best MLP at any width **0.3758**, versus
-the KAN's **0.3601** — the head contributes, but is deep in diminishing returns while the
+active on a later, more-overfit model). So the predictor is not capacity-starved. Sweeping head
+capacity on the frozen 512-d representation, seed 41:
+
+| head | params | valid | test MSE |
+|---|---|---|---|
+| **KAN [512,1024,512,1]** | 10,490,880 | — | **0.3601** |
+| ridge (linear) | 513 | 0.3474 | 0.4435 |
+| MLP 512-256-1 | 131,585 | 0.2520 | **0.3758** ← best MLP |
+| MLP 512-1024-512-1 | 1,050,625 | 0.2503 | 0.3796 |
+| MLP 512-4096-2048-1 | 10,493,953 | 0.2561 | 0.3931 ← KAN-matched |
+| MLP 512-4096-4096-1 | 18,886,657 | 0.2539 | 0.3886 ← **144×**, worse |
+
+Validation barely moves across the whole 144× range (0.2463–0.2561) while test degrades — textbook
+over-capacity. No MLP reaches the KAN at any width, so the KAN's advantage is the spline basis, not
+size. The head contributes (ridge 0.4435 → KAN 0.3601) but is deep in diminishing returns while the
 representation caps the result. *(`code/analysis/capacity_probe.py`)*
 
 ### Reproducing each finding
