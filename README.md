@@ -89,7 +89,7 @@ Transformer×3    │              Transformer×3     │    _pool      (+1 BOS 
   │  │        STRUCTURE-GUIDED ATOM↔RESIDUE ATTENTION ◄┼──────────────┘
   │  │        score = Q(H_d)·K(H_p)ᵀ/√d + β·residue_score
   │  │        I = softmax(score)     → interaction map [B,220,1200]
-  │  │        f_int = mean(I·(H_d ⊙ H_p))  →  [B,128]
+  │  │        ctx = I·H_p ; f_int = mean_atoms(H_d ⊙ ctx) → [B,128]
   │  ▼                    │
   │ mean-pool           f_int          GatedFusion(drug_graph, protein_graph)
   ▼  │                    │                        │
@@ -314,9 +314,13 @@ not change the fold) · 6 backbone fallback (non-human, no AF2 entry). All 442 p
 ## Setup
 
 ```bash
-pip install torch transformers rdkit biopython requests pandas numpy
-pip install esm torch-geometric
+# pinned to the environment the reported results came from
+pip install torch==2.9.1 --index-url https://download.pytorch.org/whl/cu128
+pip install -r requirements.txt
 ```
+
+> `requirements.txt` documents a known conflict: ESM-C (`esm`) and ESM-2 (`fair-esm`) both
+> import as `esm` and cannot coexist. Only ESM-C is needed to reproduce this work.
 
 ```bash
 # 1. Generate pretrained embeddings
