@@ -63,7 +63,10 @@ residue score derived from the protein's structure-derived contact topology.
 ## Architecture
 
 <p align="center">
-  <img src="images/architecture.svg" alt="AF2-PocketCross-DTA forward pass: drug SMILES and protein sequence are each encoded twice — once by a pretrained language model into a transformer, once into a graph network. ProteinGraphNet's per-residue embeddings feed a residue prior that biases atom-to-residue attention. Four 128-dim vectors are concatenated and passed to a KAN predictor." width="920">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="images/architecture-dark.svg">
+    <img src="images/architecture.svg" alt="AF2-PocketCross-DTA forward pass: drug SMILES and protein sequence are each encoded twice — once by a pretrained language model into a transformer, once into a graph network. ProteinGraphNet's per-residue embeddings feed a residue prior that biases atom-to-residue attention. Four 128-dim vectors are concatenated and passed to a KAN predictor." width="920">
+  </picture>
 </p>
 
 Solid amber and blue trace the drug and protein streams. The dashed teal path is the architecture's
