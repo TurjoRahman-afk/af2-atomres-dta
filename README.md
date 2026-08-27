@@ -62,45 +62,24 @@ residue score derived from the protein's structure-derived contact topology.
 
 ## Architecture
 
-```
-DRUG                                 PROTEIN                    AF2 3D STRUCTURE
-SMILES                               sequence                   (Cα contact map)
-  │                                     │                              │
-  ├──────────────┐                      ├──────────────┐              │
-  ▼              ▼                      ▼              ▼              ▼
-ChemBERTa   molecular graph          ESM-C        ┌─────────────────────────────┐
-  │           (RDKit)                  │          │      ProteinGraphNet        │
-  ▼              │                     ▼          │      (GCN + 5×GAT)          │
-Linear 384→128   │              Linear 1152→128   │        │           │        │
-  │              │                     │          │        ▼           ▼        │
-  ▼              │                     ▼          │  global_add   to_dense_batch │
-Transformer×3    │              Transformer×3     │    _pool      (+1 BOS align) │
-  │              │                     │          │        │           │        │
-  ▼              ▼                     ▼          │        ▼           ▼        │
- H_d         DrugGraphNet             H_p         │  fasta_graph  residue_emb    │
-[B,220,128]  (GCN + 5×GAT)        [B,1200,128]    │    [B,128]   [B,1200,256]   │
- (per ATOM)       │                (per RESIDUE)  └────┬──────────────┬─────────┘
-  │  │            │                   │  │             │              ▼
-  │  │            │                   │  │             │        Residue-prior MLP
-  │  │            │                   │  │             │           (256→32→1)
-  │  │            │                   │  │             │              │
-  │  │            └────────┐   ┌──────┘  │             │              ▼
-  │  │                     ▼   ▼         │             │        residue_score
-  │  │        STRUCTURE-GUIDED ATOM↔RESIDUE ATTENTION ◄┼──────────────┘
-  │  │        score = Q(H_d)·K(H_p)ᵀ/√d + β·residue_score
-  │  │        I = softmax(score)     → interaction map [B,220,1200]
-  │  │        ctx = I·H_p ; f_int = mean_atoms(H_d ⊙ ctx) → [B,128]
-  │  ▼                    │
-  │ mean-pool           f_int          GatedFusion(drug_graph, protein_graph)
-  ▼  │                    │                        │
- g_d [B,128]   g_p [B,128]│                    g [B,128]
-  └──────┬───────────┬────┴────────────────────────┘
-         ▼           ▼
-   concat[ f_int, g_d, g_p, g ] = [B,512]
-                 │
-                 ▼
-      KAN [512 → 1024 → 512 → 1]  →  predicted affinity (pKd)
-```
+<p align="center">
+  <img src="images/pathway.png" alt="AF2-PocketCross-DTA forward pass: drug SMILES and protein sequence are each encoded twice — once by a pretrained language model into a transformer, once into a graph network. ProteinGraphNet's per-residue embeddings feed a residue prior that biases atom-to-residue attention. Four 128-dim vectors are concatenated and passed to a KAN predictor." width="920">
+</p>
+
+Solid amber and blue trace the drug and protein streams. The dashed teal path is the architecture's
+one original move: `ProteinGraphNet`'s per-residue embeddings are normally pooled away, and here they
+are kept and turned into a per-residue bias on the atom↔residue attention.
+
+| stage | code | shape out |
+|---|---|---|
+| Project + contextualise drug tokens | `drug_ln(transformer_encoder(fc3(drug_mat)))` | `[B, 220, 128]` |
+| Project + contextualise residues | `target_ln(transformer_encoder2(fc2(prot_mat)))` | `[B, 1200, 128]` |
+| Protein contact graph — **two** outputs | `protein_graph_model(protein_graph)` | `[B, 128]` + `[B, 1200, 256]` |
+| Score every residue | `pocket(residue_emb)` | `[B, 1200]` |
+| Atom↔residue attention, biased by the prior | `interaction(Hd, Hp, …, pocket_logit)` | `[B, 128]` + map `[B, 220, 1200]` |
+| Masked, length-normalised sequence means | `gd`, `gp` | `[B, 128]` each |
+| Blend the two graph views | `graph_fusion(smiles_graph, fasta_graph)` | `[B, 128]` |
+| Predict | `kan(cat([f_int, gd, gp, g]))` | `[B, 1]` |
 
 **Model size:** 13.55 M parameters. **Loss:** plain MSE.
 
