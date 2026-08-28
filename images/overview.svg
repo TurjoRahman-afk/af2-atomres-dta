@@ -1,0 +1,254 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1580 960" width="1580" height="960" role="img" aria-label="Three-panel architecture of AF2-PocketCross-DTA. Panel A: a protein sequence goes to ESM-C for per-residue embeddings and to AlphaFold2 for a contact map; the two combine into a residue graph read by ProteinGraphNet, which emits both a pooled protein vector and per-residue embeddings that feed a residue prior. Panel B: a drug SMILES goes to RDKit for a molecular graph and to ChemBERTa for token embeddings, each read by its own encoder. Panel C: the two graph vectors are combined by gated fusion, the two sequence tensors meet in structure-guided atom-residue attention biased by the residue prior, and the four resulting vectors are concatenated and passed to a KAN block that outputs a binding affinity score.">
+<defs>
+<marker id="ag" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z" fill="#11151C"/></marker>
+<marker id="am" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z" fill="#5A6472"/></marker>
+<marker id="aA" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z" fill="#0B57D0"/></marker>
+<marker id="aB" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z" fill="#B45309"/></marker>
+<marker id="aC" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z" fill="#0F766E"/></marker>
+</defs>
+<rect x="0" y="0" width="1580" height="960" fill="#FFFFFF"/>
+<rect x="20" y="20" width="1040" height="440" rx="18" fill="#EEF3FC" stroke="#0B57D0" stroke-width="1.4" stroke-dasharray="7 5"/>
+<text x="38" y="46" text-anchor="start" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="17" fill="#5A6472" font-weight="600">A</text>
+<text x="42" y="118" text-anchor="start" font-family="'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace" font-size="12.5" fill="#11151C">MRPSGTAGAALLALLAALC…</text>
+<text x="42" y="138" text-anchor="start" font-family="'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace" font-size="12.5" fill="#11151C">…VKIPVAIKELREATSPKA</text>
+<text x="72" y="158" text-anchor="start" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="11" fill="#5A6472">protein sequence</text>
+<path d="M245 112 H 300 V 78 H 322" fill="none" stroke="#0B57D0" stroke-width="1.4" marker-end="url(#aA)"/>
+<text x="258" y="100" text-anchor="start" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#0B57D0" font-weight="500">AlphaFold2</text>
+<rect x="330" y="28" width="130" height="130" rx="4" fill="#101A33" stroke="#101A33" stroke-width="1"/>
+<line x1="334" y1="154" x2="456" y2="32" stroke="#7CA9F5" stroke-width="2.4" opacity="0.95"/>
+<rect x="372" y="96" width="11" height="11" fill="#7CA9F5" opacity="0.5"/>
+<rect x="64" y="400" width="11" height="11" fill="#7CA9F5" opacity="0.5"/>
+<rect x="410" y="62" width="9" height="9" fill="#7CA9F5" opacity="0.42"/>
+<rect x="30" y="438" width="9" height="9" fill="#7CA9F5" opacity="0.42"/>
+<rect x="352" y="122" width="8" height="8" fill="#7CA9F5" opacity="0.38"/>
+<rect x="90" y="380" width="8" height="8" fill="#7CA9F5" opacity="0.38"/>
+<rect x="428" y="50" width="7" height="7" fill="#7CA9F5" opacity="0.34"/>
+<rect x="18" y="456" width="7" height="7" fill="#7CA9F5" opacity="0.34"/>
+<rect x="390" y="78" width="8" height="8" fill="#7CA9F5" opacity="0.3"/>
+<rect x="46" y="418" width="8" height="8" fill="#7CA9F5" opacity="0.3"/>
+<rect x="404" y="108" width="6" height="6" fill="#7CA9F5" opacity="0.26"/>
+<rect x="76" y="432" width="6" height="6" fill="#7CA9F5" opacity="0.26"/>
+<rect x="356" y="70" width="6" height="6" fill="#7CA9F5" opacity="0.22"/>
+<rect x="38" y="384" width="6" height="6" fill="#7CA9F5" opacity="0.22"/>
+<rect x="434" y="88" width="7" height="7" fill="#7CA9F5" opacity="0.24"/>
+<rect x="56" y="462" width="7" height="7" fill="#7CA9F5" opacity="0.24"/>
+<text x="395" y="176" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="11.5" fill="#5A6472">Cα contact map  (&lt; 8 Å)</text>
+<path d="M175 205 V 246 H 244" fill="none" stroke="#0B57D0" stroke-width="1.4" marker-end="url(#aA)"/>
+<text x="120" y="200" text-anchor="start" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#0B57D0" font-weight="500">ESM-C</text>
+<text x="267" y="244" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#11151C" font-weight="500">M</text>
+<rect x="252" y="252" width="30" height="22" fill="#F6C8A6" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="252" y="274" width="30" height="22" fill="#DDE3EA" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="252" y="296" width="30" height="22" fill="#8E9AAB" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="252" y="318" width="30" height="22" fill="#7FB2F0" stroke="#FFFFFF" stroke-width="1"/>
+<text x="297" y="244" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#11151C" font-weight="500">R</text>
+<rect x="282" y="252" width="30" height="22" fill="#DDE3EA" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="282" y="274" width="30" height="22" fill="#8E9AAB" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="282" y="296" width="30" height="22" fill="#7FB2F0" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="282" y="318" width="30" height="22" fill="#E4ECF6" stroke="#FFFFFF" stroke-width="1"/>
+<text x="327" y="244" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#11151C" font-weight="500">P</text>
+<rect x="312" y="252" width="30" height="22" fill="#8E9AAB" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="312" y="274" width="30" height="22" fill="#7FB2F0" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="312" y="296" width="30" height="22" fill="#E4ECF6" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="312" y="318" width="30" height="22" fill="#F6C8A6" stroke="#FFFFFF" stroke-width="1"/>
+<text x="357" y="244" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#11151C" font-weight="500">S</text>
+<rect x="342" y="252" width="30" height="22" fill="#7FB2F0" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="342" y="274" width="30" height="22" fill="#E4ECF6" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="342" y="296" width="30" height="22" fill="#F6C8A6" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="342" y="318" width="30" height="22" fill="#DDE3EA" stroke="#FFFFFF" stroke-width="1"/>
+<text x="387" y="244" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#11151C" font-weight="500">G</text>
+<rect x="372" y="252" width="30" height="22" fill="#E4ECF6" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="372" y="274" width="30" height="22" fill="#F6C8A6" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="372" y="296" width="30" height="22" fill="#DDE3EA" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="372" y="318" width="30" height="22" fill="#8E9AAB" stroke="#FFFFFF" stroke-width="1"/>
+<text x="417" y="244" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#11151C" font-weight="500">T</text>
+<rect x="402" y="252" width="30" height="22" fill="#F6C8A6" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="402" y="274" width="30" height="22" fill="#DDE3EA" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="402" y="296" width="30" height="22" fill="#8E9AAB" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="402" y="318" width="30" height="22" fill="#7FB2F0" stroke="#FFFFFF" stroke-width="1"/>
+<text x="342" y="372" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="11.5" fill="#5A6472">per-residue embedding  [L, 1152]</text>
+<text x="455" y="212" text-anchor="start" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="11" fill="#5A6472">assign node features</text>
+<path d="M430 268 Q 498.0 230 566 250" fill="none" stroke="#5A6472" stroke-width="1" stroke-dasharray="4 3" opacity="0.75" marker-end="url(#am)"/>
+<path d="M430 290 Q 513.0 252 596 300" fill="none" stroke="#5A6472" stroke-width="1" stroke-dasharray="4 3" opacity="0.75" marker-end="url(#am)"/>
+<path d="M430 312 Q 493.0 274 556 320" fill="none" stroke="#5A6472" stroke-width="1" stroke-dasharray="4 3" opacity="0.75" marker-end="url(#am)"/>
+<path d="M460 93 H 520 V 226 H 548" fill="none" stroke="#0B57D0" stroke-width="1.4" marker-end="url(#aA)"/>
+<rect x="540" y="200" width="200" height="168" rx="8" fill="#FFFFFF" stroke="#C9D2DE" stroke-width="1.2"/>
+<line x1="596" y1="244" x2="668" y2="228" stroke="#11151C" stroke-width="1.2" opacity="0.55"/>
+<line x1="596" y1="244" x2="582" y2="292" stroke="#11151C" stroke-width="1.2" opacity="0.55"/>
+<line x1="582" y1="292" x2="652" y2="300" stroke="#11151C" stroke-width="1.2" opacity="0.55"/>
+<line x1="652" y1="300" x2="596" y2="340" stroke="#11151C" stroke-width="1.2" opacity="0.55"/>
+<line x1="652" y1="300" x2="700" y2="336" stroke="#11151C" stroke-width="1.2" opacity="0.55"/>
+<line x1="668" y1="228" x2="652" y2="300" stroke="#11151C" stroke-width="1.2" opacity="0.55"/>
+<circle cx="596" cy="244" r="15" fill="#F0A868" stroke="#FFFFFF" stroke-width="1.5"/>
+<circle cx="668" cy="228" r="15" fill="#F4C7DE" stroke="#FFFFFF" stroke-width="1.5"/>
+<circle cx="582" cy="292" r="15" fill="#E8705A" stroke="#FFFFFF" stroke-width="1.5"/>
+<circle cx="652" cy="300" r="15" fill="#C060A8" stroke="#FFFFFF" stroke-width="1.5"/>
+<circle cx="596" cy="340" r="15" fill="#A8B048" stroke="#FFFFFF" stroke-width="1.5"/>
+<circle cx="700" cy="336" r="15" fill="#7FB2F0" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="640" y="390" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="11.5" fill="#5A6472">residue graph</text>
+<path d="M740 264 H 776" fill="none" stroke="#0B57D0" stroke-width="1.4" marker-end="url(#aA)"/>
+<rect x="782" y="236" width="138" height="56" rx="7" fill="#1D4FD8" stroke="#1D4FD8" stroke-width="1"/>
+<text x="851.0" y="257.0" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12.5" fill="#FFFFFF" font-weight="500">ProteinGraphNet</text>
+<text x="851.0" y="272.0" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12.5" fill="#FFFFFF" font-weight="500">GCN + 5×GAT</text>
+<path d="M920 250 H 946" fill="none" stroke="#0B57D0" stroke-width="1.4" marker-end="url(#aA)"/>
+<rect x="950.0" y="239" width="23.6" height="22" fill="#F6C8A6"/>
+<rect x="973.6" y="239" width="23.6" height="22" fill="#DDE3EA"/>
+<rect x="997.2" y="239" width="23.6" height="22" fill="#8E9AAB"/>
+<rect x="1020.8" y="239" width="23.6" height="22" fill="#7FB2F0"/>
+<rect x="1044.4" y="239" width="23.6" height="22" fill="#E4ECF6"/>
+<rect x="950" y="239" width="118" height="22" rx="3" fill="none" stroke="#C9D2DE" stroke-width="1"/>
+<text x="1009" y="228" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12.5" fill="#11151C" font-style="italic">t</text>
+<text x="1016" y="232" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="9.5" fill="#5A6472">target(G)</text>
+<path d="M851 292 V 322 H 782" fill="none" stroke="#0F766E" stroke-width="1.4" stroke-dasharray="5 3" marker-end="url(#aC)"/>
+<text x="866" y="314" text-anchor="start" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="10.5" fill="#0F766E">per-residue embeddings</text>
+<rect x="646" y="300" width="136" height="52" rx="7" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.6"/>
+<text x="714" y="322" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12.5" fill="#11151C" font-weight="600">Residue prior</text>
+<text x="714" y="338" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="10.5" fill="#5A6472">MLP 256→32→1</text>
+<path d="M646 326 H 596 V 400" fill="none" stroke="#0F766E" stroke-width="1.4" stroke-dasharray="5 3" marker-end="url(#aC)"/>
+<text x="560" y="418" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="10.5" fill="#0F766E">residue bias → panel C</text>
+<path d="M342 396 V 424 H 776" fill="none" stroke="#0B57D0" stroke-width="1.4" marker-end="url(#aA)"/>
+<rect x="782" y="396" width="138" height="50" rx="7" fill="#0F766E" stroke="#0F766E" stroke-width="1"/>
+<text x="851.0" y="425.0" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12.5" fill="#FFFFFF" font-weight="500">Sequence encoder</text>
+<path d="M920 421 H 946" fill="none" stroke="#0B57D0" stroke-width="1.4" marker-end="url(#aA)"/>
+<rect x="950.0" y="410" width="23.6" height="22" fill="#F6C8A6"/>
+<rect x="973.6" y="410" width="23.6" height="22" fill="#DDE3EA"/>
+<rect x="997.2" y="410" width="23.6" height="22" fill="#8E9AAB"/>
+<rect x="1020.8" y="410" width="23.6" height="22" fill="#7FB2F0"/>
+<rect x="1044.4" y="410" width="23.6" height="22" fill="#E4ECF6"/>
+<rect x="950" y="410" width="118" height="22" rx="3" fill="none" stroke="#C9D2DE" stroke-width="1"/>
+<text x="1009" y="399" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12.5" fill="#11151C" font-style="italic">t</text>
+<text x="1016" y="403" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="9.5" fill="#5A6472">target(S)</text>
+<rect x="20" y="484" width="1040" height="440" rx="18" fill="#FDF2E4" stroke="#B45309" stroke-width="1.4" stroke-dasharray="7 5"/>
+<text x="38" y="510" text-anchor="start" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="17" fill="#5A6472" font-weight="600">B</text>
+<text x="42" y="690" text-anchor="start" font-family="'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace" font-size="12.5" fill="#11151C">CC1=C2C=C(C=CC2=NN1)</text>
+<text x="42" y="710" text-anchor="start" font-family="'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace" font-size="12.5" fill="#11151C">C3=CC(=CN=C3)OCC(CC4)</text>
+<text x="42" y="730" text-anchor="start" font-family="'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace" font-size="12.5" fill="#11151C">N4C</text>
+<text x="78" y="750" text-anchor="start" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="11" fill="#5A6472">drug SMILES</text>
+<path d="M245 684 H 300 V 600 H 322" fill="none" stroke="#B45309" stroke-width="1.4" marker-end="url(#aB)"/>
+<text x="252" y="672" text-anchor="start" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#B45309" font-weight="500">RDKit</text>
+<rect x="330" y="520" width="210" height="170" rx="8" fill="#FFFFFF" stroke="#C9D2DE" stroke-width="1.2"/>
+<line x1="388" y1="566" x2="462" y2="552" stroke="#11151C" stroke-width="1.2" opacity="0.55"/>
+<line x1="388" y1="566" x2="452" y2="596" stroke="#11151C" stroke-width="1.2" opacity="0.55"/>
+<line x1="452" y1="596" x2="420" y2="610" stroke="#11151C" stroke-width="1.2" opacity="0.55"/>
+<line x1="420" y1="610" x2="376" y2="646" stroke="#11151C" stroke-width="1.2" opacity="0.55"/>
+<line x1="420" y1="610" x2="486" y2="640" stroke="#11151C" stroke-width="1.2" opacity="0.55"/>
+<line x1="462" y1="552" x2="452" y2="596" stroke="#11151C" stroke-width="1.2" opacity="0.55"/>
+<circle cx="388" cy="566" r="15" fill="#F0A868" stroke="#FFFFFF" stroke-width="1.5"/>
+<circle cx="462" cy="552" r="15" fill="#F4C7DE" stroke="#FFFFFF" stroke-width="1.5"/>
+<circle cx="420" cy="610" r="15" fill="#C060A8" stroke="#FFFFFF" stroke-width="1.5"/>
+<circle cx="376" cy="646" r="15" fill="#A8B048" stroke="#FFFFFF" stroke-width="1.5"/>
+<circle cx="486" cy="640" r="15" fill="#7FB2F0" stroke="#FFFFFF" stroke-width="1.5"/>
+<circle cx="452" cy="596" r="15" fill="#E8705A" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="435" y="712" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="11.5" fill="#5A6472">molecular graph  ·  88 atom features</text>
+<path d="M540 605 H 776" fill="none" stroke="#B45309" stroke-width="1.4" marker-end="url(#aB)"/>
+<rect x="782" y="578" width="138" height="56" rx="7" fill="#1D4FD8" stroke="#1D4FD8" stroke-width="1"/>
+<text x="851.0" y="599.0" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12.5" fill="#FFFFFF" font-weight="500">DrugGraphNet</text>
+<text x="851.0" y="614.0" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12.5" fill="#FFFFFF" font-weight="500">GCN + 5×GAT</text>
+<path d="M920 592 H 946" fill="none" stroke="#B45309" stroke-width="1.4" marker-end="url(#aB)"/>
+<rect x="950.0" y="581" width="23.6" height="22" fill="#F6C8A6"/>
+<rect x="973.6" y="581" width="23.6" height="22" fill="#DDE3EA"/>
+<rect x="997.2" y="581" width="23.6" height="22" fill="#8E9AAB"/>
+<rect x="1020.8" y="581" width="23.6" height="22" fill="#7FB2F0"/>
+<rect x="1044.4" y="581" width="23.6" height="22" fill="#E4ECF6"/>
+<rect x="950" y="581" width="118" height="22" rx="3" fill="none" stroke="#C9D2DE" stroke-width="1"/>
+<text x="1009" y="570" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12.5" fill="#11151C" font-style="italic">d</text>
+<text x="1016" y="574" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="9.5" fill="#5A6472">drug(G)</text>
+<path d="M175 762 V 800 H 244" fill="none" stroke="#B45309" stroke-width="1.4" marker-end="url(#aB)"/>
+<text x="96" y="792" text-anchor="start" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#B45309" font-weight="500">ChemBERTa</text>
+<text x="267" y="798" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#11151C" font-weight="500">C</text>
+<rect x="252" y="806" width="30" height="22" fill="#8E9AAB" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="252" y="828" width="30" height="22" fill="#7FB2F0" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="252" y="850" width="30" height="22" fill="#E4ECF6" stroke="#FFFFFF" stroke-width="1"/>
+<text x="297" y="798" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#11151C" font-weight="500">C</text>
+<rect x="282" y="806" width="30" height="22" fill="#7FB2F0" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="282" y="828" width="30" height="22" fill="#E4ECF6" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="282" y="850" width="30" height="22" fill="#F6C8A6" stroke="#FFFFFF" stroke-width="1"/>
+<text x="327" y="798" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#11151C" font-weight="500">1</text>
+<rect x="312" y="806" width="30" height="22" fill="#E4ECF6" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="312" y="828" width="30" height="22" fill="#F6C8A6" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="312" y="850" width="30" height="22" fill="#DDE3EA" stroke="#FFFFFF" stroke-width="1"/>
+<text x="357" y="798" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#11151C" font-weight="500">=</text>
+<rect x="342" y="806" width="30" height="22" fill="#F6C8A6" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="342" y="828" width="30" height="22" fill="#DDE3EA" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="342" y="850" width="30" height="22" fill="#8E9AAB" stroke="#FFFFFF" stroke-width="1"/>
+<text x="387" y="798" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#11151C" font-weight="500">C</text>
+<rect x="372" y="806" width="30" height="22" fill="#DDE3EA" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="372" y="828" width="30" height="22" fill="#8E9AAB" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="372" y="850" width="30" height="22" fill="#7FB2F0" stroke="#FFFFFF" stroke-width="1"/>
+<text x="417" y="798" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#11151C" font-weight="500">2</text>
+<rect x="402" y="806" width="30" height="22" fill="#8E9AAB" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="402" y="828" width="30" height="22" fill="#7FB2F0" stroke="#FFFFFF" stroke-width="1"/>
+<rect x="402" y="850" width="30" height="22" fill="#E4ECF6" stroke="#FFFFFF" stroke-width="1"/>
+<text x="342" y="892" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="11.5" fill="#5A6472">token embedding  [N, 384]</text>
+<path d="M432 838 H 776" fill="none" stroke="#B45309" stroke-width="1.4" marker-end="url(#aB)"/>
+<rect x="782" y="812" width="138" height="50" rx="7" fill="#0F766E" stroke="#0F766E" stroke-width="1"/>
+<text x="851.0" y="841.0" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12.5" fill="#FFFFFF" font-weight="500">Sequence encoder</text>
+<path d="M920 837 H 946" fill="none" stroke="#B45309" stroke-width="1.4" marker-end="url(#aB)"/>
+<rect x="950.0" y="826" width="23.6" height="22" fill="#F6C8A6"/>
+<rect x="973.6" y="826" width="23.6" height="22" fill="#DDE3EA"/>
+<rect x="997.2" y="826" width="23.6" height="22" fill="#8E9AAB"/>
+<rect x="1020.8" y="826" width="23.6" height="22" fill="#7FB2F0"/>
+<rect x="1044.4" y="826" width="23.6" height="22" fill="#E4ECF6"/>
+<rect x="950" y="826" width="118" height="22" rx="3" fill="none" stroke="#C9D2DE" stroke-width="1"/>
+<text x="1009" y="815" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12.5" fill="#11151C" font-style="italic">d</text>
+<text x="1016" y="819" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="9.5" fill="#5A6472">drug(S)</text>
+<rect x="1090" y="190" width="470" height="570" rx="18" fill="#E7F3F1" stroke="#0F766E" stroke-width="1.4" stroke-dasharray="7 5"/>
+<text x="1108" y="216" text-anchor="start" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="17" fill="#5A6472" font-weight="600">C</text>
+<rect x="1112.0" y="252" width="20.8" height="20" fill="#F6C8A6"/>
+<rect x="1132.8" y="252" width="20.8" height="20" fill="#DDE3EA"/>
+<rect x="1153.6" y="252" width="20.8" height="20" fill="#8E9AAB"/>
+<rect x="1174.4" y="252" width="20.8" height="20" fill="#7FB2F0"/>
+<rect x="1195.2" y="252" width="20.8" height="20" fill="#E4ECF6"/>
+<rect x="1112" y="252" width="104" height="20" rx="3" fill="none" stroke="#C9D2DE" stroke-width="1"/>
+<text x="1164" y="288" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="11.5" fill="#11151C" font-style="italic">d</text>
+<text x="1200" y="288" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="9.5" fill="#5A6472">drug(G)  ·  t target(G)</text>
+<path d="M1220 262 H 1256" fill="none" stroke="#0F766E" stroke-width="1.4" marker-end="url(#aC)"/>
+<rect x="1262" y="238" width="128" height="48" rx="7" fill="#B45309" stroke="#B45309" stroke-width="1"/>
+<text x="1326.0" y="266.0" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12.5" fill="#FFFFFF" font-weight="500">Gated fusion</text>
+<rect x="1112.0" y="372" width="20.8" height="20" fill="#F6C8A6"/>
+<rect x="1132.8" y="372" width="20.8" height="20" fill="#DDE3EA"/>
+<rect x="1153.6" y="372" width="20.8" height="20" fill="#8E9AAB"/>
+<rect x="1174.4" y="372" width="20.8" height="20" fill="#7FB2F0"/>
+<rect x="1195.2" y="372" width="20.8" height="20" fill="#E4ECF6"/>
+<rect x="1112" y="372" width="104" height="20" rx="3" fill="none" stroke="#C9D2DE" stroke-width="1"/>
+<text x="1164" y="408" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="11.5" fill="#11151C" font-style="italic">H</text>
+<text x="1196" y="408" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="9.5" fill="#5A6472">d  (per atom)  ·  H p  (per residue)</text>
+<path d="M1220 382 H 1256" fill="none" stroke="#0F766E" stroke-width="1.4" marker-end="url(#aC)"/>
+<rect x="1262" y="342" width="128" height="96" rx="7" fill="#DCEFEC" stroke="#0F766E" stroke-width="1.8"/>
+<text x="1326" y="366" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#11151C" font-weight="600">Structure-guided</text>
+<text x="1326" y="382" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12" fill="#11151C" font-weight="600">attention</text>
+<text x="1326" y="402" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace" font-size="10" fill="#5A6472">Q·Kᵀ/√d + β·prior</text>
+<text x="1326" y="418" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="10" fill="#5A6472">atoms ↔ residues</text>
+<path d="M1120 470 H 1326 V 442" fill="none" stroke="#0F766E" stroke-width="1.4" stroke-dasharray="5 3" marker-end="url(#aC)"/>
+<text x="1128" y="462" text-anchor="start" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="10.5" fill="#0F766E">residue bias from panel A</text>
+<rect x="1112.0" y="512" width="20.8" height="20" fill="#F6C8A6"/>
+<rect x="1132.8" y="512" width="20.8" height="20" fill="#DDE3EA"/>
+<rect x="1153.6" y="512" width="20.8" height="20" fill="#8E9AAB"/>
+<rect x="1174.4" y="512" width="20.8" height="20" fill="#7FB2F0"/>
+<rect x="1195.2" y="512" width="20.8" height="20" fill="#E4ECF6"/>
+<rect x="1112" y="512" width="104" height="20" rx="3" fill="none" stroke="#C9D2DE" stroke-width="1"/>
+<text x="1164" y="548" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="10" fill="#5A6472">mean-pool  →  g</text>
+<text x="1213" y="549" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="10" fill="#5A6472">d , g p</text>
+<path d="M1220 522 H 1256" fill="none" stroke="#0F766E" stroke-width="1.4" marker-end="url(#aC)"/>
+<rect x="1262" y="500" width="128" height="44" rx="7" fill="#0F766E" stroke="#0F766E" stroke-width="1"/>
+<text x="1326.0" y="526.0" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12.5" fill="#FFFFFF" font-weight="500">pooled summaries</text>
+<rect x="1418" y="258" width="26" height="30" fill="#F6C8A6"/>
+<rect x="1418" y="288" width="26" height="30" fill="#DDE3EA"/>
+<rect x="1418" y="318" width="26" height="30" fill="#8E9AAB"/>
+<rect x="1418" y="348" width="26" height="30" fill="#7FB2F0"/>
+<rect x="1418" y="378" width="26" height="30" fill="#E4ECF6"/>
+<rect x="1418" y="408" width="26" height="30" fill="#F6C8A6"/>
+<rect x="1418" y="438" width="26" height="30" fill="#DDE3EA"/>
+<rect x="1418" y="468" width="26" height="30" fill="#8E9AAB"/>
+<rect x="1418" y="258" width="26" height="240" rx="3" fill="none" stroke="#C9D2DE" stroke-width="1"/>
+<text x="1431" y="516" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace" font-size="10" fill="#5A6472">[B, 512]</text>
+<path d="M1390 262 H 1412" fill="none" stroke="#0F766E" stroke-width="1.4" marker-end="url(#aC)"/>
+<path d="M1390 382 H 1412" fill="none" stroke="#0F766E" stroke-width="1.4" marker-end="url(#aC)"/>
+<path d="M1390 522 H 1412" fill="none" stroke="#0F766E" stroke-width="1.4" marker-end="url(#aC)"/>
+<path d="M1444 378 H 1466" fill="none" stroke="#0F766E" stroke-width="1.4" marker-end="url(#aC)"/>
+<rect x="1472" y="318" width="62" height="120" rx="7" fill="#11151C" stroke="#11151C" stroke-width="1"/>
+<text x="1503" y="366" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="13" fill="#FFFFFF" font-weight="600">KAN</text>
+<text x="1503" y="384" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="13" fill="#FFFFFF" font-weight="600">block</text>
+<text x="1503" y="470" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12.5" fill="#11151C" font-weight="600">binding affinity</text>
+<text x="1503" y="488" text-anchor="middle" font-family="'IBM Plex Sans',-apple-system,'Segoe UI',Roboto,sans-serif" font-size="12.5" fill="#11151C" font-weight="600">score  (pKd)</text>
+<path d="M1503 442 V 452" fill="none" stroke="#0F766E" stroke-width="1.4" marker-end="url(#aC)"/>
+</svg>

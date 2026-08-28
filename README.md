@@ -3,6 +3,13 @@
 **Does grounding a drug–target affinity model in real protein structure help it generalise to
 targets it has never seen? Measured answer: no.**
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="images/overview-dark.svg">
+    <img src="images/overview.svg" alt="AF2-PocketCross-DTA architecture. Panel A, protein: the sequence goes to ESM-C for per-residue embeddings and to AlphaFold2 for a Ca contact map; together they form a residue graph read by ProteinGraphNet, which emits both a pooled protein vector and per-residue embeddings that feed a residue prior. Panel B, drug: SMILES goes to RDKit for a molecular graph and to ChemBERTa for token embeddings, each read by its own encoder. Panel C: the graph vectors are combined by gated fusion, the sequence tensors meet in structure-guided atom-residue attention biased by the residue prior, and the four resulting vectors are concatenated and passed to a KAN block that outputs an affinity score." width="100%">
+  </picture>
+</p>
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-0B57D0.svg)](LICENSE)
 ![Python 3.11](https://img.shields.io/badge/Python-3.11-0B57D0.svg)
 ![PyTorch 2.9](https://img.shields.io/badge/PyTorch-2.9-B45309.svg)
