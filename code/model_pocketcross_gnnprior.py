@@ -142,8 +142,10 @@ class MODEL(nn.Module):
         self.fc2 = nn.Linear(hp.protvec_dim, d)     # prot 1152 -> 128
         el = nn.TransformerEncoderLayer(d_model=d, nhead=8, dim_feedforward=1024)
         self.transformer_encoder = nn.TransformerEncoder(el, num_layers=3)
+        
         el2 = nn.TransformerEncoderLayer(d_model=d, nhead=8, dim_feedforward=1024)
         self.transformer_encoder2 = nn.TransformerEncoder(el2, num_layers=3)
+
         self.drug_ln = nn.LayerNorm(d)
         self.target_ln = nn.LayerNorm(d)
 

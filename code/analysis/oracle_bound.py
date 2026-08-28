@@ -14,6 +14,8 @@ It reports:
   * clamping at the floor, which is free but nearly worthless
   * variance matching, which makes things worse
   * the oracle linear and oracle monotone (isotonic) ceilings
+  * the HONEST linear calibration — fitted on validation only, i.e. the one you could
+    actually deploy (this subsumes the former code/calib_check.py)
   * an honest split-half isotonic estimate of what calibration would really buy
 
 Read-only. The split is regenerated in memory, so it never touches `datasets/` and works
@@ -66,23 +68,27 @@ def predict(seed, tag, dataset):
         pc[pid] = Data(x=tf, edge_index=tei, edge_weight=ew)
 
     df = pd.read_csv(os.path.join(hp.data_root, dataset, 'data.csv'))
-    test_df = create_fold_setting_cold(df, seed, [0.8, 0.1, 0.1], ['target_key'])['test']
+    fold = create_fold_setting_cold(df, seed, [0.8, 0.1, 0.1], ['target_key'])
     coll = lambda x: my_collate_fn(x, dev, hp, drug_df, prot_df, mol2vec, protvec,
                                    cmap, drug_graph_cache=dc, protein_graph_cache=pc)
-    dl = DataLoader(CustomDataSet(test_df, hp), batch_size=hp.Batch_size,
-                    shuffle=False, drop_last=True, collate_fn=coll)
 
     ckpt = f'./savemodel/{hp.dataset}-{hp.running_set}-split{seed}_new{tag}.pth'
     if not os.path.exists(ckpt):
         sys.exit(f"checkpoint not found: {ckpt}")
     m = nn.DataParallel(Model(hp, dev)).to(dev)
     m.load_state_dict(torch.load(ckpt, map_location=dev)); m.eval()
-    P, Y = [], []
-    with torch.no_grad():
-        for mm, mmk, pm, pmk, dg, pg, aff in dl:
-            o, _ = m(*[t.to(dev) for t in (mm, mmk, pm, pmk, dg, pg)])
-            P += o.cpu().numpy().reshape(-1).tolist(); Y += aff.numpy().reshape(-1).tolist()
-    return np.array(P), np.array(Y), os.path.basename(ckpt)
+
+    out = {}
+    for split in ('valid', 'test'):
+        dl = DataLoader(CustomDataSet(fold[split], hp), batch_size=hp.Batch_size,
+                        shuffle=False, drop_last=True, collate_fn=coll)
+        P, Y = [], []
+        with torch.no_grad():
+            for mm, mmk, pm, pmk, dg, pg, aff in dl:
+                o, _ = m(*[t.to(dev) for t in (mm, mmk, pm, pmk, dg, pg)])
+                P += o.cpu().numpy().reshape(-1).tolist(); Y += aff.numpy().reshape(-1).tolist()
+        out[split] = (np.array(P), np.array(Y))
+    return out, os.path.basename(ckpt)
 
 
 def main():
@@ -92,7 +98,9 @@ def main():
     ap.add_argument('--dataset', default='davis')
     args = ap.parse_args()
 
-    P, Y, ck = predict(args.seed, args.tag, args.dataset)
+    pred, ck = predict(args.seed, args.tag, args.dataset)
+    Pv, Yv = pred['valid']
+    P, Y = pred['test']
     mse, ci, rm = calculate_metrics(Y, P)
     print("=" * 84)
     print(f"  ORACLE BOUND ON OUTPUT-SIDE WORK  —  {ck}  (seed {args.seed})")
@@ -143,6 +151,12 @@ def main():
     iso = IsotonicRegression(out_of_bounds='clip').fit(P, Y)
     m4, c4, r4 = calculate_metrics(Y, iso.predict(P))
     print(f"    {'ORACLE monotone (best possible - cheating)':<44}{m4:>9.4f}{c4:>9.4f}{r4:>9.4f}")
+
+    av, bv = np.polyfit(Pv, Yv, 1)          # fitted on VALIDATION only — the deployable one
+    m5, c5, r5 = calculate_metrics(Y, av * P + bv)
+    print(f"    {'honest linear (fitted on VALIDATION)':<44}{m5:>9.4f}{c5:>9.4f}{r5:>9.4f}"
+          f"   ({m5-mse:+.4f})")
+    print(f"      y = {av:.4f}·pred {bv:+.4f}")
 
     rs = np.random.RandomState(0); idx = rs.permutation(len(P)); h = len(P) // 2
     fit, ev = idx[:h], idx[h:]

@@ -172,7 +172,7 @@ The best achievable by **any** rank-preserving transform — cheating by fitting
 actively hurts (+0.037): the compression is correct shrinkage under uncertainty, not a defect.
 Error is concentrated where it matters — the 30.3% of pairs that are real measurements (not the
 censored floor) carry **76.5%** of it, with underprediction growing to **−1.104** for the
-strongest binders. *(`code/analysis/oracle_bound.py`, `code/calib_check.py`)*
+strongest binders. *(`code/analysis/oracle_bound.py`)*
 
 **3. Validation systematically overstates performance.**
 Across all **7 completed cold-protein runs** the valid→test gap is positive **7/7 times**, mean
@@ -238,8 +238,7 @@ Every claim above is backed by a script. Commands are run from the repository ro
 | # | Finding | Reproduce with | Needs GPU |
 |---|---------|----------------|-----------|
 | 1 | Residue prior does not identify binding sites | `python code/validate_pocket.py` | yes |
-| 2 | Information deficit — calibration recovers little | `python code/calib_check.py` | yes |
-| 2 | **Oracle bound 0.3389** | `python code/analysis/oracle_bound.py` | yes |
+| 2 | **Information deficit — oracle bound 0.3389** | `python code/analysis/oracle_bound.py` | yes |
 | 3 | Validation overstates performance | `python code/analysis/valid_test_gap.py` | **no** |
 | 4 | **DAVIS is partly self-contradictory** | `python code/analysis/benchmark_integrity.py` | **no** |
 | 5 | Added input features failed (0 for 3) | see [EXPERIMENTS.md](EXPERIMENTS.md) — each run logged in full | — |
