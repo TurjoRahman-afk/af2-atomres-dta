@@ -309,31 +309,54 @@ not change the fold) · 6 backbone fallback (non-human, no AF2 entry). All 442 p
 ## Setup
 
 ```bash
-# pinned to the environment the reported results came from
+# torch first, from the CUDA index matching your driver
 pip install torch==2.9.1 --index-url https://download.pytorch.org/whl/cu128
 pip install -r requirements.txt
 ```
 
-> `requirements.txt` documents a known conflict: ESM-C (`esm`) and ESM-2 (`fair-esm`) both
-> import as `esm` and cannot coexist. Only ESM-C is needed to reproduce this work.
+`requirements.txt` also pins `torch==2.9.1`, but pip treats the already-installed `2.9.1+cu128`
+as satisfying it, so the CUDA build is not replaced. It also documents a genuine conflict:
+ESM-C (`esm`) and ESM-2 (`fair-esm`) both import as `esm` and cannot coexist — only ESM-C is
+needed here.
+
+All commands are run **from the repository root**.
 
 ```bash
-# 1. Generate pretrained embeddings
+# 1. Pretrained embeddings  (each script loops over davis/kiba/metz and skips
+#    datasets whose CSVs are absent, so davis-only is fine)
 python pretrained/chemberta_pretraiend.py
 python pretrained/esmC_pretraiend.py
 
-# 2. Download AlphaFold2 structures and build contact maps
+# 2. AlphaFold2 structures -> Cα contact maps
 python pretrained/alphafold2_preprocess.py --dataset davis
 
-# 3. Generate splits  (set SEED in cold_split.py to match SPLIT_SEED in the train script)
-python code/cold_split.py --dataset davis
+# 3. Splits — the seed here must match SPLIT_SEED in the train script
+python code/cold_split.py --dataset davis --SEED 41
 
-# 4. Train  (set running_set='unseen_prot' in hyperparameter.py)
+# 4. Train
 python code/train_pocketcross_gnnprior.py
 ```
 
-Training resumes automatically from a checkpoint if one exists. Results are written to
-`log/Test-{dataset}-{split}-split{SEED}_new_gnnprior.csv` once early stopping triggers naturally.
+**On step 2.** This downloads all 442 structures and takes a while. It **overwrites**
+`pretrained/davis/davis_af2_contact_map.pkl`, and a transient network failure silently
+downgrades a protein to a backbone chain graph — so back the file up first if you already
+have results you need to reproduce.
+
+**On steps 3 and 4.** `SPLIT_SEED` only *names* the output files; it never selects data. The
+train script therefore regenerates the split from `data.csv` at startup and refuses to run if
+the CSVs on disk disagree:
+
+```
+split check OK — data on disk is seed 41 (44 test proteins)
+```
+
+`hyperparameter.py` already defaults to `dataset='davis'` and `running_set='unseen_prot'`, so
+nothing needs editing for the reported results.
+
+Training resumes automatically from a checkpoint if one exists — delete
+`savemodel/*_checkpoint.pth` to force a fresh run. The final test result is written to
+`log/Test-davis-unseen_prot-split{SEED}_new_gnnprior.csv` **only** once early stopping triggers
+naturally; a number read before that file exists is from an unfinished run.
 
 ---
 
