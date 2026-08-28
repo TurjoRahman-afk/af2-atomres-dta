@@ -50,7 +50,7 @@ def get_esm_contact_map(model, df_dir, db_name, max_length=1200):
         "length_dict": length_target
     }
     
-    output_path = f'./KANPM-DTA/pretrained/{db_name}/{db_name}_esm2_contact_map.pkl'
+    output_path = f'./pretrained/{db_name}/{db_name}_esm2_contact_map.pkl'
     with open(output_path, 'wb') as f:
         pickle.dump(dump_data, f)
 
@@ -58,7 +58,7 @@ def get_esm_contact_map(model, df_dir, db_name, max_length=1200):
         
 
 db_names = ['davis', 'kiba', 'metz', 'bindingDB']
-df_dirs = [r'./KANPM-DTA/datasets/davis/davis_prots.csv', r'./KANPM-DTA/datasets/kiba/kiba_prots.csv', r'./KANPM-DTA/datasets/metz/metz_prots.csv', r'./KANPM-DTA/datasets/bindingDB/bindingDB_prots.csv']
+df_dirs = [r'./datasets/davis/davis_prots.csv', r'./datasets/kiba/kiba_prots.csv', r'./datasets/metz/metz_prots.csv', r'./datasets/bindingDB/bindingDB_prots.csv']
 
 for i in range(0,4):
     print(f'Compute {df_dirs[i]} protein pretrain feature by esm2.')
