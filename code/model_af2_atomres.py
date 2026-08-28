@@ -1,15 +1,16 @@
 """
-AF2-PocketCross-DTA — GNN-derived pocket prior variant
+AF2-AtomRes-DTA — GNN-derived pocket prior variant
 ========================================================
-Same backbone and structure-guided interaction mechanism as model_pocketcross.py.
-The ONLY change: the pocket score fed into StructGuidedInteraction now comes from
+Same backbone and structure-guided interaction mechanism as the superseded
+hand-counted-feature variant (removed; recoverable from git commit a0937c8).
+The ONLY change: the residue score fed into StructGuidedInteraction now comes from
 ProteinGraphNet's own per-residue embeddings (already learned via real message-passing
 over the AF2 contact graph), instead of hand-counted contact-degree features.
 
 ProteinGraphNet computes a per-residue embedding for every node anyway, then used to
 just pool-and-discard it. Here we also densify it (torch_geometric.utils.to_dense_batch)
 into a [B, protein_max, 256] tensor aligned with the same +1 BOS offset convention used
-throughout the sequence pipeline, and feed that into PocketPrior instead of the separate
+throughout the sequence pipeline, and feed that into ResiduePrior instead of the separate
 target2struct feature pipeline. Net effect: no new hand-crafted features, no separate
 prot_struct model input — forward() returns to its original 6-argument signature.
 """
@@ -98,8 +99,8 @@ class ProteinGraphNet(nn.Module):
         return pooled, residue_emb, residue_mask   # fasta_graph, per-residue GNN embedding, validity mask
 
 
-class PocketPrior(nn.Module):
-    """Per-residue bindability score, now derived from ProteinGraphNet's own learned
+class ResiduePrior(nn.Module):
+    """Per-residue importance score, derived from ProteinGraphNet's own learned
     per-residue embedding (real message-passing over the AF2 contact graph) instead of
     hand-counted contact-degree features."""
     def __init__(self, in_dim=256, hidden=32):
@@ -111,7 +112,7 @@ class PocketPrior(nn.Module):
 
 
 class StructGuidedInteraction(nn.Module):
-    """Drug-atom <-> protein-residue attention, biased by the pocket prior."""
+    """Drug-atom <-> protein-residue attention, biased by the residue prior."""
     def __init__(self, dim=128):
         super().__init__()
         self.q = nn.Linear(dim, dim)
@@ -120,10 +121,10 @@ class StructGuidedInteraction(nn.Module):
         self.drop = nn.Dropout(0.2)
         self.scale = dim ** 0.5
 
-    def forward(self, Hd, Hp, drug_mask, prot_mask, pocket_logit):
-        # Hd [B,Nd,D]  Hp [B,Lp,D]  masks [B,Nd]/[B,Lp] (1=real,0=pad)  pocket_logit [B,Lp]
+    def forward(self, Hd, Hp, drug_mask, prot_mask, residue_logit):
+        # Hd [B,Nd,D]  Hp [B,Lp,D]  masks [B,Nd]/[B,Lp] (1=real,0=pad)  residue_logit [B,Lp]
         scores = torch.bmm(self.q(Hd), self.k(Hp).transpose(1, 2)) / self.scale   # [B,Nd,Lp]
-        scores = scores + self.beta * pocket_logit.unsqueeze(1)                    # pocket bias on residues
+        scores = scores + self.beta * residue_logit.unsqueeze(1)                    # residue prior bias
         res_pad = (prot_mask < 0.5).unsqueeze(1)                                   # [B,1,Lp] True=pad
         scores = scores.masked_fill(res_pad, -9e15)
         I = self.drop(torch.softmax(scores, dim=-1))                              # [B,Nd,Lp] interaction map
@@ -153,7 +154,10 @@ class MODEL(nn.Module):
         self.protein_graph_model = ProteinGraphNet(protein_max=hp.prot_max_len)
         self.graph_fusion = GatedFusionLayer(d, d, d)
 
-        self.pocket = PocketPrior(in_dim=self.protein_graph_model.node_dim)
+        # NOTE: attribute kept as `pocket` on purpose — state_dict keys are built from the
+        # attribute name, so renaming it would invalidate every saved checkpoint
+        # (module.pocket.mlp.*). The class and the variables it produces are named honestly.
+        self.pocket = ResiduePrior(in_dim=self.protein_graph_model.node_dim)
         self.interaction = StructGuidedInteraction(d)
 
         # final = f_int(128) + drug_pool(128) + prot_pool(128) + graph(128) = 512
@@ -164,8 +168,8 @@ class MODEL(nn.Module):
         Hp = self.target_ln(self.transformer_encoder2(self.fc2(prot_mat)))  # [B,Lp,128]
 
         fasta_graph, residue_emb, _residue_mask = self.protein_graph_model(protein_graph)
-        pocket_logit = self.pocket(residue_emb)                             # [B,Lp]
-        f_int, I = self.interaction(Hd, Hp, drug_mask, prot_mask, pocket_logit)
+        residue_logit = self.pocket(residue_emb)                             # [B,Lp]
+        f_int, I = self.interaction(Hd, Hp, drug_mask, prot_mask, residue_logit)
 
         gd = (Hd * drug_mask.unsqueeze(-1)).sum(1) / drug_mask.sum(1, keepdim=True).clamp(min=1)   # [B,128]
         gp = (Hp * prot_mask.unsqueeze(-1)).sum(1) / prot_mask.sum(1, keepdim=True).clamp(min=1)   # [B,128]

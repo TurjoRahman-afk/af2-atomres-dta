@@ -36,7 +36,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'
 from cold_split import create_fold_setting_cold                      # noqa: E402
 from hyperparameter import HyperParameter                            # noqa: E402
 from metrics import calculate_metrics                                # noqa: E402
-from model_pocketcross_gnnprior import MODEL as Model                # noqa: E402
+from model_af2_atomres import MODEL as Model                # noqa: E402
 from MyDataset import CustomDataSet, my_collate_fn, smile2graph, target2graph  # noqa: E402
 
 import warnings; warnings.filterwarnings("ignore")

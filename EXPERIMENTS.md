@@ -1,4 +1,4 @@
-# Experimental History — AF2-PocketCross-DTA
+# Experimental History — AF2-AtomRes-DTA
 
 > **This is the full historical record.** For the current model and results, see [README.md](README.md).
 >
@@ -8,7 +8,7 @@
 > dataset, and they exist so the same dead ends are not re-explored.
 >
 > **Note on code availability.** The working tree now carries only the champion
-> (`code/model_pocketcross_gnnprior.py` + `code/train_pocketcross_gnnprior.py`) and its
+> (`code/model_af2_atomres.py` + `code/train_af2_atomres.py`) and its
 > analysis tooling. The superseded implementations cited below — `model.py`/`train.py` (v4
 > baseline) and `model_pocketcross.py`/`train_pocketcross.py` (hand-counted pocket prior,
 > weighted loss, rich distance features) — were removed once their results were recorded here,
@@ -559,13 +559,13 @@ _Result (Complete): cold-protein **test MSE 0.4071, CI 0.8382, r2m 0.4112** on 4
 
 ---
 
-## AF2-PocketCross-DTA — development log
+## AF2-AtomRes-DTA — development log
 
 > **Self-contained section for the new architecture.** Code: `code/model_pocketcross.py`, trained via `code/train_pocketcross.py`. If it outperforms the baseline, everything above this line can be removed and this becomes the main model.
 
 ## Motivation
 
-Existing DTA models (KANPM, and the baseline above) **pool** the drug and protein each into a single vector, then combine them — discarding the actual binding event, which is specific **drug atoms** contacting specific **protein pocket residues**. AF2-PocketCross-DTA models that interaction **explicitly**, guided by 3D structure:
+Existing DTA models (KANPM, and the baseline above) **pool** the drug and protein each into a single vector, then combine them — discarding the actual binding event, which is specific **drug atoms** contacting specific **protein pocket residues**. AF2-AtomRes-DTA models that interaction **explicitly**, guided by 3D structure:
 
 1. A **pocket prior** derived from the AF2 contact map scores each residue's bindability (burial/contact degree).
 2. **Drug-atom ↔ protein-residue attention**, biased toward the structural pocket, produces an **interpretable interaction map** (which atom binds which residue).
@@ -629,11 +629,11 @@ Existing DTA models (KANPM, and the baseline above) **pool** the drug and protei
 |-------|-----------|-----------|-----------|
 | Baseline (old model, plain MSE) | 0.4071 | 0.8382 | 0.4112 |
 | KANPM-DTA (target) | 0.314 | 0.857 | 0.556 |
-| AF2-PocketCross-DTA (weighted loss) | 0.3781 | 0.8450 | 0.4542 |
-| AF2-PocketCross-DTA (plain MSE, hand-counted pocket features) | 0.3715 | 0.8453 | 0.4628 |
-| AF2-PocketCross-DTA (plain MSE, rich distance-features) — worse, not adopted | 0.4287 | 0.8180 | 0.4206 |
-| AF2-PocketCross-DTA (plain MSE, attention pooling) — worse, not adopted | 0.3759 | 0.8420 | 0.4699 |
-| **AF2-PocketCross-DTA (plain MSE, GNN-derived pocket prior) — best result** | **0.3519** | **0.8547** | **0.4928** |
+| AF2-AtomRes-DTA (weighted loss) | 0.3781 | 0.8450 | 0.4542 |
+| AF2-AtomRes-DTA (plain MSE, hand-counted pocket features) | 0.3715 | 0.8453 | 0.4628 |
+| AF2-AtomRes-DTA (plain MSE, rich distance-features) — worse, not adopted | 0.4287 | 0.8180 | 0.4206 |
+| AF2-AtomRes-DTA (plain MSE, attention pooling) — worse, not adopted | 0.3759 | 0.8420 | 0.4699 |
+| **AF2-AtomRes-DTA (plain MSE, GNN-derived pocket prior) — best result** | **0.3519** | **0.8547** | **0.4928** |
 
 ### Seed 42 — Plain MSE ablation (Complete — natural early-stop ep82)
 
@@ -694,7 +694,7 @@ _Trained to natural early-stop (best valid at ep27, patience 20 exhausted at ep4
 | 40 | 0.0755 | 0.3595 | 0.8318 | 0.5166 |
 | 47 (final) | 0.0656 | 0.3882 | 0.8401 | 0.4776 |
 
-_**Result (Complete):** AF2-PocketCross-DTA (weighted loss) test **MSE 0.3781 / CI 0.8450 / r²ₘ 0.4542** on cold-protein seed 42. **Beats the old baseline on all three metrics** (MSE 0.4071→0.3781, −0.029; CI 0.8382→0.8450; r²ₘ 0.4112→0.4542) — the structure-guided interaction + weighted loss both help. Still short of KANPM (0.314 / 0.857 / 0.556). Note: this bundles two changes (new architecture + weighted loss); a plain-MSE run of the same model is needed to attribute how much each contributes. Also the valid→test gap is smaller than the baseline's (0.346→0.378 = +0.032 vs baseline 0.345→0.407 = +0.062), a sign of better generalization._
+_**Result (Complete):** AF2-AtomRes-DTA (weighted loss) test **MSE 0.3781 / CI 0.8450 / r²ₘ 0.4542** on cold-protein seed 42. **Beats the old baseline on all three metrics** (MSE 0.4071→0.3781, −0.029; CI 0.8382→0.8450; r²ₘ 0.4112→0.4542) — the structure-guided interaction + weighted loss both help. Still short of KANPM (0.314 / 0.857 / 0.556). Note: this bundles two changes (new architecture + weighted loss); a plain-MSE run of the same model is needed to attribute how much each contributes. Also the valid→test gap is smaller than the baseline's (0.346→0.378 = +0.032 vs baseline 0.345→0.407 = +0.062), a sign of better generalization._
 
 ### Seed 42 — Rich distance-based pocket features (Complete — natural early-stop ep49)
 
@@ -728,7 +728,7 @@ _**Result (Complete) — negative finding:** test **MSE 0.4287 / CI 0.8180 / r²
 
 ### Seed 42 — GNN-derived pocket prior (Complete — natural early-stop ep84) — 🏆 NEW BEST
 
-_Same backbone/split/seed/plain-MSE loss as the 0.3715 result — **only the source of the pocket score changed**: instead of hand-counted contact-degree features (`target2struct`), the pocket score now comes from `ProteinGraphNet`'s own per-residue embeddings (already learned via real message-passing over the AF2 contact graph), densified via `to_dense_batch` instead of being discarded after pooling. No separate feature-engineering pipeline — `code/model_pocketcross_gnnprior.py` / `code/train_pocketcross_gnnprior.py`. Trained to natural early-stop (best valid at ep64, patience 20 exhausted at ep84). Tested on the ep64 checkpoint._
+_Same backbone/split/seed/plain-MSE loss as the 0.3715 result — **only the source of the pocket score changed**: instead of hand-counted contact-degree features (`target2struct`), the pocket score now comes from `ProteinGraphNet`'s own per-residue embeddings (already learned via real message-passing over the AF2 contact graph), densified via `to_dense_batch` instead of being discarded after pooling. No separate feature-engineering pipeline — `code/model_af2_atomres.py` / `code/train_af2_atomres.py`. Trained to natural early-stop (best valid at ep64, patience 20 exhausted at ep84). Tested on the ep64 checkpoint._
 
 > **Best Checkpoint — Epoch 64**
 > | Metric | Value |
@@ -753,7 +753,7 @@ _Same backbone/split/seed/plain-MSE loss as the 0.3715 result — **only the sou
 | 75 | 0.0480 | 0.3386 | 0.8466 | 0.5330 |
 | 84 (final) | 0.0465 | 0.3390 | 0.8507 | 0.5391 |
 
-_**Result (Complete) — new best:** test **MSE 0.3519 / CI 0.8547 / r²ₘ 0.4928** — **beats the previous champion (hand-counted pocket features) on all three metrics** (0.3715→0.3519 MSE, −0.0196; 0.8453→0.8547 CI; 0.4628→0.4928 r²ₘ). Reusing the protein GNN's own learned per-residue embeddings — instead of hand-counted contact-degree features — genuinely helps. The gap to KANPM narrows further: MSE gap 0.093 (baseline) → 0.058 (previous champion) → **0.038** (this result); CI gap is now only 0.002 (0.8547 vs 0.857) — essentially matched. r²ₘ gap remains the largest weak point (0.493 vs 0.556). This is now the standing best result for AF2-PocketCross-DTA on cold-protein seed 42._
+_**Result (Complete) — new best:** test **MSE 0.3519 / CI 0.8547 / r²ₘ 0.4928** — **beats the previous champion (hand-counted pocket features) on all three metrics** (0.3715→0.3519 MSE, −0.0196; 0.8453→0.8547 CI; 0.4628→0.4928 r²ₘ). Reusing the protein GNN's own learned per-residue embeddings — instead of hand-counted contact-degree features — genuinely helps. The gap to KANPM narrows further: MSE gap 0.093 (baseline) → 0.058 (previous champion) → **0.038** (this result); CI gap is now only 0.002 (0.8547 vs 0.857) — essentially matched. r²ₘ gap remains the largest weak point (0.493 vs 0.556). This is now the standing best result for AF2-AtomRes-DTA on cold-protein seed 42._
 
 ### Seed 41 — GNN-derived pocket prior (Complete — natural early-stop ep49) — seed validation
 

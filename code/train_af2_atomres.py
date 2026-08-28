@@ -1,5 +1,6 @@
-"""Training script for AF2-PocketCross-DTA — GNN-prior variant (model_pocketcross_gnnprior.py).
-Simpler than train_pocketcross.py: no prot_struct / struct_cache needed since the pocket
+"""Training script for AF2-AtomRes-DTA — GNN-prior variant (model_af2_atomres.py).
+Simpler than the superseded hand-counted-feature trainer: no prot_struct / struct_cache
+needed, since the residue
 score now comes from ProteinGraphNet's own per-residue embeddings, so this uses the plain
 my_collate_fn (same one train.py uses). Plain MSE loss, matching the config that won
 (0.3715) for the original pocket-prior version — isolates the ONE change: where the
@@ -12,7 +13,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from model_pocketcross_gnnprior import MODEL as Model
+from model_af2_atomres import MODEL as Model
 from hyperparameter import HyperParameter
 from MyDataset import CustomDataSet, my_collate_fn, smile2graph, target2graph
 from torch_geometric.data import Data
@@ -82,7 +83,7 @@ if __name__ == "__main__":
     hp = HyperParameter()
     os.environ["CUDA_VISIBLE_DEVICES"] = hp.cuda
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Dataset-{hp.dataset}-{hp.running_set}  (AF2-PocketCross-DTA, GNN-prior variant)")
+    print(f"Dataset-{hp.dataset}-{hp.running_set}  (AF2-AtomRes-DTA, GNN-prior variant)")
 
     drug_df = pd.read_csv(hp.drugs_dir); prot_df = pd.read_csv(hp.prots_dir)
     mol2vec_dict = load_pickle(hp.mol2vec_dir); protvec_dict = load_pickle(hp.protvec_dir)

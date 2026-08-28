@@ -1,4 +1,4 @@
-# AF2-PocketCross-DTA
+# AF2-AtomRes-DTA
 
 **Does grounding a drug–target affinity model in real protein structure help it generalise to
 targets it has never seen? Measured answer: no.**
@@ -6,7 +6,7 @@ targets it has never seen? Measured answer: no.**
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="images/overview-dark.svg">
-    <img src="images/overview.svg" alt="AF2-PocketCross-DTA architecture. Panel A, protein: the sequence goes to ESM-C for per-residue embeddings and to AlphaFold2 for a Ca contact map; together they form a residue graph read by ProteinGraphNet, which emits both a pooled protein vector and per-residue embeddings that feed a residue prior. Panel B, drug: SMILES goes to RDKit for a molecular graph and to ChemBERTa for token embeddings, each read by its own encoder. Panel C: the graph vectors are combined by gated fusion, the sequence tensors meet in structure-guided atom-residue attention biased by the residue prior, and the four resulting vectors are concatenated and passed to a KAN block that outputs an affinity score." width="100%">
+    <img src="images/overview.svg" alt="AF2-AtomRes-DTA architecture. Panel A, protein: the sequence goes to ESM-C for per-residue embeddings and to AlphaFold2 for a Ca contact map; together they form a residue graph read by ProteinGraphNet, which emits both a pooled protein vector and per-residue embeddings that feed a residue prior. Panel B, drug: SMILES goes to RDKit for a molecular graph and to ChemBERTa for token embeddings, each read by its own encoder. Panel C: the graph vectors are combined by gated fusion, the sequence tensors meet in structure-guided atom-residue attention biased by the residue prior, and the four resulting vectors are concatenated and passed to a KAN block that outputs an affinity score." width="100%">
   </picture>
 </p>
 
@@ -86,7 +86,7 @@ residue score derived from the protein's structure-derived contact topology.
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="images/architecture-dark.svg">
-    <img src="images/architecture.svg" alt="AF2-PocketCross-DTA forward pass: drug SMILES and protein sequence are each encoded twice — once by a pretrained language model into a transformer, once into a graph network. ProteinGraphNet's per-residue embeddings feed a residue prior that biases atom-to-residue attention. Four 128-dim vectors are concatenated and passed to a KAN predictor." width="920">
+    <img src="images/architecture.svg" alt="AF2-AtomRes-DTA forward pass: drug SMILES and protein sequence are each encoded twice — once by a pretrained language model into a transformer, once into a graph network. ProteinGraphNet's per-residue embeddings feed a residue prior that biases atom-to-residue attention. Four 128-dim vectors are concatenated and passed to a KAN predictor." width="920">
   </picture>
 </p>
 
@@ -109,8 +109,8 @@ are kept and turned into a per-residue bias on the atom↔residue attention.
 
 | Setting | Value |
 |---------|-------|
-| Model file | `code/model_pocketcross_gnnprior.py` |
-| Train script | `code/train_pocketcross_gnnprior.py` |
+| Model file | `code/model_af2_atomres.py` |
+| Train script | `code/train_af2_atomres.py` |
 | Sequence encoders | ChemBERTa (384→128), ESM-C (1152→128), 3-layer transformers, 8 heads |
 | Graph encoders | GCNConv + 5× GATConv (drug dim 128, protein dim 256) |
 | Predictor | KAN [512, 1024, 512, 1], cubic splines, grid 5 |
@@ -143,7 +143,7 @@ Same benchmark and split protocol (KANPM's `cold_split.py`), DAVIS unseen-protei
 | 3 | DMFF-DTA (2025) | 0.330 | 0.840 | 0.501 |
 | 4 | MgraphDTA (2022) | 0.359 | 0.813 | 0.425 |
 | 5 | MSGNN-DTA (2023) | 0.361 | 0.816 | 0.430 |
-| **6** | **AF2-PocketCross-DTA (this work)** | **0.3618** | **0.8541** | **0.5360** |
+| **6** | **AF2-AtomRes-DTA (this work)** | **0.3618** | **0.8541** | **0.5360** |
 | 7 | FusionDTA (2022) | 0.364 | 0.826 | 0.435 |
 | 8 | GRA-DTA (2024) | 0.376 | 0.827 | 0.453 |
 | 9 | GraphDTA (2021) | 0.510 | 0.729 | 0.154 |
@@ -172,7 +172,7 @@ Tested across 60 kinases with unambiguous motifs, the learned residue score at t
 **statistically indistinguishable from elsewhere** (52% vs 50% chance, paired t-test p = 0.37,
 z = +0.05). The module measurably improves accuracy (+0.020 MSE) and contributes ~22% of attention
 steering, but it is **not** learning binding-site location — most plausibly burial/contact density.
-No interpretability claim is made. *(`code/validate_pocket.py`)*
+No interpretability claim is made. *(`code/validate_residue_prior.py`)*
 
 **2. The MSE gap is an information deficit, not a calibration artifact.**
 Decomposing test error: **99.5% is shape error** (wrong values on individual pairs), only 0.5% is
@@ -258,7 +258,7 @@ Every claim above is backed by a script. Commands are run from the repository ro
 
 | # | Finding | Reproduce with | Needs GPU |
 |---|---------|----------------|-----------|
-| 1 | Residue prior does not identify binding sites | `python code/validate_pocket.py` | yes |
+| 1 | Residue prior does not identify binding sites | `python code/validate_residue_prior.py` | yes |
 | 2 | **Information deficit — oracle bound 0.3389** | `python code/analysis/oracle_bound.py` | yes |
 | 3 | Validation overstates performance | `python code/analysis/valid_test_gap.py` | **no** |
 | 4 | **DAVIS is partly self-contradictory** | `python code/analysis/benchmark_integrity.py` | **no** |
@@ -341,7 +341,7 @@ python pretrained/alphafold2_preprocess.py --dataset davis
 python code/cold_split.py --dataset davis --SEED 41
 
 # 4. Train
-python code/train_pocketcross_gnnprior.py
+python code/train_af2_atomres.py
 ```
 
 **On step 2.** This downloads all 442 structures and takes a while. It **overwrites**

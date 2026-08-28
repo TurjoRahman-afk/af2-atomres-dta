@@ -1,4 +1,4 @@
-# AF2-PocketCross-DTA — Does Real Protein Structure Help Predict Drug Binding?
+# AF2-AtomRes-DTA — Does Real Protein Structure Help Predict Drug Binding?
 
 **A Research Summary**
 

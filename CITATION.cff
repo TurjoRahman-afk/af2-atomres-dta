@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 title: >-
-  AF2-PocketCross-DTA: does real protein structure improve
+  AF2-AtomRes-DTA: does real protein structure improve
   drug–target affinity prediction for unseen targets?
 message: >-
   If you use this software or its findings, please cite it using

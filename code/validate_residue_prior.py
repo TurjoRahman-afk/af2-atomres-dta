@@ -1,13 +1,13 @@
-"""Does the learned PocketPrior actually find real kinase ATP-binding sites?
+"""Does the learned ResiduePrior actually find real kinase ATP-binding sites?
 Davis is 100% kinases. The ATP pocket is anchored by the canonical catalytic motifs
 HRD (catalytic loop) and DFG (activation-loop start), which sit ~15-45 residues apart.
-Test: is pocket_logit elevated in a window around those motifs vs elsewhere?"""
+Test: is residue_logit elevated in a window around those motifs vs elsewhere?"""
 import re, pickle, torch, numpy as np, pandas as pd
 from hyperparameter import HyperParameter
 from MyDataset import target2graph
 from torch_geometric.data import Data, Batch
-import model_pocketcross_gnnprior as M
-from model_pocketcross_gnnprior import MODEL
+import model_af2_atomres as M
+from model_af2_atomres import MODEL
 import warnings; warnings.filterwarnings("ignore")
 
 def lp(d):
@@ -57,8 +57,8 @@ for _,r in prot_df.iterrows():
 
 df=pd.DataFrame(rows,columns=['prot','n_res','n_site','site_mean','other_mean','z'])
 print(f"proteins with unambiguous HRD...DFG catalytic motif: {len(df)}")
-print(f"\nmean pocket_logit at ATP-site region : {df.site_mean.mean():+.4f}")
-print(f"mean pocket_logit elsewhere          : {df.other_mean.mean():+.4f}")
+print(f"\nmean residue_logit at ATP-site region : {df.site_mean.mean():+.4f}")
+print(f"mean residue_logit elsewhere          : {df.other_mean.mean():+.4f}")
 print(f"mean difference (site - elsewhere)   : {(df.site_mean-df.other_mean).mean():+.4f}")
 print(f"mean z-score (in units of protein-wise std): {df.z.mean():+.3f}")
 print(f"proteins where site scored HIGHER    : {(df.site_mean>df.other_mean).sum()} / {len(df)}  "
