@@ -1,12 +1,26 @@
 # AF2-PocketCross-DTA
 
-**Drug–target affinity prediction with structure-guided atom↔residue interaction.**
+**Does grounding a drug–target affinity model in real protein structure help it generalise to
+targets it has never seen? Measured answer: no.**
 
-A DTA model built on AlphaFold2 protein structures, evaluated on the harder **cold-protein**
-(unseen-target) setting of DAVIS rather than the near-saturated random split.
+[![License: MIT](https://img.shields.io/badge/License-MIT-0B57D0.svg)](LICENSE)
+![Python 3.11](https://img.shields.io/badge/Python-3.11-0B57D0.svg)
+![PyTorch 2.9](https://img.shields.io/badge/PyTorch-2.9-B45309.svg)
+![Benchmark: DAVIS cold-protein](https://img.shields.io/badge/Benchmark-DAVIS%20cold--protein-0F766E.svg)
 
-> Full experimental history, including every failed variant and why it failed, is in
-> [EXPERIMENTS.md](EXPERIMENTS.md).
+A controlled study on the **cold-protein** split of DAVIS, where all 44 test kinases are held out
+of training entirely, so a model cannot score well by memorising which entities it has seen.
+
+Three results, each reproducible from this repository with one command:
+
+| | |
+|---|---|
+| **Ranking is competitive** | CI **0.8541 ± 0.0053** over three seeds, versus 0.857 for the best published method — 2nd of 9, and closer to 1st than 3rd is to us |
+| **Real structure did not help** | AlphaFold2-derived contacts score 0.3618 MSE; the reference method's *sequence-predicted* contacts score 0.314. Independently corroborated by [arXiv:2606.04228](https://arxiv.org/abs/2606.04228) |
+| **The benchmark is partly broken** | DAVIS has 442 target entries but **379 unique sequences** — 18.9% of training pairs are mutually contradictory and 11.4% of test pairs are unlearnable by construction. Not previously reported |
+
+> Every failed variant, with its full training log and why it failed, is in
+> [EXPERIMENTS.md](EXPERIMENTS.md). A plain-language summary is in [PAPER.md](PAPER.md).
 
 ---
 

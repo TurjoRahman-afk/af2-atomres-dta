@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+title: >-
+  AF2-PocketCross-DTA: does real protein structure improve
+  drug–target affinity prediction for unseen targets?
+message: >-
+  If you use this software or its findings, please cite it using
+  the metadata below.
+type: software
+authors:
+  - given-names: Turjo
+    family-names: Rahman
+    email: us.khan.2002@gmail.com
+repository-code: "https://github.com/TurjoRahman-afk/Drug"
+abstract: >-
+  A drug–target affinity model evaluated on the cold-protein
+  (unseen-target) split of the DAVIS kinase benchmark, where all
+  test proteins are held out of training. Protein graphs are built
+  from AlphaFold2 Cα contact topology rather than sequence-predicted
+  contacts, and drug atoms attend over protein residues with the
+  attention biased by a residue prior recycled from the protein
+  GNN's own per-residue embeddings.
+
+  Across three split seeds the model reaches CI 0.8541 ± 0.0053,
+  second of nine published methods and statistically close to the
+  best, while absolute accuracy (MSE 0.3618 ± 0.0109) does not
+  improve on methods using sequence-predicted contacts. The work
+  also reports a previously undocumented flaw in the DAVIS
+  benchmark: 442 target entries share only 379 unique sequences,
+  making 18.9% of training pairs mutually contradictory and 11.4%
+  of cold-protein test pairs unlearnable by construction.
+keywords:
+  - drug-target affinity
+  - drug discovery
+  - AlphaFold2
+  - protein language models
+  - graph neural networks
+  - Kolmogorov-Arnold networks
+  - benchmark integrity
+  - cold-start generalisation
+license: MIT
