@@ -99,8 +99,8 @@ are kept and turned into a per-residue bias on the atom↔residue attention.
 | Project + contextualise drug tokens | `drug_ln(transformer_encoder(fc3(drug_mat)))` | `[B, 220, 128]` |
 | Project + contextualise residues | `target_ln(transformer_encoder2(fc2(prot_mat)))` | `[B, 1200, 128]` |
 | Protein contact graph — **two** outputs | `protein_graph_model(protein_graph)` | `[B, 128]` + `[B, 1200, 256]` |
-| Score every residue | `pocket(residue_emb)` | `[B, 1200]` |
-| Atom↔residue attention, biased by the prior | `interaction(Hd, Hp, …, pocket_logit)` | `[B, 128]` + map `[B, 220, 1200]` |
+| Score every residue | `pocket(residue_emb)` → `residue_logit` | `[B, 1200]` |
+| Atom↔residue attention, biased by the prior | `interaction(Hd, Hp, …, residue_logit)` | `[B, 128]` + map `[B, 220, 1200]` |
 | Masked, length-normalised sequence means | `gd`, `gp` | `[B, 128]` each |
 | Blend the two graph views | `graph_fusion(smiles_graph, fasta_graph)` | `[B, 128]` |
 | Predict | `kan(cat([f_int, gd, gp, g]))` | `[B, 1]` |
@@ -364,6 +364,74 @@ Training resumes automatically from a checkpoint if one exists — delete
 `savemodel/*_checkpoint.pth` to force a fresh run. The final test result is written to
 `log/Test-davis-unseen_prot-split{SEED}_new_gnnprior.csv` **only** once early stopping triggers
 naturally; a number read before that file exists is from an unfinished run.
+
+---
+
+## Repository layout
+
+```
+code/
+  model_af2_atomres.py        the model
+  train_af2_atomres.py        training, with a split-seed assertion at startup
+  MyDataset.py                graph construction, batching, masking
+  cold_split.py               the split protocol used by every reported number
+  kan.py  metrics.py  hyperparameter.py
+  analysis/                   one script per finding — see the table above
+  validate_residue_prior.py   the ATP-site test that withdrew the pocket claim
+pretrained/                   embedding + AlphaFold2 preprocessing scripts
+datasets/davis/               DAVIS pairs, and the four split settings
+log/                          training curves and final test results, per run
+images/                       figures (light and dark, generated)
+```
+
+### What a clone does *not* include
+
+The preprocessed inputs and trained weights are too large for git and are gitignored:
+
+| | size | regenerate with |
+|---|---|---|
+| `pretrained/davis/*.pkl` | ~2.7 GB | steps 1–2 of Setup |
+| `savemodel/*.pth` | ~312 MB | step 4, ~3.5 h per seed on one GPU |
+
+`log/` **is** committed, so every reported number can be checked against its training curve
+without rerunning anything.
+
+---
+
+## Known issues
+
+Two defects found while auditing this code. Both are documented rather than silently patched,
+because fixing either would change the published numbers.
+
+**The sequence encoders attend across the batch, not across tokens.** Both transformers are
+built with PyTorch's default `batch_first=False` while receiving batch-first tensors, so
+self-attention operates over the batch dimension. A sample's output therefore depends on which
+other samples share its batch. Predictions are reproducible under the fixed batch composition
+used throughout (`drop_last=True`, `shuffle=False` at eval), and the same pattern is present in
+the reference implementation this code derives from, so both models are affected identically.
+
+**The model cannot run on CPU without editing.** `ProteinGraphNet` and `DrugGraphNet` move their
+inputs to a module-level `device` global rather than to the module's own device, so
+`MODEL(hp, torch.device('cpu'))` raises a device mismatch inside `GCNConv`. The `device`
+argument to `MODEL.__init__` is unused.
+
+---
+
+## Acknowledgements
+
+This project began from the released code for **KANPM-DTA** (Rakib et al., *Briefings in
+Bioinformatics*, 2026) and retains a substantial amount of it: the ChemBERTa / ESM-C / ESM-2
+preprocessing scripts, the dataset layout and `cold_split.py` protocol, the metric
+implementations, the KAN predictor, the drug and protein graph encoders, and `GatedFusionLayer`.
+Evaluating on the same split code is what makes the comparison in this README meaningful.
+
+What is new here is the AlphaFold2 contact source, the residue prior recycled from
+`ProteinGraphNet`'s per-residue embeddings, the structure-guided atom↔residue interaction, and
+the analysis in `code/analysis/`.
+
+Data and pretrained models are the property of their original authors — DAVIS (Davis et al.,
+*Nature Biotechnology*, 2011), ChemBERTa (DeepChem), ESM-C (EvolutionaryScale), and the
+AlphaFold Protein Structure Database (EMBL-EBI / DeepMind).
 
 ---
 
