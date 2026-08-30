@@ -10,7 +10,7 @@ authors:
   - given-names: Turjo
     family-names: Rahman
     email: us.khan.2002@gmail.com
-repository-code: "https://github.com/TurjoRahman-afk/Drug"
+repository-code: "https://github.com/TurjoRahman-afk/af2-atomres-dta"
 abstract: >-
   A drug–target affinity model evaluated on the cold-protein
   (unseen-target) split of the DAVIS kinase benchmark, where all
